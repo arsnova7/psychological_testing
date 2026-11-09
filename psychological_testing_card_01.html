@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 1, title: "교육과 인간의 이해" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 교육의 정의 (정범모, 1968) [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "인간행동의 계획적 변화"
+  },
+  {
+    "q": "★★★ 교육 정의에서 '인간행동'의 범주 [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "관찰 가능한 외현적 행동뿐만 아니라 지식, 사고, 자아개념, 가치관 등 내재적 행동을 모두 포함함"
+  },
+  {
+    "q": "★★★ 교육의 가치 지향성 [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "피교육자의 지(知)·정(情)·의(意)·체(體)를 '바람직한 방향'으로 변화시키려는 활동"
+  },
+  {
+    "q": "★★★ 교육의 '계획성' 성립 조건 [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "명확한 교육목적 설정 및 이론적·실증적 기초에 따른 교육과정과 프로그램의 준비"
+  },
+  {
+    "q": "★★★ 잠재적 교육과정 (latent curriculum) [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "학교에서 의도한 바 없으나 학교의 물리적 조건, 제도, 사회심리적 환경을 통해 학생이 주관적으로 경험하고 학습하는 것"
+  },
+  {
+    "q": "★★★ 칸트(Kant)의 인간관 명언 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "\"교육이 사람을 사람답게 만든다\" (인간은 가소성과 잠재 가능성을 지닌 교육적 존재)"
+  },
+  {
+    "q": "★★★ 교육학의 이상적 인간상 - 전인(全人) [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "지(知)·정(情)·의(意)·체(體)의 영역이 종합적이고 균형 있게 발달한 인간"
+  },
+  {
+    "q": "★★★ 매슬로(Maslow)의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육, 워크북 1장 1.1절]",
+    "a": "자아실현인 (자아실현 욕구를 달성한 사람)"
+  },
+  {
+    "q": "★★★ 로저스(Rogers)의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육, 2018년 기말]",
+    "a": "충분히 기능하는 인간 (fully functioning person)"
+  },
+  {
+    "q": "★★★ 올포트(Allport)의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "성숙한 인격"
+  },
+  {
+    "q": "★★★ 프롬(Fromm)의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육, 2017년 기말]",
+    "a": "생산적인 사람 (타인과 유용한 관계를 맺고 생산적으로 베푸는 성격)"
+  },
+  {
+    "q": "★★★ 철학적 인간본성관 - 성악설 [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점]",
+    "a": "인간은 본질적으로 악함 / 교육은 올바른 교화 / 순자, 어거스틴, 루터, 칼뱅"
+  },
+  {
+    "q": "★★★ 철학적 인간본성관 - 성선설 [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점]",
+    "a": "인간은 본질적으로 선함 / 교육은 선한 마음 발현 조력 / 맹자, 루소"
+  },
+  {
+    "q": "★★★ 철학적 인간본성관 - 백지설 [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점]",
+    "a": "인간은 선악 평가 불가능한 수동적 백지 상태 / 환경 조건 중시 / 고자, 로크"
+  },
+  {
+    "q": "★★★ 현대 과학적 심리학의 출발점 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "1879년 독일 라이프치히 대학에 분트(Wundt)가 최초의 심리학 실험실을 개설한 사건"
+  },
+  {
+    "q": "★★★ 신경생물학적 관점의 핵심 주장 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 2019년 기말]",
+    "a": "인간의 모든 사고, 행동, 정서, 꿈은 신경계와 중추기관인 뇌의 생리적 활동결과임"
+  },
+  {
+    "q": "★★★ 행동주의(behaviorism) 창시자 및 비판 대상 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 2016년 기말]",
+    "a": "왓슨(Watson) - 주관적 내성주의(introspectionism)를 비판하며 창시"
+  },
+  {
+    "q": "★★★ 행동주의 관점의 주요 특징 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 워크북 1장 1.1절]",
+    "a": "직접 관찰·측정 가능한 겉으로 드러난 행동만 연구, 동물의 강화 법칙을 인간에게 적용"
+  },
+  {
+    "q": "★★★ 에빙하우스(Ebbinghaus)의 연구 업적 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 워크북 1장 1.1절]",
+    "a": "최초로 무의미 한회를 사용하여 인간의 학습과 기억, 망각에 관한 본격적 실험 연구 진행"
+  },
+  {
+    "q": "★★★ 인지적 관점(인지론)의 정의 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 2018년 기말]",
+    "a": "감각자극을 변형, 부호화, 저장, 인출하는 정신과정을 연구하는 관점"
+  },
+  {
+    "q": "★★★ 형태주의 심리학(Gestalt) 지각 핵심 명제 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "사물과 자극을 부분의 합이 아닌 유의미한 전체 모양과 조직('형태')으로 지각함"
+  },
+  {
+    "q": "★★★ 프로이트 정신분석학의 무의식 결정론 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "인간 행동의 원인 대부분은 무의식에 존재하며 원초적 성 본능과 공격 본능이 지배함"
+  },
+  {
+    "q": "★★★ 신(新)정신분석학파의 핵심 특징 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "호나이, 프롬, 에릭슨 / 무의식적 본능보다 의식적 선택과 자기지시, 사회적 관계 강조"
+  },
+  {
+    "q": "★★★ 인본주의 심리학 (제3세력의 심리학) [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 워크북 1장 1.1절]",
+    "a": "정신분석과 행동주의 비판 / 인간의 자유의지, 자기인식, 자아실현 욕구 강조"
+  },
+  {
+    "q": "★★★ 인간이해의 세 가지 수준 [출처: 교재 1장 1.1절 인간이해의 방식, 2017년 기말]",
+    "a": "① 상식적 이해의 수준 ② 과학적 이해의 수준 ③ 공감적 이해의 수준"
+  },
+  {
+    "q": "★★☆ 상식적 이해 수준의 정의 및 한계 [출처: 교재 1장 1.1절 인간이해의 방식, 2017년 기말]",
+    "a": "외형 특성, 지역/집단 고정관념, 나와의 유사성에 기반해 판단 / 편견과 오류 가능성 가장 높음"
+  },
+  {
+    "q": "★★☆ 과학적 이해 수준의 핵심 수단 [출처: 교재 1장 1.1절 인간이해의 방식, 워크북 1장 1.1절]",
+    "a": "학문적 지식 및 표준화 심리검사 (규준을 통해 상대적 비교 가능, 오차는 존재함)"
+  },
+  {
+    "q": "★★☆ 공감적 이해 수준의 정의 [출처: 교재 1장 1.1절 인간이해의 방식, 2019년 기말]",
+    "a": "상대방의 입장에서 그의 감정, 경험, 주관적 세계를 이해하고 이를 정확하게 전달해 주는 수준"
+  },
+  {
+    "q": "★★☆ 생애사적 자료 (L-data) [출처: 교재 1장 1.1절 인간이해의 방식, 2016년 기말]",
+    "a": "학교생활기록부, 이력서, 직장 인사기록카드, 자서전, 일화기록지 등 역사적 기록 자료"
+  },
+  {
+    "q": "★★☆ 행동관찰법 [출처: 강의록 1강]",
+    "a": "관찰 가능한 표적 행동을 미리 계획하여 빈도나 지속 시간을 직접 측정·기록하는 방법"
+  },
+  {
+    "q": "★★☆ 생리학적 측정 자료 [출처: 강의록 1강]",
+    "a": "체온, 근육 수축(근전도), 혈압 등 자율신경계 반응이나 비자발적인 신체 기능을 측정하는 자료"
+  },
+  {
+    "q": "★★☆ 대뇌 전뇌와 변연계의 기능 구분 [출처: 강의록 1강]",
+    "a": "전뇌는 언어 및 고차적 정신작용, 변연계 해마는 학습/기억, 편도체는 정서/공격성 관여"
+  },
+  {
+    "q": "★★☆ 프로이트의 성격 3구조 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "원초아(쾌락 원칙), 자아(현실 원칙), 초자아(도덕 원칙)"
+  },
+  {
+    "q": "★★☆ 형태주의 심리학 5대 지각 조직화 법칙 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "근접성, 유사성, 폐쇄성, 계속성, 전경과 배경의 법칙"
+  },
+  {
+    "q": "★★☆ 인본주의 심리학의 철학적 배경 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "유럽의 실존철학(existentialism)과 실존주의 심리학"
+  },
+  {
+    "q": "★★☆ 인간행동 이해의 통합적 관점 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "특정 이론에 얽매이지 않고 여러 이론을 지표로 활용하여 생생한 인간 자체를 종합 이해함"
+  },
+  {
+    "q": "★★☆ 원시시대의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "생존 유지 및 종족 보존이 가능한 인간"
+  },
+  {
+    "q": "★★☆ 고대 그리스 시대의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "자유인"
+  },
+  {
+    "q": "★★☆ 서양 중세시대의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "기독교적 신앙인"
+  },
+  {
+    "q": "★★☆ 동양 유교사회의 이상적 인간상 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "군자(君子)"
+  },
+  {
+    "q": "★☆☆ 교육학의 두 가지 학문적 성격 [출처: 교재 1장 1.1절 교육의 의미]",
+    "a": "실천학문적 특성(인간 변화 방법) + 규범과학적 특성(바람직한 가치 체계화)"
+  },
+  {
+    "q": "★☆☆ 정서 조절 관련 주요 신경전달물질 3가지 [출처: 강의록 1강]",
+    "a": "도파민(Dopamine), 노르에피네프린(Norepinephrine), 세로토닌(Serotonin)"
+  },
+  {
+    "q": "★☆☆ 행동주의 심리학의 자극-반응 연합 모델 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "S-R (Stimulus-Response) 모델"
+  },
+  {
+    "q": "★☆☆ 인지론의 인간 정보처리 비유 모델 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "컴퓨터의 정보처리시스템 (입력 - 부호화 - 저장 - 인출)"
+  },
+  {
+    "q": "★☆☆ 프로이트의 정신 구조 빙산 비유 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "수면 위 작은 부분은 의식, 수면 아래 거대한 부분은 무의식"
+  },
+  {
+    "q": "★☆☆ 인간의 '가소성(可塑性)'의 의미 [출처: 교재 1장 1.1절 인간이해와 교육]",
+    "a": "환경과 교육을 통해 유연하게 빚어지고 변형·성장할 수 있는 성질"
+  },
+  {
+    "q": "★☆☆ 성악설·성선설·백지설의 구분 기준 [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점]",
+    "a": "도덕적 선과 악의 본질적 유무"
+  },
+  {
+    "q": "★☆☆ 표준화 심리검사와 비표준화 심리검사의 핵심 차이 [출처: 교재 1장 1.1절 인간이해의 방식]",
+    "a": "체계적 검사 제작 절차 및 상대적 비교 기준인 규준(norm)의 존재 여부"
+  },
+  {
+    "q": "★☆☆ 형태주의(Gestalt) 단어의 의미 [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점]",
+    "a": "사물이나 자극의 전체적인 모양, 형상, 조직"
+  },
+  {
+    "q": "★☆☆ 1강 「교육과 인간의 이해」의 주요 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 1장 1.1절 (p.3~15), 워크북 1장 1.1절 (p.5~8), 1강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

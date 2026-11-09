@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 5, title: "검사개발 절차" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+           "type": "개념확인",
+    "q": "다음 중 검사개발 절차에서 가장 마지막 단계에 해당하는 것은? [출처: 워크북 3장 3.1절 1번, 2017년 기말 47번]",
+    "o": [
+      "예비검사 결과의 분석",
+      "본검사의 제작 및 실시",
+      "검사의 양호도 분석과 규준의 제작",
+      "검사 매뉴얼 작성"
+    ],
+    "a": 3,
+    "h": "검사사용자가 검사를 올바르게 이해하고 실시·해석할 수 있도록 지침책자를 최종 완성하는 단계입니다.",
+    "e": "검사개발 절차는 ①검사개발 계획 수립 → ②문항 제작 → ③예비검사 실시 → ④예비검사 결과 분석 → ⑤본검사 제작 및 실시 → ⑥검사의 양호도 분석 및 규준 제작 → ⑦검사 매뉴얼 작성의 순서로 진행됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사개발 계획 수립과 문항개발 이후 검사개발 절차가 올바른 순서대로 나열된 것은? [출처: 워크북 3장 3.1절 2번]",
+    "o": [
+      "예비검사 실시 → 본검사 제작 및 실시 → 예비검사 결과의 분석 → 검사 매뉴얼 작성",
+      "예비검사 실시 → 예비검사 결과의 분석 → 검사의 양호도 분석과 규준의 제작 → 본검사 제작 및 실시",
+      "예비검사 실시 → 예비검사 결과의 분석 → 본검사 제작 및 실시 → 검사의 양호도 분석과 규준의 제작 → 검사 매뉴얼 작성",
+      "예비검사 실시 → 본검사 제작 및 실시 → 검사 매뉴얼 작성 → 규준의 제작"
+    ],
+    "a": 2,
+    "h": "예비검사를 거쳐 분석한 후 본검사를 만들고, 본검사 결과로 규준을 만든 뒤 매뉴얼을 작성합니다.",
+    "e": "문항개발 이후에는 예비검사 실시 → 예비검사 결과의 분석(문항분석) → 본검사 제작 및 실시 → 검사의 양호도 분석과 규준 제작 → 검사 매뉴얼 작성 순으로 진행됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "응답자에게 미리 정해 놓은 척도를 제시하고 응답하게 하며, 제작이 간편하고 통계분석이 용이하나 중간값으로 답하는 경향이 단점으로 지목되는 문항 형식은? [출처: 워크북 3장 3.1절 3번, 2016년 기말 46번]",
+    "o": [
+      "평정척도형 문항",
+      "순위형 문항",
+      "양자택일형 문항",
+      "선다형 문항"
+    ],
+    "a": 0,
+    "h": "리커트(Likert) 척도가 가장 빈번하게 사용되는 형태입니다.",
+    "e": "미리 정해 놓은 척도(매우 그렇지 않다 ~ 매우 그렇다)를 제공하는 형식은 평정척도형 문항으로, 의견이 없거나 도덕적 잣대 때문에 중간값(보통이다)으로 응답이 쏠리는 경향이 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "일정한 진술문에 대하여 피검자가 '예/아니오' 또는 'O/X' 중 하나를 선택하도록 하는 이분질문법 문항 형식은? [출처: 워크북 3장 3.1절 4번]",
+    "o": [
+      "평정척도형 문항",
+      "순위형 문항",
+      "양자택일형 문항",
+      "선다형 문항"
+    ],
+    "a": 2,
+    "h": "반응이 두 가지 중 하나로 제한되는 방식입니다.",
+    "e": "진술문에 대해 맞음/틀림이나 예/아니오 중 하나를 고르게 하는 방식은 양자택일형 문항에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "질문에 제한을 두지 않고 피검자가 자신의 의견과 태도를 자유롭게 기술하도록 하는 문항 형식은? [출처: 워크북 3장 3.1절 5번]",
+    "o": [
+      "평정척도형 문항",
+      "자유응답형 문항",
+      "양자택일형 문항",
+      "순위형 문항"
+    ],
+    "a": 1,
+    "h": "폭넓은 의견을 파악할 수 있으나 정리·요약에 시간과 주관이 개입될 수 있습니다.",
+    "e": "피검자가 서술형으로 자유롭게 답을 적도록 하는 방식은 자유응답형 문항(주관식 문항)입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "다음 중 선다형 문항에 대한 설명으로 가장 바른 것은? [출처: 워크북 3장 3.1절 6번, 11번]",
+    "o": [
+      "상호 배타적인 응답을 포괄하고 응답자 자신의 의견이나 태도와 부합하는 응답을 선택한다.",
+      "'예' 또는 '아니오' 중 하나만을 선택하는 이분질문법 형태이다.",
+      "제시된 항목들을 일정한 기준에 따라 순위를 매기는 방식이다.",
+      "피검자의 반응이 오직 두 가지 형태로만 제한된다는 단점이 있다."
+    ],
+    "a": 0,
+    "h": "여러 보기 중 가장 적합한 것을 고르거나(최선답형) 다수를 고르는(중복응답형) 특징을 생각해보세요.",
+    "e": "선다형 문항은 상호 배타적인 응답 선택지들을 포괄하고 그중 부합하는 것을 선택하게 하는 형식입니다. ②, ④는 양자택일형, ③은 순위형 설명입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "문항의 양호도 중 '검사에 응답한 피검자 중에서 정답을 맞힌 피검자의 비율'을 나타내는 개념은? [출처: 워크북 3장 3.1절 7번, 9번, 2014년 기말 11번]",
+    "o": [
+      "문항타당도",
+      "문항난이도(문항곤란도)",
+      "문항변별도",
+      "오답의 매력도"
+    ],
+    "a": 1,
+    "h": "정답률을 의미하며, 이 비율이 클수록 오히려 쉬운 문항을 뜻합니다.",
+    "e": "문항난이도(곤란도)는 전체 응답자 중 정답을 맞힌 피검자의 비율로, 너무 쉽거나 너무 어려운 문항을 선별하여 제외하는 기준이 됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "문항의 양호도 지수 중 '능력이 높은 피검자와 능력이 낮은 피검자를 문항이 구분해 주는 정도'를 의미하는 것은? [출처: 워크북 3장 3.1절 8번, 2017년 기말 48번, 2018년 기말 46번]",
+    "o": [
+      "문항변별도",
+      "문항난이도",
+      "오답의 매력도",
+      "문항의 표준화"
+    ],
+    "a": 0,
+    "h": "상위권 학생은 맞히고 하위권 학생은 틀리는 비율 차이 및 총점과의 상관으로 나타냅니다.",
+    "e": "문항변별도는 능력이 높은 학생과 낮은 학생을 구분해 주는 능력으로, 문항 정답 여부와 전체 검사 총점 간의 상관으로 산출됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사사용자에게 검사의 목적, 사용방법, 이론적 배경, 규준, 신뢰도와 타당도, 해석 방법 등을 안내하는 책자는? [출처: 워크북 3장 3.1절 10번]",
+    "o": [
+      "검사 매뉴얼(검사요강)",
+      "검사 답안지",
+      "예비검사지",
+      "행동 체크리스트"
+    ],
+    "a": 0,
+    "h": "검사도구 제작 과정과 사용 지침이 상세히 담겨 있는 안내 책자입니다.",
+    "e": "검사 매뉴얼(검사요강)은 검사사용자가 검사를 올바르고 타당하게 실시하고 해석할 수 있도록 제반 사항을 제공하는 안내서입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "[문제] 직장을 선택할 때 가장 중요한 것을 골라 표시하시오: ①근무시간 ②고용안정 ③월급 ④명예 — 이 문항의 형식은? [출처: 워크북 3장 3.1절 11번]",
+    "o": [
+      "평정척도형 문항",
+      "순위형 문항",
+      "선다형 문항",
+      "양자택일형 문항"
+    ],
+    "a": 2,
+    "h": "제시된 선택지 중 자신에게 부합하는 항목 하나를 고르는 방식입니다.",
+    "e": "제시된 보기 항목 중 가장 적절한 하나를 고르게 하는 최선답형 '선다형 문항'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사개발 절차 중 문항분석을 통해 검사의 신뢰도와 타당도, 문항난이도와 변별도를 평가하는 단계는? [출처: 워크북 3장 3.1절 12번]",
+    "o": [
+      "검사개발 계획 수립 단계",
+      "문항제작 단계",
+      "예비검사 결과의 분석 단계",
+      "검사 매뉴얼 작성 단계"
+    ],
+    "a": 2,
+    "h": "개발된 문항을 일부 집단에 먼저 적용해 본 후 통계적 분석을 수행하는 단계입니다.",
+    "e": "예비검사를 실시한 후 수집된 데이터를 바탕으로 문항분석(양호도 점검)을 실시하는 단계는 '예비검사 결과의 분석 단계'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "[문제] 당신의 삶에서 중요한 것을 모두 골라 표시하시오: ①건강 ②꿈 ③돈 ④명예 — 이 문항의 형식은? [출처: 2018년 기말 47번]",
+    "o": [
+      "평정척도형 문항",
+      "순위형 문항",
+      "양자택일형 문항",
+      "선다형 문항(중복응답형)"
+    ],
+    "a": 3,
+    "h": "선택지 중 다수 선택이 가능한 선다형의 하위 유형입니다.",
+    "e": "선다형 문항 중 해당하는 항목을 두 개 이상 자유롭게 고르도록 하는 '중복응답형 선다형 문항'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "[문제] 검사신청이유는 무엇인가요? 중요한 순서대로 2개를 골라주세요: a.나에 대해 알고 싶어서 b.대인관계 문제를 알고 싶어서 c.진로결정에 참고하고 싶어서... 이 문항의 형식은? [출처: 2019년 기말 47번]",
+    "o": [
+      "평정척도형 문항",
+      "순위형 문항",
+      "양자택일형 문항",
+      "선다형 문항"
+    ],
+    "a": 1,
+    "h": "제시된 선택지들에 대해 1순위, 2순위 등 순서를 부여하도록 요구합니다.",
+    "e": "제시된 항목을 일정한 기준이나 중요도에 따라 순서를 매기도록 하는 것은 '순위형 문항'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "'A시험의 1번 문제는 전체 점수가 높은 학생들의 대부분이 맞고, 전체 점수가 낮은 학생들의 대부분이 틀렸다'고 할 때 이 문항의 특성은? [출처: 2019년 기말 48번]",
+    "o": [
+      "문항난이도가 높다.",
+      "문항난이도가 낮다.",
+      "문항변별도가 높다.",
+      "문항변별도가 낮다."
+    ],
+    "a": 2,
+    "h": "상위 집단과 하위 집단을 문항이 명확하게 분류해 주고 있습니다.",
+    "e": "능력이 높은 피검자는 정답을 맞히고 능력이 낮은 피검자는 틀리도록 명확히 분류해 주는 문항은 '문항변별도가 높다'고 평가합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사개발의 첫 단계인 검사개발 계획 수립 시 가장 우선적으로 명확히 확정해야 하는 사항은? [출처: 교재 3장 3.1절 계획 수립, 5강 음성]",
+    "o": [
+      "검사개발의 목적과 검사대상",
+      "출판사의 인쇄 디자인 방안",
+      "OMR 답안지 훼손 시 보상 지침",
+      "검사 구매자의 예산 규모"
+    ],
+    "a": 0,
+    "h": "누구를 대상으로 어떤 특성을 잴 것인지, 결과를 어디에 쓸 것인지 결정해야 합니다.",
+    "e": "검사개발 계획 단계에서는 무엇보다 '누구를 대상으로 어떤 특성을 잴 것이며 검사결과를 어떤 목적으로 사용할 것인가'하는 검사의 목적과 대상을 분명히 하는 것이 출발점입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "피검자가 자신의 최선의 능력을 발휘하도록 하는 '수능'이나 '학업성취도검사'가 속하는 검사의 분류는? [출처: 교재 3장 3.1절 계획 수립, 5강 강의록]",
+    "o": [
+      "전형적 수행검사",
+      "최대 수행검사",
+      "비언어성 동작검사",
+      "자유응답형 검사"
+    ],
+    "a": 1,
+    "h": "평소 습관적 행동이 아닌 능력의 한계를 측정하는 검사입니다.",
+    "e": "수능이나 지능, 적성, 성취도검사처럼 피검자가 최대한의 능력을 발휘하도록 유도하는 검사를 '최대 수행검사'라 하며, 우울증/성격 검사 등은 '전형적 수행검사'라 합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "언어 능력이나 글 읽기 능력이 결과에 영향을 주지 않도록 제작되어 영유아, 어린이, 노인 등에게 적합한 검사 유형은? [출처: 교재 3장 3.1절 계획 수립, 5강 강의록]",
+    "o": [
+      "언어성 지필검사",
+      "비언어성 검사(동작검사 등)",
+      "리커트 평정척도검사",
+      "자기보고형 성격검사"
+    ],
+    "a": 1,
+    "h": "글을 읽고 쓰는 언어적 수단 대신 동작이나 그림 자극을 사용하는 검사입니다.",
+    "e": "비언어성 검사는 동작이나 그림 등을 활용하여 언어능력이 결과에 미치는 영향을 최소화하므로 영유아나 노인 대상에 적합합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "말을 아직 제대로 하지 못하는 영유아의 심리 및 발달 상태를 측정하고자 할 때 가장 적절한 검사 방식은? [출처: 교재 3장 3.1절 검사대상, 5강 음성]",
+    "o": [
+      "자기보고식 표준화 지필검사",
+      "부모 대상 질문지 및 관찰 행동 체크리스트",
+      "5점 리커트 평정척도 지필지",
+      "주관식 자유응답형 검사지"
+    ],
+    "a": 1,
+    "h": "영유아 본인이 스스로 지필지에 읽고 답할 수 없음을 고려하세요.",
+    "e": "영유아는 읽기/쓰기가 불가능하므로 양육자(부모)가 응답하는 검사지나 전문가가 관찰하여 기록하는 행동 체크리스트를 활용해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사내용을 결정하는 단계에서 측정하려는 심리적 구인과 하위요인을 구성하기 위해 활용하는 방법이 아닌 것은? [출처: 교재 3장 3.1절 검사내용]",
+    "o": [
+      "선행 연구 및 관련 문헌 고찰",
+      "유사한 기존 검사의 하위요인 분석",
+      "전문가나 일반인 대상 구인 특성 기술 요청 및 표적 집단 행동관찰",
+      "무작위로 예비문항을 100% 임의 추출하여 즉시 본검사 확정"
+    ],
+    "a": 3,
+    "h": "이론적 근거 마련과 내용 타당도 확보를 위한 체계적 절차를 검토하세요.",
+    "e": "검사내용 결정 시에는 이론적 근거 고찰, 유사검사 분석, 전문가/일반인 구인 기술, 행동관찰 등을 종합하여 하위요인을 타당하게 정의해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사내용 결정 단계에서 내용전문가가 각 문항을 검토하여 문항이 해당 심리적 구인을 얼마나 잘 나타내는지를 점검하는 타당도는? [출처: 교재 3장 3.1절 검사내용, 5강 강의록]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "동형검사 신뢰도"
+    ],
+    "a": 0,
+    "h": "검사 문항이 측정하려는 내용 범주 전체를 얼마나 잘 대변하는지 전문가가 평가합니다.",
+    "e": "검사문항이 검사할 전체 내용을 충실히 반영하는지 내용전문가가 검토하여 확보하는 타당도를 '내용타당도'라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "평정척도형 문항(리커트 척도)의 가장 대표적인 장점과 단점을 올바르게 짝지은 것은? [출처: 교재 3장 3.1절 문항형식, 5강 음성]",
+    "o": [
+      "장점: 제작과 통계분석이 용이함 / 단점: 피검자가 자기 의견을 숨기고 중간값에 응답하는 경향이 있음",
+      "장점: 피검자의 무의식을 100% 탐색함 / 단점: 문항 제작이 매우 복잡함",
+      "장점: 채점의 주관성이 완전히 보장됨 / 단점: 자료 분석에 막대한 시간이 소요됨",
+      "장점: 문항 반응이 예/아니오로 명확히 나뉨 / 단점: 리커트 척도를 사용할 수 없음"
+    ],
+    "a": 0,
+    "h": "간편한 자료 분석이라는 장점과 '보통이다'로 쏠리는 응답 편향 단점을 파악하세요.",
+    "e": "리커트 척도는 제작과 통계 처리가 쉬운 장점이 있지만, 도덕적 잣대나 무의견으로 인해 중간값(3점)으로 응답이 몰리거나 사람마다 척도 의미를 다르게 해석하는 단점이 있습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "자유응답형 문항(주관식)이 가지는 가장 주요한 단점은 무엇인가? [출처: 교재 3장 3.1절 문항형식, 워크북 3장 3.1절 5번 해설]",
+    "o": [
+      "피검자의 반응을 예/아니오 두 가지로만 제한한다.",
+      "응답 내용을 정리·요약하는 데 많은 시간과 노력이 들고 평가자의 주관적 판단이 개입될 수 있다.",
+      "컴퓨터 자동 채점이 무조건 불가능하여 검사를 폐기해야 한다.",
+      "피검자의 폭넓은 의견이나 태도를 전혀 파악할 수 없다."
+    ],
+    "a": 1,
+    "h": "서술된 문장을 채점하고 요약할 때 발생하는 채점자의 개입 요소를 생각해보세요.",
+    "e": "자유응답형 문항은 풍부한 정보를 주지만, 응답을 요약하고 데이터화하는 데 많은 노력이 들며 채점자의 주관적 해석이 개입될 여지가 큽니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사의 문항제작 단계에서 예비검사 및 본검사 문항 선정을 염두에 두고 추가 여분 문항을 작성할 때의 일반적인 비율은? [출처: 교재 3장 3.1절 문항제작, 5강 강의록]",
+    "o": [
+      "최종 문항 수 대비 약 10~20% 정도 넉넉하게 제작한다.",
+      "최종 문항 수의 정확히 10배 이상을 제작해야 한다.",
+      "여분의 문항은 절대 제작하지 않고 딱 맞게 100% 제작한다.",
+      "예비검사 단계에서는 문항을 1개만 제작한다."
+    ],
+    "a": 0,
+    "h": "부적절한 문항이 예비검사에서 제거될 것을 대비해 1~2할 정도 여유 있게 만듭니다.",
+    "e": "문항분석 및 예비검사 과정에서 부적절한 문항을 제거하더라도 최종 검사 문항 수를 유지할 수 있도록 보통 10~20% 여유 있게 제작합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "예비검사(pilot test)를 실시할 때 지켜야 하는 조건으로 가장 바람직한 것은? [출처: 교재 3장 3.1절 예비검사, 5강 음성]",
+    "o": [
+      "본검사 대상과 전혀 다른 연령대나 특성을 가진 사람들에게 무작위로 실시한다.",
+      "실제 검사를 활용할 대상과 유사한 집단에 본검사와 동일한 조건(시간, 지시사항 등)으로 시행한다.",
+      "검사 지시문을 피검자마다 매번 다르게 변경하며 테스트한다.",
+      "예비검사에서는 피검자의 피드백이나 의견을 절대 수렴하지 않는다."
+    ],
+    "a": 1,
+    "h": "실제 본검사의 예행연습으로서 표본의 유사성과 조건 동일성이 핵심입니다.",
+    "e": "예비검사는 검사의 타당성과 운영 가능성을 점검하기 위해 실제 검사 활용 대상과 유사한 집단에 동일한 시행 조건으로 적용해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "예비검사 실시 후 피검자로부터 문항의 가독성, 어휘 수준, 이해도 등에 대한 피드백을 얻는 방법은? [출처: 교재 3장 3.1절 예비검사]",
+    "o": [
+      "예비검사지에 자유기술란을 두거나 검사 후 피검자와 면담 실시",
+      "피검자의 원점수만을 수집하고 피드백은 전면 거부",
+      "컴퓨터 무선 난수표 자동 생성",
+      "내용전문가의 서면 서명 수령"
+    ],
+    "a": 0,
+    "h": "검사 후 피검자에게 의견을 적게 하거나 1~2명을 인터뷰하는 방식입니다.",
+    "e": "예비검사 단계에서는 검사지에 자유기술란을 마련하거나 검사 후 면담을 통해 지시문과 문항의 적절성에 대한 피드백을 수집합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "문항분석에서 각 문항의 내용이 타당한지 점검하는 '질적분석'과 난이도, 변별도, 오답의 매력도를 평가하는 '양적분석'의 구분으로 옳은 것은? [출처: 교재 3장 3.1절 예비검사 분석]",
+    "o": [
+      "질적분석: 전문가의 내용 적합성 평가 / 양적분석: 수치적 심리측정학적 요인 평가",
+      "질적분석: Z점수 산출 / 양적분석: 문장완성 검사",
+      "질적분석: 1,000명 집단 표집 / 양적분석: 개인 면담",
+      "질적분석: 리커트 척도 / 양적분석: 이분질문법"
+    ],
+    "a": 0,
+    "h": "전문가의 문항 내용 검토(질적)와 통계적 지수 산출(양적)을 비교하세요.",
+    "e": "질적분석은 문항의 내용타당성과 적절성을 검토하는 것이고, 양적분석은 난이도, 변별도 등 통계 지수를 평가하는 것입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "예비검사 결과를 바탕으로 검사단위 분석을 할 때, 문항 제거 시 신뢰도가 상승하는지를 확인하기 위해 산출하는 신뢰도 지수는? [출처: 교재 3장 3.1절 예비검사 분석, 5강 강의록]",
+    "o": [
+      "크론바흐 알파 (Cronbach α)",
+      "Z점수",
+      "백분위점수",
+      "결정계수"
+    ],
+    "a": 0,
+    "h": "문항 내적 합치도를 나타내는 가장 대표적인 신뢰도계수입니다.",
+    "e": "예비검사 분석 시 검사의 신뢰도를 점검하기 위해 크론바흐 알파(Cronbach α)를 산출하며, 특정 문항 제거 시 알파 값이 올라가는 부적절 문항을 선별하여 제외합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "예비검사 분석 단계에서 처음에 설정한 하위요인 구조에 부합하지 않거나 묶이지 않는 불필요한 문항을 선별하기 위해 활용하는 다변량 통계기법은? [출처: 교재 3장 3.1절 예비검사 분석, 5강 강의록]",
+    "o": [
+      "요인분석 (Factor Analysis)",
+      "T점수 변환",
+      "독립변수 지정",
+      "최빈값 산출"
+    ],
+    "a": 0,
+    "h": "문항들이 특정 구인 요인으로 제대로 묶이는지 구조를 검증하는 분석법입니다.",
+    "e": "타당도 점검을 위해 요인분석을 활용하며, 당초 설정한 하위요인으로 묶이지 않고 동떨어지는 문항을 선별하여 제거합니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "어느 객관식 문항에 전체 피검자 100명이 응답하였고, 그중 75명이 정답을 맞혔다. 이 문항의 문항난이도(p) 값은 얼마인가? [출처: 교재 3장 3.1절 문항분석, 5강 강의록]",
+    "o": [
+      "0.25 (25%)",
+      "0.50 (50%)",
+      "0.75 (75%)",
+      "1.00 (100%)"
+    ],
+    "a": 2,
+    "h": "정답자 수(75)를 전체 피검자 수(100)로 나눈 비율을 산출하세요.",
+    "e": "문항난이도 p = 75 / 100 = 0.75 (75%) 입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "문항난이도(문항곤란도) 수치의 해석에 관한 설명으로 가장 올바른 것은? [출처: 교재 3장 3.1절 문항분석, 5강 음성]",
+    "o": [
+      "난이도 p 값이 0.90(90%)인 문항은 p 값이 0.10(10%)인 문항보다 훨씬 더 어려운 문항이다.",
+      "난이도 p 값이 1.0(100%)에 가까울수록 쉬운 문항이고, 0.0(0%)에 가까울수록 어려운 문항이다.",
+      "난이도가 0.50인 문항은 아무도 정답을 맞히지 못한 최악의 문항이다.",
+      "난이도는 변별도와 무관하므로 100% 정답 문항을 본검사에 다수 배치하는 것이 좋다."
+    ],
+    "a": 1,
+    "h": "정답률 개념이므로 비율 숫자가 클수록 쉬운 문제임을 떠올려 보세요.",
+    "e": "문항난이도는 정답을 맞힌 비율이므로, 수치가 클수록 쉬운 문항이고 작을수록 어려운 문항입니다. 따라서 너무 쉽거나(1.0 부근) 너무 어려운(0.0 부근) 문항은 제외합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "문항변별도를 수식적으로 나타낼 때 가장 일반적으로 활용하는 수치는 무엇인가? [출처: 교재 3장 3.1절 문항분석, 워크북 3장 3.1절 8번 해설]",
+    "o": [
+      "문항의 정답 여부(0 또는 1)와 학생의 전체 검사 총점과의 상관계수",
+      "피검자들의 평균 연령과 키의 비율",
+      "검사 시행에 걸린 전체 소요 시간",
+      "문항에 포함된 어휘 수의 합계"
+    ],
+    "a": 0,
+    "h": "개별 문항의 득점 결과와 검사 전체 총점 사이의 상관성을 이용합니다.",
+    "e": "문항변별도는 개별 문항의 정답 여부와 학생의 검사 총점 간의 상관으로 측정되며, 변별도가 높은 문항이 우수한 문항으로 채택됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "선다형 문항에서 정답이 아니지만 피검자가 정답으로 오인하도록 그럴듯하게 유인하는 선택지의 성능이나 끌림 정도를 뜻하는 용어는? [출처: 교재 3장 3.1절 문항분석, 5강 음성]",
+    "o": [
+      "오답의 매력도",
+      "문항변별도",
+      "내용타당도",
+      "반분신뢰도"
+    ],
+    "a": 0,
+    "h": "함정 오답으로서 피검자를 얼마나 효과적으로 유인하는가를 가리킵니다.",
+    "e": "선다형 검사에서 매력적인 오답 선택지가 피검자를 유인하는 평가 요소를 '오답의 매력도'라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "본검사 최종 문항을 선정할 때 통계 분석 수치(신뢰도, 요인분석) 외에 반드시 함께 종합 검토해야 하는 사항은? [출처: 교재 3장 3.1절 본검사 제작, 5강 음성]",
+    "o": [
+      "문항이 담고 있는 내용의 타당성과 의도적 가치",
+      "검사 개발자의 성씨와 연령",
+      "인쇄소의 인쇄 기계 종류",
+      "답안지 종이의 재질과 두께"
+    ],
+    "a": 0,
+    "h": "통계적 수치만으로 문항을 기계적으로 지우지 않고 문항의 내용적 의미를 살피는 과정입니다.",
+    "e": "최종 문항 선정 시 통계 수치가 조금 떨어지더라도 그 문항이 검사의 핵심 내용 영역을 대변한다면 내용적 가치를 종합 반영하여 결정해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "본검사를 실시하기 위해 표본을 추출할 때, 모집단의 구성을 반영하여 성별이나 지역 등 주요 변수를 기준으로 집단을 나눈 후 그 안에서 무선표집을 진행하는 방식은? [출처: 교재 3장 3.1절 본검사 실시, 5강 강의록]",
+    "o": [
+      "유층표집 (층화표집, Stratified Sampling)",
+      "편의표집 (Convenience Sampling)",
+      "스노우볼 표집 (Snowball Sampling)",
+      "임의표집 (Arbitrary Sampling)"
+    ],
+    "a": 0,
+    "h": "모집단의 비율 구조(성별, 연령, 지역 등 유층)를 살려서 표본을 구성을 하는 표집법입니다.",
+    "e": "모집단을 성별, 지역 등 주요 변수로 유층화(층화)한 후 각 유층 내에서 단순무선표집을 진행하는 방식을 유층표집이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "전국 단위의 표준화 심리검사를 제작할 때 모집단을 대표하여 본검사를 실시하기 위해 요구되는 일반적인 표본의 크기는? [출처: 교재 3장 3.1절 본검사 실시, 5강 강의록]",
+    "o": [
+      "보통 1,000명 이상의 대규모 표본",
+      "정확히 10명 이내의 소규모 표본",
+      "단 1명의 대표 피검자",
+      "표본 크기는 5명으로 제한됨"
+    ],
+    "a": 0,
+    "h": "규준의 안정성과 대표성을 확보하기 위해 확보해야 하는 표본 인원수입니다.",
+    "e": "표준화 검사의 규준 산출을 위한 본검사 실시 단계에서는 통상 1,000명 이상의 대규모 표본을 표집하여 실시합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "본검사 실시 결과를 바탕으로 원점수를 의미 있게 비교·해석할 수 있도록 제작하는 '전환척도(점수 분포)'를 무엇이라 하는가? [출처: 교재 3장 3.1절 규준 제작]",
+    "o": [
+      "규준 (norm)",
+      "구인 (construct)",
+      "절단점 (cutoff)",
+      "편차 (deviation)"
+    ],
+    "a": 0,
+    "h": "백분위, Z점수, T점수 등을 제공하는 상대적 비교 기준입니다.",
+    "e": "원점수의 상대적 위치를 파악하고 의미 있게 해석하도록 본검사 수집 데이터로 구성하는 점수 분포 기준을 '규준(norm)'이라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "검사가 개발된 후 일정한 시기가 지나면 새로운 표본을 바탕으로 규준을 다시 설정(재표준화)해야 하는 이유는? [출처: 교재 3장 3.1절 규준 제작, 5강 음성]",
+    "o": [
+      "시간 경과에 따라 모집단의 특성 및 사회문화적 특성이 변화할 수 있기 때문에",
+      "검사 매뉴얼의 저작권 효력이 1년 만에 소멸하기 때문에",
+      "모든 표준점수를 무조건 음수(-)로 변환하기 위해",
+      "기존 검사문항을 모두 주관식으로 고치기 위하여"
+    ],
+    "a": 0,
+    "h": "과거의 규준이 현재 피검자 집단의 특성을 제대로 반영하지 못하는 현상을 막기 위함입니다.",
+    "e": "시간이 지남에 따라 피검자 모집단의 특성이 변하므로, 타당한 상대적 비교를 유지하기 위해 주기적으로 규준을 재설정(재표준화)해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사 매뉴얼(검사요강)에 포함되어야 할 내용으로 적절하지 않은 것은? [출처: 교재 3장 3.1절 검사 매뉴얼]",
+    "o": [
+      "검사의 성격, 목적, 대상, 이론적 배경",
+      "검사 실시방법, 채점방법, 규준집단 특성, 규준표",
+      "통계분석 결과, 신뢰도 및 타당도 정보, 결과해석 안내",
+      "검사 개발자의 개인적인 통장 계좌번호 및 사생활 비밀 일기"
+    ],
+    "a": 3,
+    "h": "검사 활용자가 올바른 검사 시행과 해석을 하는 데 필요한 전문 지침들이 포함됩니다.",
+    "e": "검사 매뉴얼에는 검사목적, 대상, 이론적 배경, 실시·채점법, 규준, 신뢰도/타당도, 결과 해석 가이드 등이 포함되어야 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "원래 1대1 개인용 검사로 개발되었다가 학교 현장의 단체 실시 필요성에 따라 집단용으로 추가 개정되어 제작된 대표적 검사는? [출처: 교재 3장 3.1절 계획 수립, 5강 음성]",
+    "o": [
+      "웩슬러 지능검사",
+      "로르샤흐 잉크반점검사",
+      "주제통각검사(TAT)",
+      "문장완성검사(SCT)"
+    ],
+    "a": 0,
+    "h": "대표적인 개인용 지능검사로서 이후 집단용으로 개정판이 제작되었습니다.",
+    "e": "웩슬러 지능검사는 본래 개인용 검사로 제작되었으나 이후 현장 필요에 따라 집단용 검사로도 개정되었습니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "초등학교 저학년 학생들을 대상으로 성격 및 진로 검사지를 제작할 때 고려해야 할 지침으로 옳지 않은 것은? [출처: 교재 3장 3.1절 검사대상, 5강 강의록]",
+    "o": [
+      "글 읽기 능력(문해력) 편차를 고려하여 쉽게 읽히는 어휘를 사용한다.",
+      "검사 지시사항을 간결하고 명확하게 구성한다.",
+      "필요한 경우 비언어성 검사 형식을 적극 활용한다.",
+      "성인용 전문 학술 용어를 그대로 사용하여 문항을 구성한다."
+    ],
+    "a": 3,
+    "h": "피검자의 연령 수준과 문해 능력에 적합한 언어를 사용해야 합니다.",
+    "e": "초등 저학년 대상 검사 시에는 난해한 성인용 전문 어휘를 피하고, 아동이 이해하기 쉬운 어휘와 지시문으로 구성해야 타당한 응답을 얻을 수 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사개발자가 측정하고자 하는 '구인(construct)'의 의미로 가장 바른 것은? [출처: 교재 3장 3.1절 검사내용]",
+    "o": [
+      "검사도구에 반영되어 있다고 가정하는 인간의 내면적 심리·행동 특성",
+      "인쇄소에서 사용하는 검사지의 종이 재질과 크기",
+      "채점 시 발생하는 무선적 계산 오차의 수치",
+      "검사 시행 시 소요되는 총 분 단위의 시간"
+    ],
+    "a": 0,
+    "h": "지능, 창의성, 불안 등 직접 관찰되지 않으나 검사로 재고자 하는 추상적 심리 특성입니다.",
+    "e": "구인(construct)이란 심리검사 도구가 측정하고자 내재되어 있다고 가정하는 인간의 심리적·행동적 특성을 의미합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "선다형 문항 중 '가장 적합한 하나를 고르는 형태'와 '해당하는 것을 모두 고르는 형태'의 명칭 연결이 올바른 것은? [출처: 교재 3장 3.1절 문항형식, 5강 강의록]",
+    "o": [
+      "가장 적합한 하나: 최선답형 / 모두 고르는 형태: 중복응답형",
+      "가장 적합한 하나: 이분질문형 / 모두 고르는 형태: 리커트형",
+      "가장 적합한 하나: 자유응답형 / 모두 고르는 형태: 순위형",
+      "가장 적합한 하나: 동작검사형 / 모두 고르는 형태: 평정척도형"
+    ],
+    "a": 0,
+    "h": "단일 선택(최선답)과 복수 선택(중복응답)의 명칭을 구분하세요.",
+    "e": "선다형 문항에서 가장 적합한 보기를 1개 고르는 것을 '최선답형', 조건에 부합하는 보기를 다수 고르는 것을 '중복응답형'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "응시자가 특정 내용/기술을 아는 정도나 심리적 성향을 알아보기 위해 질문 형식으로 진술된 '채점의 기본 단위'는? [출처: 교재 3장 3.1절 문항제작]",
+    "o": [
+      "문항 (item)",
+      "규준 (norm)",
+      "척도 (scale)",
+      "요인 (factor)"
+    ],
+    "a": 0,
+    "h": "검사지를 구성하는 하나하나의 질문 진술문입니다.",
+    "e": "검사를 구성하며 피검자의 지식이나 특성을 측정하기 위한 질문 진술문이자 채점의 단위는 '문항(item)'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "본검사 제작 및 완성 단계에서 결정하고 제작해야 할 요소가 아닌 것은? [출처: 교재 3장 3.1절 본검사 제작, 5강 강의록]",
+    "o": [
+      "최종 검사 문항 수 및 제시 순서",
+      "검사 지시문과 OMR/답안지 양식",
+      "검사지 레이아웃, 활자 크기, 디자인 및 편집",
+      "피검자 개인의 10년 후 비밀 개인사 예측 보고서"
+    ],
+    "a": 3,
+    "h": "검사의 외형, 형식, 지시문, 완성본 디자인 제작에 해당하지 않는 것을 찾으세요.",
+    "e": "본검사 제작 단계에서는 최종 문항, 제시 순서, 지시문, 답안지, 편집 및 디자인을 완성합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "예비검사를 통해 파악하고 검증해야 할 검사 운영 지침 요소에 해당하지 않는 것은? [출처: 교재 3장 3.1절 예비검사, 5강 음성]",
+    "o": [
+      "검사 시행 시간의 적절성",
+      "검사 지시문 및 어휘의 명료성",
+      "검사 문항의 타당성 및 오해 여부",
+      "검사 개발자의 개인적인 학창 시절 성적"
+    ],
+    "a": 3,
+    "h": "예비검사는 검사의 타당성과 운영 편의성을 점검하는 과정입니다.",
+    "e": "예비검사를 실시하는 목적은 소요시간, 지시문, 어휘 수준, 문항 타당성 등 검사 운영 전반의 적절성을 확인하기 위함입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리검사를 개발할 때 '무엇을 측정할 것인가'를 명확히 하기 위해 선행연구 고찰, 전문가 구인 기술, 행동관찰을 실시하는 주요 목적은? [출처: 교재 3장 3.1절 검사내용, 5강 음성]",
+    "o": [
+      "심리적 특성을 명확히 정의하고 하위요인을 타당하게 구성하기 위해",
+      "검사의 판매 가격을 최대한 비싸게 책정하기 위해",
+      "피검자의 이름을 자동으로 무작위 변경하기 위해",
+      "검사 시행 시간을 10시간 이상으로 늘리기 위해"
+    ],
+    "a": 0,
+    "h": "측정하고자 하는 내면적 구인과 하위 영역을 명확히 설정하는 작업입니다.",
+    "e": "선행연구 고찰, 유사검사 분석, 전문가 의견 수렴, 행동관찰 등은 심리적 특성을 이론적으로 정의하고 하위 구성 요인을 타당하게 구축하기 위해 수행됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "객관식 검사에서 문항변별도가 낮거나 음수(-)로 나타나는 문항이 발생했을 때의 조치로 가장 적절한 것은? [출처: 교재 3장 3.1절 예비검사 분석, 5강 음성]",
+    "o": [
+      "문항에 오류가 있거나 변별력이 없으므로 해당 문항을 수정하거나 본검사에서 제외한다.",
+      "변별도가 음수인 문항을 본검사의 핵심 문항으로 우선 배치한다.",
+      "모든 피검자에게 무조건 정답 처리하고 검사를 종료한다.",
+      "문항변별도는 중요한 지표가 아니므로 무시하고 그대로 둔다."
+    ],
+    "a": 0,
+    "h": "변별도가 낮다는 것은 상위권과 하위권 학생을 거꾸로 구별하거나 구별하지 못함을 뜻합니다.",
+    "e": "변별도가 현저히 낮거나 음수인 문항은 정답 오류나 부적절한 작성에 기인한 것이므로 검토 후 수정하거나 최종 검사에서 제외해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사의 7대 개발 절차를 순서대로 바르게 나열한 것은? [출처: 교재 3장 3.1절 요약, 5강 강의록]",
+    "o": [
+      "계획수립 → 문항제작 → 예비검사 실시 → 예비검사 분석 → 본검사 제작·실시 → 양호도 분석 및 규준 제작 → 매뉴얼 작성",
+      "매뉴얼 작성 → 계획수립 → 예비검사 실시 → 본검사 실시 → 규준 제작 → 문항제작 → 양호도 분석",
+      "문항제작 → 계획수립 → 본검사 실시 → 예비검사 실시 → 매뉴얼 작성 → 규준 제작 → 양호도 분석",
+      "계획수립 → 매뉴얼 작성 → 문항제작 → 예비검사 실시 → 규준 제작 → 본검사 실시 → 양호도 분석"
+    ],
+    "a": 0,
+    "h": "기획(계획)부터 시작하여 지침서(매뉴얼) 작성으로 마무리되는 흐름입니다.",
+    "e": "검사개발의 표준 7단계는 계획수립 → 문항제작 → 예비검사 실시 → 예비검사 결과 분석 → 본검사 제작 및 실시 → 양호도 분석 및 규준 제작 → 검사 매뉴얼 작성 순입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "5강 「검사개발 절차」의 핵심 학습 목표이자 주요 내용으로 가장 바른 것은? [출처: 교재 3장 3.1절 개관, 5강 강의록]",
+    "o": [
+      "검사개발의 전체적인 7단계 절차와 다양한 문항 유형 및 문항분석 방법을 이해하는 것",
+      "로르샤흐 잉크반점 기호화 공식을 암기하는 것",
+      "웩슬러 지능검사의 소검사 15개를 직접 채점하는 것",
+      "DSM-5의 20개 정신장애 범주를 진단하는 것"
+    ],
+    "a": 0,
+    "h": "검사가 어떻게 만들어지는지 체계적 절차와 문항 양호도를 배우는 강입니다.",
+    "e": "5강은 검사개발의 전 과정(7단계), 문항의 유형(평정, 자유응답, 순위, 선다, 양자택일) 및 문항분석(난이도, 변별도)을 이해하는 것을 핵심 목표로 합니다."
+
+
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 15, title: "정신건강 관련 투사적 검사" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 투사적 검사(Projective Test)의 정의 및 자극 특성 [출처: 교재 7장 7.3절 투사적 검사 개관, 15강 강의록]",
+    "a": "구조화되지 않은 모호한 자극을 제시하여 피검자가 무의식적 욕구, 갈등, 성격 역동을 자유롭게 반영(투사)하도록 유도하는 검사"
+  },
+  {
+    "q": "★★★ 투사적 검사의 주요 장점 [출처: 교재 7장 7.3절 투사적 검사 장단점, 2014년 기말 31번, 2015년 기말 33번]",
+    "a": "자극이 모호하여 문항 의도 파악이 어려우므로, 피검자의 의도적 반응 방어나 사회적 바람직성 포장을 줄이고 무의식적 성격을 측정함"
+  },
+  {
+    "q": "★★★ 투사적 검사의 주요 단점 및 한계 [출처: 교재 7장 7.3절 투사적 검사 장단점, 2018년 기말 70번, 워크북 7장 7.3절 2번]",
+    "a": "검사의 객관적 신뢰도와 타당도 확보가 어렵고, 채점 및 해석 시 검사자의 주관이 개입되기 쉬우며 숙련된 전문가의 역량이 필수적임"
+  },
+  {
+    "q": "★★★ 로르샤흐(Rorschach) 잉크반점 검사 개발자 및 출판 연도 [출처: 교재 7장 7.3절 로르샤흐 검사, 15강 강의록]",
+    "a": "1921년 스위스의 정신과 의사 혜르만 로르샤흐(Hermann Rorschach)가 저서 『성격진단학』을 통해 발표함"
+  },
+  {
+    "q": "★★★ 로르샤흐 검사의 10장 카드 구성 [출처: 교재 7장 7.3절 로르샤흐 검사, 2013년 기말 31번, 2017년 기말 69번]",
+    "a": "좌우 대칭형 잉크반점 10장 (흑백 5장, 흑백에 붉은색 추가 2장, 파스텔톤 복합 색채 3장)"
+  },
+  {
+    "q": "★★★ 로르샤흐 검사의 실시 2단계 [출처: 교재 7장 7.3절 로르샤흐 실시, 2014년 기말 34번]",
+    "a": "①자유연상 단계(카드를 제시하며 무엇으로 보이는지 기록), ②정밀조사 단계(어느 위치에서 무엇 때문에 그렇게 보았는지 확인)"
+  },
+  {
+    "q": "★★★ 엑스너 종합체계(Exner Comprehensive System)의 의의 [출처: 교재 7장 7.3절 엑스너 종합체계, 15강 강의록]",
+    "a": "1974년 존 엑스너가 분산된 로르샤흐 체계들을 통합하여 표준화된 채점 및 해석 체계를 구축함으로써 검사의 객관성과 신뢰도를 높임"
+  },
+  {
+    "q": "★★★ 엑스너 채점 5대 기본 평가 범주 [출처: 교재 7장 7.3절 엑스너 종합체계, 2019년 기말 70번, 워크북 7장 7.3절 4번]",
+    "a": "위치(Location), 결정인자(Determinants), 내용(Content), 평범반응(Popular), 발달수준 및 특수점수"
+  },
+  {
+    "q": "★★★ 로르샤흐 위치 기호: W, D, Dd, S [출처: 교재 7장 7.3절 로르샤흐 위치 기호, 2015년 기말 34번]",
+    "a": "W(전체 반응), D(흔한 부분 반응), Dd(드문 부분 반응), S(흰 공간/여백 반응)"
+  },
+  {
+    "q": "★★★ 로르샤흐 결정인자 주요 기호: F, M, FM, m, C, FC, CF [출처: 교재 7장 7.3절 로르샤흐 결정인자, 2019년 기말 69번]",
+    "a": "F(순수 형태), M(인간 운동), FM(동물 운동), m(비생물 운동), C(순수 색채), FC(형태 우세 색채), CF(색채 우세 형태)"
+  },
+  {
+    "q": "★★★ 주제통각검사(TAT) 개발자 및 이론적 기초 [출처: 교재 7장 7.3절 TAT, 2013년 기말 33번, 2017년 기말 70번]",
+    "a": "머레이(Murray)와 모건(Morgan)이 개발하였으며, 머레이의 '욕구-압력 이론(Need-Press Theory)'을 바탕으로 함"
+  },
+  {
+    "q": "★★★ TAT 검사의 도구 구성 및 실시 방식 [출처: 교재 7장 7.3절 TAT 구성, 15강 강의록]",
+    "a": "총 31장(그림 30+백지 1) 중 피검자의 성별/연령(M, F, B, G)에 맞추어 20장의 카드를 선정하여 이야기를 창작하게 함"
+  },
+  {
+    "q": "★★★ TAT 실시 시 이야기 구성의 4대 핵심 요소 [출처: 교재 7장 7.3절 TAT 실시 지시, 15강 강의록]",
+    "a": "①그림에 이르게 된 과거 선행 사건, ②현재 일어나는 일, ③인물들의 생각과 느낌, ④이야기의 미래 결과"
+  },
+  {
+    "q": "★★★ CAT (아동용 주제통각검사) [출처: 교재 7장 7.3절 CAT, 15강 강의록]",
+    "a": "벨락(Bellak)이 3~10세 아동의 발달 수준에 맞추어 동물이 주인공으로 등장하는 10장의 카드로 개발한 통각검사"
+  },
+  {
+    "q": "★★★ HTP (집-나무-사람 검사) 개발자 및 검사 방식 [출처: 교재 7장 7.3절 HTP, 2013년 기말 34번]",
+    "a": "1948년 존 벅(John Buck)이 창안하였으며, 흰 종이에 집, 나무, 사람을 순서대로 그리게 하는 투사적 그림 검사"
+  },
+  {
+    "q": "★★★ HTP 검사 대상 3가지의 상징적 의미 [출처: 교재 7장 7.3절 HTP 상징, 워크북 7장 7.3절 6번]",
+    "a": "집(가정 생활 및 환경적 태도), 나무(깊은 무의식적 자아개념 및 성장), 사람(현실적 자아상 및 대인관계 태도)"
+  },
+  {
+    "q": "★★★ K-HTP (동적 집-나무-사람 검사) [출처: 교재 7장 7.3절 K-HTP, 워크북 7장 7.3절 7번]",
+    "a": "벅과 번즈(Burns)가 개정한 검사로, 한 장의 종이에 집, 나무, 사람을 함께 그리고 동작을 추가하여 대상 간 상호작용 역동을 파악함"
+  },
+  {
+    "q": "★★★ KFD (동적 가족화 / Kinetic Family Drawing) [출처: 교재 7장 7.3절 KFD, 15강 강의록]",
+    "a": "번즈(Burns)이 개발한 검사로, 가족 구성원 전체가 무엇인가를 하고 있는 움직이는 모습을 그리게 하여 가족 간 상호작용 역동을 파악함"
+  },
+  {
+    "q": "★★★ SCT / SSCT (문장완성검사) [출처: 교재 7장 7.3절 SCT, 2015년 기말 35번, 워크북 7장 7.3절 8번]",
+    "a": "삭스(Sacks)의 SSCT는 미완성 문장 줄기 60개를 자유롭게 완성하게 하는 반투사적 검사로, 가족, 성, 대인관계, 자아개념 4개 영역을 평가함"
+  },
+  {
+    "q": "★★★ 객관적 검사 vs 투사적 검사의 통합적 활용 (Battery Test) [출처: 교재 7장 7.3절 검사의 통합 활용, 2016년 기말 70번]",
+    "a": "투사적 검사의 풍부한 정서·무의식 정보와 객관적 검사의 신뢰로운 통계 정보를 상호보완적으로 통합하여 다면평가를 시행함"
+  },
+  {
+    "q": "★★☆ 프로이트(Freud)의 '투사(Projection)' 개념 [출처: 교재 7장 7.3절 투사 개념, 15강 강의록]",
+    "a": "수용하기 힘든 자신의 무의식적 욕구, 갈등, 지각을 외부 자극 대상에게 투사하여 표현하는 방어기제"
+  },
+  {
+    "q": "★★☆ 로르샤흐 카드 제시 순서 및 회전 기록 [출처: 교재 7장 7.3절 로르샤흐 실시, 15강 강의록]",
+    "a": "1번부터 10번 카드를 순서대로 바르게 제시하며, 피검자가 돌려볼 경우 ∧, ∨, ＜, ＞ 화살표 기호로 회전 각도를 기록함"
+  },
+  {
+    "q": "★★☆ 로르샤흐 P (평범반응 / Popular response) [출처: 교재 7장 7.3절 평범반응, 15강 강의록]",
+    "a": "일반 규준집단에서 3명 중 1명 이상(33% 이상)이 공통적으로 보고하는 통상적인 지각 반응"
+  },
+  {
+    "q": "★★☆ 로르샤흐 반응내용 기호: H, A, An, Art [출처: 교재 7장 7.3절 반응내용 기호, 15강 강의록]",
+    "a": "H(인간 형태), A(동물 형태), An(신체 장기/해부), Art(예술작품/장식)"
+  },
+  {
+    "q": "★★☆ 머레이의 '욕구(Need)'와 '압력(Press)'의 개념 [출처: 교재 7장 7.3절 욕구-압력 이론, 15강 강의록]",
+    "a": "욕구(개인 내면의 행동 지향적 동기 힘) / 압력(외부 환경이 개인에게 주는 자극, 조건, 위협 및 영향)"
+  },
+  {
+    "q": "★★☆ TAT 분석 시 '주인공(Hero)'의 개념 [출처: 교재 7장 7.3절 TAT 분석, 15강 강의록]",
+    "a": "스토리 속에서 피검자가 자신의 욕구, 정서, 성격을 가장 강하게 동일시하여 반영하는 중심 인물"
+  },
+  {
+    "q": "★★☆ SAT (노인용 주제통각검사) [출처: 교재 7장 7.3절 SAT, 15강 강의록]",
+    "a": "노년기의 건강, 고독, 퇴직, 죽음 등 노인 특유의 심리적 문제와 갈등을 탐색하기 위해 제작된 투사검사"
+  },
+  {
+    "q": "★★☆ HTP 사후 질문 단계 (PDI: Post-Drawing Interrogation) [출처: 교재 7장 7.3절 PDI, 15강 강의록]",
+    "a": "그림 작성이 끝난 후 그림의 구체적 내용, 느낌, 인물의 신상 및 투사된 내면 의도를 묻는 면담 단계"
+  },
+  {
+    "q": "★★☆ HTP 그림의 크기(Size) 상징 해석 [출처: 교재 7장 7.3절 HTP 해석, 15강 음성]",
+    "a": "지나치게 큼(과대망상, 공격성, 환경 통제 불능) / 지나치게 작음(열등감, 자아 위축, 우울, 무력감)"
+  },
+  {
+    "q": "★★☆ HTP 그림의 위치(Location) 상징 해석 [출처: 교재 7장 7.3절 HTP 위치, 15강 음성]",
+    "a": "중앙(정서적 안정, 자아 중심) / 좌측(과거 지향, 내향성, 무의식 충동) / 우측(미래 지향, 외향성, 목표 추구)"
+  },
+  {
+    "q": "★★☆ HTP 집(House) 지붕의 상징 [출처: 교재 7장 7.3절 HTP 지붕, 15강 음성]",
+    "a": "피검자의 내적 공상, 상상력, 정신적 삶의 영역을 상징함 (크면 공상에 지나치게 몰입)"
+  },
+  {
+    "q": "★★☆ HTP 집(House) 벽의 상징 [출처: 교재 7장 7.3절 HTP 벽, 15강 음성]",
+    "a": "자아 강도, 자아 통합성 및 외부 자극에 대한 통제력을 상징함 (부실하면 자아 약화)"
+  },
+  {
+    "q": "★★☆ HTP 집(House) 문과 창문의 상징 [출처: 교재 7장 7.3절 HTP 문과 창문, 15강 음성]",
+    "a": "외부 환경 및 타인과의 접촉, 상호 의사소통 통로를 상징함 (닫히거나 자물쇠가 있으면 방어성, 관계 회피)"
+  },
+  {
+    "q": "★★☆ HTP 나무(Tree) 줄기와 뿌리의 상징 [출처: 교재 7장 7.3절 HTP 줄기와 뿌리, 15강 음성]",
+    "a": "줄기(자아강도, 내적 자존감) / 뿌리(현실 접지력, 과거/기초에 대한 지지)"
+  },
+  {
+    "q": "★★☆ HTP 나무(Tree) 가지의 상징 [출처: 교재 7장 7.3절 HTP 가지, 15강 음성]",
+    "a": "환경과의 적극적 접촉, 목표 달성을 위한 노력, 환경 수용성 및 성취동기를 상징함"
+  },
+  {
+    "q": "★★☆ HTP 사람(Person) 손과 팔의 상징 [출처: 교재 7장 7.3절 HTP 손과 팔, 15강 음성]",
+    "a": "환경을 조작하고 사회적 대인관계를 이끌어가는 수단 (생략하거나 주머니에 숨기면 관계적 무력감, 도피)"
+  },
+  {
+    "q": "★★☆ SCT(문장완성검사)의 반투사적(Semi-projective) 성격 [출처: 교재 7장 7.3절 SCT 성격, 15강 강의록]",
+    "a": "완전한 비구조화 자극이 아닌 미완성 문장 줄기가 제시되어 다른 그림/잉크반점 검사에 비해 반응 자유도가 약간 제한됨"
+  },
+  {
+    "q": "★★☆ SCT(문장완성검사)의 실시상 이점 [출처: 교재 7장 7.3절 SCT 이점, 15강 강의록]",
+    "a": "집단 실시가 가능하고 검사 시간이 단축되며, 피검자의 정서적 관심사와 자아개념을 간편하고 신속하게 파악함"
+  },
+  {
+    "q": "★★☆ 투사적 검사 채점 및 해석 시 검사자의 유의점 [출처: 교재 7장 7.3절 투사적 검사 유의점, 15강 강의록]",
+    "a": "단일 반응 하나만으로 자의적 억측을 내리지 말고, 전체 반응 패턴, 임상 면담, 객관적 검사 자료를 통합하여 해석해야 함"
+  },
+  {
+    "q": "★★☆ 통각(Apperception)의 사전적/심리학적 정의 [출처: 교재 7장 7.3절 통각의 정의, 15강 강의록]",
+    "a": "과거의 경험과 내면적 성격을 바탕으로 새로운 자극을 지각하고 의미를 부여하여 해석하는 심리적 과정"
+  },
+  {
+    "q": "★☆☆ 로르샤흐 잉크반점 제조 방식 [출처: 교재 7장 7.3절 로르샤흐 역사, 15강 음성]",
+    "a": "종이 위에 잉크를 떨어뜨린 후 반으로 접어 좌우 대칭의 잉크 얼룩 반점을 만들어 자극으로 사용함"
+  },
+  {
+    "q": "★☆☆ 엑스너 종합체계 전의 대표적 로르샤흐 학파 [출처: 교재 7장 7.3절 엑스너 배경, 15강 강의록]",
+    "a": "클롭퍼(Klopfer), 벡(Beck), 피오롭스키(Piotrowski), 샤퍼(Schafer), 라파포트(Rapaport) 5개 학파"
+  },
+  {
+    "q": "★☆☆ 로르샤흐 S(Space response)의 심리적 함의 [출처: 교재 7장 7.3절 로르샤흐 위치 S, 15강 음성]",
+    "a": "배경 흰 여백을 주로 활용한 반응으로, 피검자의 반항성, 저항, 대립적 태도나 독창성을 시사함"
+  },
+  {
+    "q": "★☆☆ 로르샤흐 음영 결정인자 (Y, V, T) [출처: 교재 7장 7.3절 음영 결정인자, 15강 강의록]",
+    "a": "Y(무형 음영: 무력감/불안), V(입체 음영: 자책/수치심), T(질감 음영: 정서적 애정 욕구)"
+  },
+  {
+    "q": "★☆☆ TAT 카드 뒷면 대상 기호 (B, G) [출처: 교재 7장 7.3절 TAT 카테고리, 15강 강의록]",
+    "a": "B(Boy / 소년용 카드), G(Girl / 소녀용 카드)"
+  },
+  {
+    "q": "★☆☆ HTP 검사 시 필압(Pressure)의 의미 [출처: 교재 7장 7.3절 HTP 필압, 15강 음성]",
+    "a": "매우 강함(과도한 에너제틱, 공격성, 충동) / 매우 약함(우울, 에너지 결여, 확신 부족, 억제)"
+  },
+  {
+    "q": "★☆☆ HTP 집(House) 굴뚝과 연기의 상징 [출처: 교재 7장 7.3절 HTP 굴뚝, 15강 음성]",
+    "a": "따뜻한 가정적 온정 및 성적 관심사 (연기가 자욱하면 가정 내 억압적 스트레스나 갈등 시사)"
+  },
+  {
+    "q": "★☆☆ HTP 사람(Person) 머리(Head)의 상징 [출처: 교재 7장 7.3절 HTP 머리, 15강 음성]",
+    "a": "지적 능력, 의식적 통제, 자아의 중심부 및 사고 기능의 영역"
+  },
+  {
+    "q": "★☆☆ SSCT 삭스 문장완성검사의 문항 수 [출처: 교재 7장 7.3절 SSCT 문항, 15강 강의록]",
+    "a": "총 60개의 미완성 문장 문항으로 구성됨"
+  },
+  {
+    "q": "★☆☆ 15강 「정신건강 관련 투사적 검사」 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 7장 7.3절 (p.281~), 워크북 7장 7.3절 (p.98~), 15강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

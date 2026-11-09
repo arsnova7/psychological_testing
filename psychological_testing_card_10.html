@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 10, title: "진로검사 2" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 홀랜드(Holland)의 6가지 흥미/성격 유형 (RIASEC) [출처: 교재 5장 5.3절 홀랜드 이론, 2017년 기말 60번]",
+    "a": "현실형(R), 탐구형(I), 예술형(A), 사회형(S), 기업형(E), 관습형(C)"
+  },
+  {
+    "q": "★★★ 현실형(R: Realistic)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 현실형, 워크북 5장 5.3절 2번]",
+    "a": "기계, 도구, 동물 다루기를 좋아하고 야외 실무 활동을 선호하며 솔직하고 사교적 모임보다는 실질적 과제를 중시함"
+  },
+  {
+    "q": "★★★ 탐구형(I: Investigative)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 탐구형, 워크북 5장 5.3절 3번]",
+    "a": "과학적 현상의 원리 탐구, 논리적 분석, 체계적 연구 활동을 선호하며 호기심이 많고 학문적 조사를 즐김"
+  },
+  {
+    "q": "★★★ 예술형(A: Artistic)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 예술형, 워크북 5장 5.3절 4번]",
+    "a": "틀에 박힌 구조화된 과제를 피하고, 자유롭고 독창적이며 감성적인 창작 활동을 선호함"
+  },
+  {
+    "q": "★★★ 사회형(S: Social)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 사회형, 2016년 기말 58번]",
+    "a": "타인을 돕고, 가르치고, 치료하고, 봉사하며, 대인관계 능력이 우수하고 사람 중심 활동을 선호함"
+  },
+  {
+    "q": "★★★ 기업형(E: Enterprising)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 기업형, 2019년 기말 59번]",
+    "a": "조직의 목표 달성이나 경제적 이익을 위해 타인을 설득하고 관리하며 리더십과 진취성을 발휘함"
+  },
+  {
+    "q": "★★★ 관습형(C: Conventional)의 핵심 특징 및 선호 활동 [출처: 교재 5장 5.3절 관습형, 2015년 기말 60번]",
+    "a": "체계적인 정돈, 규칙 준수, 서류 관리, 숫자 다루기 등 정형화된 사무 실무 활동을 선호함"
+  },
+  {
+    "q": "★★★ 홀랜드 육각형 모델상 '인접 유형' 간의 관계 [출처: 교재 5장 5.3절 육각형 구조, 2013년 기말 21번]",
+    "a": "육각형에서 서로 바로 붙어 있는 유형 간(예: R-I, S-E)은 심리적 유사성이 높고 상관관계가 큼"
+  },
+  {
+    "q": "★★★ 홀랜드 육각형 모델상 '대각선 유형' 간의 관계 [출처: 교재 5장 5.3절 육각형 구조, 2014년 기말 21번]",
+    "a": "육각형 맞은편 대각선에 위치한 유형 간(R-S, I-E, A-C)은 특성이 가장 이질적이며 상관관계가 가장 낮음"
+  },
+  {
+    "q": "★★★ 홀랜드 5대 해석 지표 - 일관성(Consistency) [출처: 교재 5장 5.3절 일관성, 2017년 기말 59번]",
+    "a": "상위 1순위와 2순위 흥미 유형이 육각형 모델상에서 서로 인접해 있는 정도로 흥미의 조화로움을 평가함"
+  },
+  {
+    "q": "★★★ 홀랜드 5대 해석 지표 - 변별성(Differentiation) [출처: 교재 5장 5.3절 변별성, 2019년 기말 55번]",
+    "a": "가장 높은 흥미 점수와 가장 낮은 점수의 차이로 특정 영역의 흥미가 얼마나 명확하게 특화되어 나타나는가를 측정함"
+  },
+  {
+    "q": "★★★ 홀랜드 5대 해석 지표 - 일치성(Congruence) [출처: 교재 5장 5.3절 일치성, 2016년 기말 55번]",
+    "a": "개인이 지닌 흥미 유형과 실제 종사하거나 희망하는 직업 환경 유형 간의 맞물림 및 일치 정도"
+  },
+  {
+    "q": "★★★ 홀랜드 5대 해석 지표 - 정체성(Identity) [출처: 교재 5장 5.3절 정체성, 2018년 기말 59번]",
+    "a": "진로목표, 흥미, 적성에 관하여 개인이 명확하고 안정된 구체적 자아상을 갖고 있는 정도"
+  },
+  {
+    "q": "★★★ 홀랜드 5대 해석 지표 - 계측성(Calculability) [출처: 교재 5장 5.3절 계측성, 10강 강의록]",
+    "a": "육각형 모델상 두 유형 간의 기하학적 거리가 상관관계 크기와 반비례한다는 측정학적 수학 구조 속성"
+  },
+  {
+    "q": "★★★ 홀랜드 SDS(Self-Directed Search) 검사 하위 척도 구성 [출처: 교재 5장 5.3절 SDS 구성, 10강 강의록]",
+    "a": "활동(Activities), 역량(Competencies), 직업(Occupations), 자기평가(Self-Estimates) 척도"
+  },
+  {
+    "q": "★★★ 미변별 프로파일(Flat Profile)의 의미 [출처: 교재 5장 5.3절 변별성 해석, 10강 음성]",
+    "a": "6개 유형 점수가 전반적으로 낮고 비슷하며, 자기 이해나 경험 부족으로 흥미가 아직 분화되지 않은 상태"
+  },
+  {
+    "q": "★★★ 대표코드 표기 방법 (Holland Code) [출처: 교재 5장 5.3절 대표코드, 2018년 기말 58번]",
+    "a": "6개 유형 중 득점이 가장 높은 상위 3개 알파벳 문자를 순서대로 표기 (예: SAI, RIA)"
+  },
+  {
+    "q": "★★★ 직업카드분류(Job Card Sort) 기법의 정의 및 성격 [출처: 교재 5장 5.4절 직업카드분류, 2014년 기말 23번]",
+    "a": "수치 규준에 의존하지 않는 비표준화 질적 검사로, 직업 카드를 선호/비선호/미결정 3그룹으로 분류하며 대화 탐색함"
+  },
+  {
+    "q": "★★★ 직업카드분류 기법의 3가지 분류 범주 [출처: 교재 5장 5.4절 직업카드분류, 10강 음성]",
+    "a": "선호하는 직업(좋아함), 비선호하는 직업(싫어함), 미결정/무응답(모름)"
+  },
+  {
+    "q": "★★★ 직업카드분류에서 비선호 카드 탐색의 상담적 장점 [출처: 교재 5장 5.4절 직업카드분류, 10강 강의록]",
+    "a": "피검자가 사전에 제외하거나 제껴 버린 직업 대안의 이유(제한과 타협) 및 내외적 진로장벽을 파악할 수 있음"
+  },
+  {
+    "q": "★★☆ 일관성(Consistency) 점수 채점 기준 [출처: 교재 5장 5.3절 일관성 산출, 10강 강의록]",
+    "a": "상위 2개 유형이 인접한 경우 3점(높음), 한 칸 건너 2점(중간), 대각선 맞은편 1점(낮음) 부여"
+  },
+  {
+    "q": "★★☆ 육각형 모델의 시계방향 순서 [출처: 교재 5장 5.3절 RIASEC 육각형, 10강 강의록]",
+    "a": "R (현실형) - I (탐구형) - A (예술형) - S (사회형) - E (기업형) - C (관습형)"
+  },
+  {
+    "q": "★★☆ 변별도(Differentiation Index) 산출 공식 [출처: 교재 5장 5.3절 변별성 산출, 10강 강의록]",
+    "a": "변별도 = (6개 유형 중 최고 점수) - (6개 유형 중 최저 점수)"
+  },
+  {
+    "q": "★★☆ 한국판 홀랜드 SDS 검사 표준화 보급자 [출처: 교재 5장 5.3절 한국판 SDS, 10강 강의록]",
+    "a": "안창규 교수 (한국가이던스를 통해 표준화 번안 및 보급)"
+  },
+  {
+    "q": "★★☆ 현실형(R)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 현실형 직업, 10강 강의록]",
+    "a": "엔지니어, 자동차 정비사, 기계 기사, 농부, 운전기사 등 도구/기계/신체 기술 다루는 환경"
+  },
+  {
+    "q": "★★☆ 탐구형(I)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 탐구형 직업, 10강 강의록]",
+    "a": "생물학자, 화학 연구원, 데이터 분석가, 교수, 의학 연구원 등 원리 규명 및 논리 분석 환경"
+  },
+  {
+    "q": "★★☆ 예술형(A)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 예술형 직업, 10강 강의록]",
+    "a": "화가, 음악가, 디자이너, 소설가, 연출가, 무용가 등 자유롭고 비구조화된 창작·감성 환경"
+  },
+  {
+    "q": "★★☆ 사회형(S)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 사회형 직업, 10강 강의록]",
+    "a": "사회복지사, 상담사, 초등교사, 간호사 등 타인을 교육하고 치료하며 봉사하는 환경"
+  },
+  {
+    "q": "★★☆ 기업형(E)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 기업형 직업, 10강 강의록]",
+    "a": "영업 관리자, 정치가, 마케팅 이사, 기업가 등 설득과 리더십으로 조직 성과를 내는 환경"
+  },
+  {
+    "q": "★★☆ 관습형(C)에 상응하는 대표 직업 환경 [출처: 교재 5장 5.3절 관습형 직업, 10강 강의록]",
+    "a": "회계사, 세무사, 은행원, 행정 사무원, 데이터 입력원 등 규정 준수와 서류·숫자 관리 환경"
+  },
+  {
+    "q": "★★☆ 일치성(Congruence)이 높은 경우의 효과 [출처: 교재 5장 5.3절 일치성 효과, 10강 강의록]",
+    "a": "직무 만족도, 조직 정착률, 성과, 성취감 및 정서적 안정성이 높게 나타남"
+  },
+  {
+    "q": "★★☆ 일치성(Congruence)이 낮은 경우의 문제점 [출처: 교재 5장 5.3절 일치성 효과, 10강 음성]",
+    "a": "직무 부적응, 스트레스 상승, 불만족 및 조기 이직 현상이 나타날 위험이 높음"
+  },
+  {
+    "q": "★★☆ 동점자 발생 시 대표코드 결정 절차 [출처: 교재 5장 5.3절 동점자 처리, 10강 강의록]",
+    "a": "세부 하위 척도 점수를 재대조하거나, 육각형상 인접 여부 및 내담자의 주관적 선호를 확인하여 확정"
+  },
+  {
+    "q": "★★☆ 진로장벽검사(Career Barrier Inventory)의 목적 [출처: 교재 5장 5.4절 진로장벽검사, 10강 강의록]",
+    "a": "진로목표를 선택하고 실현하는 과정에서 피검자가 느끼는 내외적 장애요인(불안, 경제력, 성차별 등)을 평가"
+  },
+  {
+    "q": "★★☆ 진로의사결정검사(Career Decision Scale, CDS)의 목적 [출처: 교재 5장 5.4절 진로의사결정검사, 10강 강의록]",
+    "a": "내담자가 진로 결정을 내리지 못하고 미결정 상태(Indecision)에 머무는 원인과 수준을 진단함"
+  },
+  {
+    "q": "★★☆ 진로발달그림검사(환상기 그림검사)의 적합 대상 [출처: 교재 5장 5.4절 그림검사, 10강 음성]",
+    "a": "독해력과 문해력이 아직 미숙하고 일에 대한 상상이 활발한 초등학교 저학년 아동"
+  },
+  {
+    "q": "★★☆ 생애진로무지개 그리기 도구의 응용 [출처: 교재 5장 5.4절 생애역할 진단, 10강 강의록]",
+    "a": "동일 시점 내담자의 다중 생애역할(자녀, 학생, 직업인, 시민 등) 비중과 역할 갈등을 시각적 탐색"
+  },
+  {
+    "q": "★★☆ 긍정응답률(Profile Elevation) 지표의 의미 [출처: 교재 5장 5.3절 긍정응답률, 10강 강의록]",
+    "a": "6개 유형 전체의 반응 개수 합으로, 일에 대한 전반적 열의, 흥미 수준 및 응답 태도의 열성을 반영함"
+  },
+  {
+    "q": "★★☆ 긍정응답률이 극단적으로 높은/낮은 경우의 해석 [출처: 교재 5장 5.3절 긍정응답률, 10강 음성]",
+    "a": "극단적으로 높음: 모든 일에 의욕 과다 또는 긍정 응답 경향 / 극단적으로 낮음: 진로 우울, 무기력 또는 진로 포기 상태 시사"
+  },
+  {
+    "q": "★★☆ SAI 코드를 가진 내담자의 특성 [출처: 교재 5장 5.3절 대표코드 해석, 2018년 기말 58번]",
+    "a": "사회형(S)의 봉사·조력 성향을 바탕으로 예술형(A)의 창의성과 탐구형(I)의 학문 분석력이 결합 (상담사, 임상심리학자 등)"
+  },
+  {
+    "q": "★☆☆ 인접 유형 간 correlation vs 대각선 유형 간 correlation 수치 예시 [출처: 교재 5장 5.3절 상관관계, 10강 강의록]",
+    "a": "인접 유형 간 상관: 약 .60~.70 (높음) / 대각선 맞은편 상관: 약 .10~.30 (낮음)"
+  },
+  {
+    "q": "★☆☆ SDS 검사에서 '자기평가(Self-Estimates)' 척도 [출처: 교재 5장 5.3절 SDS 척도, 10강 강의록]",
+    "a": "6개 유형별 자신의 능력과 역량 수준을 피검자 스스로 평정하는 자기보고식 척도"
+  },
+  {
+    "q": "★☆☆ 홀랜드 검사의 학술적 명칭 (SDS) [출처: 교재 5장 5.3절 SDS 개관, 10강 강의록]",
+    "a": "Self-Directed Search (자간진단/자율탐색검사)"
+  },
+  {
+    "q": "★☆☆ 워크넷 직업흥미검사의 이론적 기반 [출처: 교재 5장 5.3절 워크넷 검사, 10강 강의록]",
+    "a": "홀랜드(Holland)의 RIASEC 6개 흥미/성격 유형 모델"
+  },
+  {
+    "q": "★☆☆ 홀랜드 이론의 핵심 기본 가정 4가지 [출처: 교재 5장 5.3절 홀랜드 이론, 10강 강의록]",
+    "a": "①성격 6유형, ②환경 6유형, ③개인과 환경의 매칭, ④행동은 성격과 환경의 상호작용 결과"
+  },
+  {
+    "q": "★☆☆ RIASEC 중 'R(현실형)과 S(사회형)'의 관계 [출처: 교재 5장 5.3절 육각형 구조, 2013년 기말 21번]",
+    "a": "육각형 맞은편 대각선에 위치하여 상호 정반대의 성향을 보임 (물체/도구 vs 사람/봉사)"
+  },
+  {
+    "q": "★☆☆ RIASEC 중 'I(탐구형)과 E(기업형)'의 관계 [출처: 교재 5장 5.3절 육각형 구조, 2014년 기말 21번]",
+    "a": "육각형 맞은편 대각선에 위치하여 상호 정반대의 성향을 보임 (학문 탐구 vs 조직 리더십/설득)"
+  },
+  {
+    "q": "★☆☆ RIASEC 중 'A(예술형)과 C(관습형)'의 관계 [출처: 교재 5장 5.3절 육각형 구조, 2015년 기말 60번]",
+    "a": "육각형 맞은편 대각선에 위치하여 상호 정반대의 성향을 보임 (자유/비구조화 vs 규칙/정형화 사무)"
+  },
+  {
+    "q": "★☆☆ 진로 집단상담 시 홀랜드 검사 활용 윤리 지침 [출처: 교재 5장 5.4절 윤리지침, 10강 음성]",
+    "a": "참여자의 점수를 타인과 비교하여 비난하지 않으며 유형 차이를 서열이 아닌 개인적 특성의 서술로 존중함"
+  },
+  {
+    "q": "★☆☆ 10강 「진로검사 2」의 교재 및 워크북 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 5장 5.3절~5.4절 (p.192~209), 워크북 5장 5.3절~5.4절 (p.68~73), 10강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

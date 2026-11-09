@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 8, title: "지능검사 2" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ K-WISC-V의 적용 대상 연령 [출처: 교재 4장 4.3절 개관, 8강 강의록]",
+    "a": "만 6세 0개월부터 만 16세 11개월까지의 아동 및 청소년"
+  },
+  {
+    "q": "★★★ K-WISC-V 전체지능(FSIQ) 산출에 사용되는 소검사 개수 [출처: 교재 4장 4.3절 전체척도, 8강 강의록]",
+    "a": "16개 소검사 중 지정된 7개 기본 소검사 (공통성, 어휘, 토막짜기, 행렬추리, 무게비교, 숫자, 기호쓰기)"
+  },
+  {
+    "q": "★★★ K-WISC-V의 5개 기본지표척도(Primary Index Scales) [출처: 교재 4장 4.3절 기본지표, 2017년 기말 55번, 2019년 기말 54번]",
+    "a": "언어이해지표(VCI), 시공간지표(VSI), 유동추론지표(FRI), 작업기억지표(WMI), 처리속도지표(PSI)"
+  },
+  {
+    "q": "★★★ K-WISC-V 5개 추가지표척도(Ancillary Index Scales) [출처: 교재 4장 4.3절 추가지표, 8강 강의록]",
+    "a": "양적추론(QRI), 청각작업기억(AWMI), 비언어(NVI), 일반능력(GAI), 인지효율(CPI)"
+  },
+  {
+    "q": "★★★ K-WISC-IV에서 K-WISC-V로 개정되며 지표 구조에서 발생한 가장 큰 변화 [출처: 교재 4장 4.3절 개관, 2017년 기말 55번]",
+    "a": "4판의 '지각추론지표'가 5판에서 '시공간지표'와 '유동추론지표' 2개 지표로 분화됨"
+  },
+  {
+    "q": "★★★ K-WISC-V에서 완전히 삭제된 소검사 2가지 [출처: 교재 4장 4.3절 개관, 8강 음성]",
+    "a": "단어추리, 빠진곳찾기"
+  },
+  {
+    "q": "★★★ K-WISC-V에서 새로 신설된 소검사 3가지 [출처: 교재 4장 4.3절 개관, 8강 강의록]",
+    "a": "무게비교, 퍼즐, 그림기억"
+  },
+  {
+    "q": "★★★ 언어이해지표(VCI)의 기본 소검사 [출처: 교재 4장 4.3절 언어이해지표, 워크북 4장 4.3절 4번]",
+    "a": "공통성, 어휘 (추가 소검사: 상식, 이해)"
+  },
+  {
+    "q": "★★★ 시공간지표(VSI)의 기본 소검사 [출처: 교재 4장 4.3절 시공간지표, 8강 강의록]",
+    "a": "토막짜기, 퍼즐"
+  },
+  {
+    "q": "★★★ 유동추론지표(FRI)의 기본 소검사 [출처: 교재 4장 4.3절 유동추론지표, 워크북 4장 4.3절 2번]",
+    "a": "행렬추리, 무게비교 (추가 소검사: 공통그림찾기)"
+  },
+  {
+    "q": "★★★ 작업기억지표(WMI)의 기본 소검사 [출처: 교재 4장 4.3절 작업기억지표, 워크북 4장 4.3절 1번]",
+    "a": "숫자, 그림기억 (추가 소검사: 순차연결)"
+  },
+  {
+    "q": "★★★ 처리속도지표(PSI)의 기본 소검사 [출처: 교재 4장 4.3절 처리속도지표, 2013년 기말 15번]",
+    "a": "기호쓰기, 동형찾기 (추가 소검사: 선택)"
+  },
+  {
+    "q": "★★★ 일반능력지표(GAI)의 정의 및 임상적 유용성 [출처: 교재 4장 4.3절 추가지표, 2015년 기말 51번]",
+    "a": "작업기억과 처리속도를 제외하고 언어이해·시공간·유동추론 소검사로 산출하여, ADHD나 학습장애(LD) 아동의 지적 능력을 타당하게 반영함"
+  },
+  {
+    "q": "★★★ 청각작업기억지표(AWMI)의 특징 및 적합 아동 [출처: 교재 4장 4.3절 추가지표, 8강 음성]",
+    "a": "숫자와 순차연결 소검사로 구성되며 시각 자극이 완전히 배제되어 시력 손상 아동 평가에 유용함"
+  },
+  {
+    "q": "★★★ 비언어지표(NVI)의 특징 및 적합 아동 [출처: 교재 4장 4.3절 추가지표, 8강 음성]",
+    "a": "언어 소검사를 제외한 6개 동작/추론 소검사로 구성되어 언어 장애나 언어 표현이 곤란한 아동 평가에 적합함"
+  },
+  {
+    "q": "★★★ 인지효율지표(CPI)의 구성 및 측정 내용 [출처: 교재 4장 4.3절 추가지표, 8강 강의록]",
+    "a": "작업기억과 처리속도 소검사로 구성되며 과제 수행의 능숙도, 집중력, 자동화된 정보처리 효율성을 평가함"
+  },
+  {
+    "q": "★★★ K-WISC-V 소검사 환산점수의 평균과 표준편차 [출처: 교재 4장 4.3절 환산점수, 8강 강의록]",
+    "a": "평균 = 10, 표준편차 = 3"
+  },
+  {
+    "q": "★★★ K-WISC-V 전체 IQ 및 지표점수의 평균과 표준편차 [출처: 교재 4장 4.3절 합산점수, 8강 강의록]",
+    "a": "평균 = 100, 표준편차 = 15 (편차지능지수)"
+  },
+  {
+    "q": "★★★ K-WISC-V 검사실시일-출생일 연령 계산 규칙 [출처: 교재 4장 4.3절 연령 계산법, 8강 강의록]",
+    "a": "검사실시일에서 출생일을 빼서 계산하며, 계산 편의를 위해 모든 달은 30일로 가정함"
+  },
+  {
+    "q": "★★★ K-WISC-V 소검사 표준 실시 순서의 첫 번째 소검사 [출처: 교재 4장 4.3절 소검사 실시순서, 워크북 4장 4.3절 10번]",
+    "a": "토막짜기 (Block Design)"
+  },
+  {
+    "q": "★★★ K-WISC-V 검사 실시 시간 [출처: 교재 4장 4.3절 검사시간, 워크북 4장 4.3절 9번]",
+    "a": "기본 10개 소검사 실시 시 평균 약 65분 / 전체 IQ 산출용 7개 소검사 실시 시 평균 약 48분"
+  },
+  {
+    "q": "★★★ K-WISC-V 소검사 대체 규칙 [출처: 교재 4장 4.3절 소검사 대체, 8강 음성]",
+    "a": "전체 IQ 산출 시 무효 소검사가 발생하면 동일 영역 소검사로 1회에 한하여 대체 가능 (지표점수에는 대체 불가)"
+  },
+  {
+    "q": "★★★ 6개 소검사만 완료되었을 때 비례배분 환산점수 산출 공식 [출처: 교재 4장 4.3절 점수 산출, 8강 강의록]",
+    "a": "(6개 소검사 환산점수의 합) × 7/6"
+  },
+  {
+    "q": "★★★ 아동용 웩슬러 검사가 성인용(WAIS)에 비해 가지는 실시상 특징 [출처: 교재 4장 4.3절 해석 시 유의점, 2017년 기말 56번]",
+    "a": "아동의 지적 발달 속도와 실패 스트레스를 고려하여 성인 검사보다 연속 오답 시 더 빨리 검사를 중지함"
+  },
+  {
+    "q": "★★★ 검사 결과 해석 보고서 전달 시 지침 [출처: 교재 4장 4.4절 결과 전달과 활용, 8강 음성]",
+    "a": "단일 IQ 숫자로 단정하여 낙인찍지 말고, 쉽게 이해할 수 있는 용어로 신뢰구간 및 질적 범주 중심으로 설명함"
+  },
+  {
+    "q": "★★☆ 토막짜기(Block Design) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 워크북 4장 4.3절 8번]",
+    "a": "제한시간 내 모형/그림을 보고 토막을 조합하여 만듦으로써 시공간 처리 능력 및 시각-운동 협응을 측정"
+  },
+  {
+    "q": "★★☆ 행렬추리(Matrix Reasoning) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "미완성 행렬이나 패턴을 보고 빠진 부분을 선택함으로써 비언어적 유동추론 능력을 측정"
+  },
+  {
+    "q": "★★☆ 무게비교(Visual Puzzles / Figure Weights) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "저울의 양쪽 균형을 보고 무거운 정도와 수량적 추론 관계를 파악하는 유동추론 소검사"
+  },
+  {
+    "q": "★★☆ 퍼즐(Visual Puzzles) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "완성된 퍼즐 형상을 보고 이를 구성하는 3개의 조각을 정신적으로 선택·회전하는 시공간 소검사"
+  },
+  {
+    "q": "★★☆ 기호쓰기(Coding) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "제한시간 내 기호와 숫자의 짝을 보고 기록용지에 해당 기호를 빠르게 따라 적는 처리속도 소검사"
+  },
+  {
+    "q": "★★☆ 동형찾기(Symbol Search) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 2013년 기말 15번]",
+    "a": "제시된 표적 기호가 탐색 그룹에 존재하는지 여부를 빠르게 판단하여 체크하는 처리속도 소검사"
+  },
+  {
+    "q": "★★☆ 공통성(Similarities) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 워크북 4장 4.3절 4번]",
+    "a": "두 단어의 공통점을 설명하도록 하여 언어적 개념 형성 및 추론 능력을 측정"
+  },
+  {
+    "q": "★★☆ 어휘(Vocabulary) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "그림의 이름을 대거나 단어의 뜻을 정의하도록 하여 언어적 개념, 어휘 지식, 결정지능을 측정"
+  },
+  {
+    "q": "★★☆ 숫자(Digit Span) 소검사의 3개 세부 과제 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "숫자 바로 따라하기(단기기억), 숫자 거꾸로 따라하기(작업기억), 숫자 순서대로 따라하기(조작/순서화)"
+  },
+  {
+    "q": "★★☆ 그림기억(Picture Span) 소검사의 측정 내용 [출처: 교재 4장 4.3절 소검사, 8강 강의록]",
+    "a": "제시된 그림들을 기억한 후 다음 페이지에서 동일 그림을 순서대로 찾아내는 시각적 작업기억 소검사"
+  },
+  {
+    "q": "★★☆ 처리점수(Process score)의 제공 목적 [출처: 교재 4장 4.3절 처리점수, 8강 음성]",
+    "a": "시간보너스 미반영 점수, 오류 형태, 최대 수행범위 등 질적·추가 정보(18개 지표)를 제공하여 아동의 반응 특성을 심층 파악하기 위함"
+  },
+  {
+    "q": "★★☆ K-WISC-V 전체 IQ 질적 분류 기준 중 '130 이상'과 '69 이하'의 범주 [출처: 교재 4장 4.3절 표 4-8 질적 분류]",
+    "a": "130 이상: 매우 우수 (Very Superior) / 69 이하: 매우 낮음 (Extremely Low)"
+  },
+  {
+    "q": "★★☆ K-WISC-V 전체 IQ 질적 분류 기준 중 '90 ~ 109점'의 범주 [출처: 교재 4장 4.3절 표 4-8 질적 분류]",
+    "a": "평균 (Average)"
+  },
+  {
+    "q": "★★☆ 규준분석에 의한 개인 간 해석의 개념 [출처: 교재 4장 4.3절 해석 방법, 워크북 4장 4.3절 Q1]",
+    "a": "동일 연령대 또래 규준집단과 비교하여 아동의 상대적 지적 위치 및 서열을 평가하는 해석"
+  },
+  {
+    "q": "★★☆ 프로파일에 의한 개인 내적 해석의 개념 [출처: 교재 4장 4.3절 해석 방법, 워크북 4장 4.3절 Q1]",
+    "a": "아동 한 개인 내부에서 각 지표점수 및 소검사 점수를 비교하여 상대적 강점(Strength)과 약점(Weakness)을 분석하는 해석"
+  },
+  {
+    "q": "★☆☆ 검사진행 중 아동에 대한 언어적 강화(칭찬) 지침 [출처: 교재 4장 4.3절 라포 형성, 8강 음성]",
+    "a": "정답/오답 결과 성패에 대한 칭찬이 아니라 과제에 임하는 아동의 '노력'과 '태도'에 대해 칭찬하고 격려함"
+  },
+  {
+    "q": "★☆☆ 검사실 환경 구성 지침 [출처: 교재 4장 4.3절 검사 환경, 워크북 4장 4.3절 3번]",
+    "a": "소음이 통제된 조용한 검사실에서 검사자와 아동 1대1로 진행하며 지침서, 기록지 등은 아동 눈에 띄지 않게 배치함"
+  },
+  {
+    "q": "★☆☆ 라포(Rapport) 형성을 위한 초반 대화 지침 [출처: 교재 4장 4.3절 라포 형성, 2013년 기말 16번]",
+    "a": "검사 시작 전 아동의 취미, 관심사 등에 관해 자연스럽고 비공식적인 대화를 나누며 편안한 분위기를 조성함"
+  },
+  {
+    "q": "★☆☆ K-WISC-V 7단계 해석 절차 중 1~3단계 순서 [출처: 교재 4장 4.3절 해석 절차, 8강 강의록]",
+    "a": "1단계: 전체 IQ 해석 → 2단계: 5대 기본지표척도 해석 → 3단계: 기본지표 소검사 분석"
+  },
+  {
+    "q": "★☆☆ K-WISC-V 검사도구 상자 구성품 [출처: 교재 4장 4.3절 검사도구, 8강 강의록]",
+    "a": "지침서, 소책자 1·2, 토막 세트, 반응지 1·2, 기록용지, 채점판, 연필, 초시계 등"
+  },
+  {
+    "q": "★☆☆ K-WISC-V 소검사 환산점수 8~12점의 의미 [출처: 교재 4장 4.3절 표 4-9 소검사 질적 분류]",
+    "a": "동일 연령대 또래와 비교했을 때 '평균' 수준의 수행을 의미함"
+  },
+  {
+    "q": "★☆☆ 90% 또는 95% 신뢰구간의 제공 이유 [출처: 교재 4장 4.3절 신뢰구간, 8강 음성]",
+    "a": "측정의 표준오차(SEM)를 고려하여 진점수가 존재할 확률적인 범위를 제시함으로써 수치의 절대화를 방지함"
+  },
+  {
+    "q": "★☆☆ 아동이 특정 소검사에 반응을 거부할 때의 지침 [출처: 교재 4장 4.3절 검사 실시, 워크북 4장 4.3절 3번]",
+    "a": "억지로 강요하지 않고 일단 다음 소검사를 진행한 뒤, 나중에 해당 소검사로 되돌아와 재시도함"
+  },
+  {
+    "q": "★☆☆ K-WISC-V 검사 중단 후 재개 시 시간 지침 [출처: 교재 4장 4.3절 검사 실시, 8강 음성]",
+    "a": "아동의 피로 등으로 중단되었을 경우 가급적 일주일 이내에 이어서 검사를 완성하는 것이 권장됨"
+  },
+  {
+    "q": "★☆☆ 8강 「지능검사 2」의 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 4장 4.3절 (p.129~150), 워크북 4장 4.3절 (p.52~56), 8강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

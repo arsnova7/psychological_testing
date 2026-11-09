@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 3, title: "검사결과 이해를 위한 측정학적 개념 1" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 심리검사에서의 간접측정 개념 [출처: 교재 2장 2.1절 검사의 개념]",
+    "a": "지능, 성격 등 눈에 보이지 않는 내면적 심리 구인을 행동표본과 응답을 통해 추정·측정하는 방식"
+  },
+  {
+    "q": "★★★ 원점수(raw score)의 정의 및 한계 [출처: 교재 2장 2.1절 검사의 개념, 워크북 2장 2.1절]",
+    "a": "피검자가 응답하여 얻은 가공되지 않은 채점 합계 점수 / 비교 기준이 없어 그 자체로는 상대적 의미나 성취 수준을 알기 어려움"
+  },
+  {
+    "q": "★★★ 규준지향검사(norm-referenced test)의 정의 [출처: 교재 2장 2.1절 규준지향검사, 2013년 기말]",
+    "a": "피검자의 점수를 그가 속한 집단의 점수분포(규준)에 비추어 상대적 위치나 서열로 해석하는 검사"
+  },
+  {
+    "q": "★★★ 규준(norm)의 정의 [출처: 교재 2장 2.1절 규준지향검사]",
+    "a": "표준화 표집 집단의 원점수 분포로, 개인의 점수를 상대적으로 비교·평가하기 위한 기준표"
+  },
+  {
+    "q": "★★★ 준거지향검사(criterion-referenced test)의 정의 [출처: 교재 2장 2.1절 준거지향검사, 2015년 기말, 2017년 기말]",
+    "a": "검사개발자가 설정한 절대적 준거점수(criterion)에 비추어 특정 능력의 보유/달성 여부를 판단하는 검사"
+  },
+  {
+    "q": "★★★ 준거(criterion)의 개념 [출처: 교재 2장 2.1절 준거지향검사]",
+    "a": "피검자가 특정 기능이나 지식을 습득했는지 가늠하는 절대적인 평가 기준점(절단점)"
+  },
+  {
+    "q": "★★★ 규준지향검사와 준거지향검사의 핵심 비교 [출처: 워크북 2장 2.1절 4번, 2019년 기말]",
+    "a": "규준지향: 상대적 위치·서열 비교 (경쟁 유발) / 준거지향: 절대적 기준 달성 여부 평가"
+  },
+  {
+    "q": "★★★ 변수(variable)와 상수(constant)의 차이 [출처: 교재 2장 2.2절 변수]",
+    "a": "변수: 개체의 특성에 따라 변하는 수 / 상수: 연구 조건 내에서 항상 일정한 고정된 값"
+  },
+  {
+    "q": "★★★ 양적변수와 질적변수의 구분 [출처: 교재 2장 2.2절 변수, 워크북 2장 2.2절 4번]",
+    "a": "양적변수: 수량화가 가능한 변수(키, 점수) / 질적변수: 수량화 불가능한 유목/범주 변수(성별, 혈액형)"
+  },
+  {
+    "q": "★★★ 연속변수와 비연속변수(유목변수)의 구분 [출처: 교재 2장 2.2절 변수, 워크북 2장 2.2절 2번]",
+    "a": "연속변수: 무수히 많은 소수점 값을 취함(온도, 키) / 비연속변수: 몇 개의 유목/정수로 끊어짐(주사위 눈, 자녀 수)"
+  },
+  {
+    "q": "★★★ 독립변수(independent variable)의 정의 [출처: 교재 2장 2.2절 변수, 2019년 기말]",
+    "a": "사건이나 연구 문제에서 원인이 되는 변수 (X)"
+  },
+  {
+    "q": "★★★ 종속변수(dependent variable)의 정의 [출처: 교재 2장 2.2절 변수, 워크북 2장 2.2절 1번]",
+    "a": "독립변수의 영향에 따라 결정되는 결과 변수 (Y)"
+  },
+  {
+    "q": "★★★ 매개변수(mediating variable)의 정의 [출처: 교재 2장 2.2절 변수, 워크북 2장 2.2절 1번]",
+    "a": "독립변수(X)와 종속변수(Y) 사이에서 두 변수의 관계를 징검다리처럼 이어주는 변수"
+  },
+  {
+    "q": "★★★ 조절변수(moderating variable)의 정의 [출처: 교재 2장 2.2절 변수, 3강 강의록]",
+    "a": "독립변수가 종속변수에 미치는 영향의 강도나 방향을 변화시키는 제3의 변수"
+  },
+  {
+    "q": "★★★ 척도의 4대 수준 (수리적 정보가 적은 것부터) [출처: 교재 2장 2.2절 척도]",
+    "a": "명명변수 → 서열변수 → 동간변수 → 비율변수"
+  },
+  {
+    "q": "★★★ 명명변수(nominal variable)의 특징 [출처: 교재 2장 2.2절 척도, 2015년 기말]",
+    "a": "개체의 동일성/상이성(구별) 정보만 제공하며, 순서나 절대영점이 없고 연산 불가능"
+  },
+  {
+    "q": "★★★ 서열변수(ordinal variable)의 특징 [출처: 교재 2장 2.2절 척도, 2018년 기말]",
+    "a": "상대적 순서(서열) 정보를 제공하나, 등간성(간격 동일성)이 없어 가감승제 불가능"
+  },
+  {
+    "q": "★★★ 동간변수(interval variable)의 특징 [출처: 교재 2장 2.2절 척도, 2017년 기말, 2019년 기말]",
+    "a": "측정단위 간 동간성이 있어 가감(+,-) 연산 가능하나, 임의영점만 있어 승제(비율) 연산 불가능"
+  },
+  {
+    "q": "★★★ 비율변수(ratio variable)의 특징 [출처: 교재 2장 2.2절 척도, 2018년 기말]",
+    "a": "절대영점과 동간성을 모두 가져 가감승제(+,-,×,÷) 4칙 연산과 비율 계산이 모두 가능함"
+  },
+  {
+    "q": "★★★ 절대영점(absolute zero)과 임의영점(arbitrary zero)의 차이 [출처: 교재 2장 2.2절 척도]",
+    "a": "절대영점: 속성의 완전한 부재(0cm, 0kg) / 임의영점: 약속에 의한 기준점(0℃, IQ 0점)"
+  },
+  {
+    "q": "★★★ 4대 척도별 가능한 연산 종류 [출처: 교재 2장 2.2절 척도, 2018년 기말]",
+    "a": "명명/서열: 연산 불가 / 동간: 가감(+,-) 연산 / 비율: 가감승제(+,-,×,÷) 연산"
+  },
+  {
+    "q": "★★★ 동간성(equal interval)의 정의 [출처: 교재 2장 2.2절 척도, 워크북 2장 2.2절 5번]",
+    "a": "측정 단위 사이의 간격이 수치적으로 일정하다는 성질 (예: 10℃와 20℃의 차이 = 20℃와 30℃의 차이)"
+  },
+  {
+    "q": "★★★ 스포츠 선수의 등번호 변수 종류 [출처: 워크북 2장 2.2절 3번, 2013년 기말, 2016년 기말]",
+    "a": "명명변수 (선수 구별용 라벨일 뿐 크기나 서열 의미 없음)"
+  },
+  {
+    "q": "★★★ 섭씨온도(℃) 및 지능점수(IQ)의 변수 종류 [출처: 교재 2장 2.2절 척도, 워크북 2장 2.2절 3번]",
+    "a": "동간변수 (동간성은 있으나 절대영점이 없음)"
+  },
+  {
+    "q": "★★★ 키, 몸무게, 시간, 길의 변수 종류 [출처: 교재 2장 2.2절 척도, 2018년 기말]",
+    "a": "비율변수 (절대영점이 존재하고 비율 계산 가능)"
+  },
+  {
+    "q": "★★☆ 심리적 구인 측정 시 원점수를 표준점수(Z, T점수)나 백분위로 변환하는 이유 [출처: 교재 2장 2.1절 규준지향검사]",
+    "a": "원점수 자체로는 비교가 어려우므로 집단 내 상대적 위치를 타당하게 파악하기 위해"
+  },
+  {
+    "q": "★★☆ 규준지향검사의 주요 장점 [출처: 워크북 2장 2.1절 2번]",
+    "a": "피검자의 상대적 서열을 명확히 알려주어 선발 및 우수자 선출 시 의사결정이 용이함"
+  },
+  {
+    "q": "★★☆ 규준지향검사의 한계점 [출처: 워크북 2장 2.1절 2번]",
+    "a": "학습자 간 상대적 서열 경쟁을 유발하며, 피검자가 실제로 알고 있는 내용에 대한 직접적 답을 주지 못함"
+  },
+  {
+    "q": "★★☆ 준거지향검사의 주요 장점 [출처: 교재 2장 2.1절 준거지향검사]",
+    "a": "학습자의 영역별 성취 수준과 능력 보유 여부에 대한 직접적인 정보 제공"
+  },
+  {
+    "q": "★★☆ 준거지향검사의 한계점 [출처: 교재 2장 2.1절 준거지향검사]",
+    "a": "절대적 합격/불합격 기준점(준거점수)을 정할 때 평가자의 임의성이 개입될 수 있음"
+  },
+  {
+    "q": "★★☆ 한 검사 도구의 다중 참조체계 적용 가능성 [출처: 워크북 2장 2.1절 3번, 2019년 기말]",
+    "a": "동일한 검사라도 목적에 따라 규준참조(등가 산출)와 준거참조(합불 결정)를 모두 반영할 수 있음"
+  },
+  {
+    "q": "★★☆ 명명변수의 숫자 코딩(남=1, 여=2)의 의미 [출처: 교재 2장 2.2절 척도]",
+    "a": "유목 구분을 위한 기호에 불과하며 크기, 우열, 산술 연산의 의미가 없음"
+  },
+  {
+    "q": "★★☆ 서열변수에서 등수 간 점수 차이가 일정하지 않은 이유 [출처: 교재 2장 2.2절 척도]",
+    "a": "측정 단위 사이의 간격이 동일하다는 '동간성'이 없기 때문"
+  },
+  {
+    "q": "★★☆ 섭씨 0도(0℃)가 절대영점이 아닌 이유 [출처: 교재 2장 2.2절 척도, 3강 강의록]",
+    "a": "열이 완전히 없는 상태가 아니라 물이 어는 온도를 편의상 0으로 정한 임의영점이기 때문"
+  },
+  {
+    "q": "★★☆ 비율변수에서 '20cm가 10cm의 2배'라고 말할 수 있는 조건 [출처: 교재 2장 2.2절 척도]",
+    "a": "속성이 전혀 존재하지 않음을 뜻하는 '절대영점'이 존재하기 때문"
+  },
+  {
+    "q": "★★☆ 가외변수(extraneous variable)의 개념 [출처: 교재 2장 2.2절 변수]",
+    "a": "독립변수 외에 종속변수에 바람직하지 않은 영향을 미칠 수 있어 통제해야 하는 변수"
+  },
+  {
+    "q": "★★☆ 통제변수(control variable)의 개념 [출처: 교재 2장 2.2절 변수]",
+    "a": "연구자가 종속변수에 영향을 미치지 못하도록 실험/조사 과정에서 일정하게 고정한 가외변수"
+  },
+  {
+    "q": "★★☆ 수능 국어·수학 영역 표준점수 및 백분위의 참조체계 [출처: 교재 2장 2.1절 규준지향검사]",
+    "a": "규준참조체제 (응시자 집단 내 상대적 위치 산출)"
+  },
+  {
+    "q": "★★☆ 수능 한국사·영어 영역 절대평가 등급의 참조체계 [출처: 교재 2장 2.1절 준거지향검사]",
+    "a": "준거참조체제 (사전 설정된 점수 기준에 따라 등급 부여)"
+  },
+  {
+    "q": "★★☆ 운전면허시험 및 국가기술자격시험의 참조체계 [출처: 교재 2장 2.1절 준거지향검사, 2017년 기말]",
+    "a": "준거지향검사 (절대적 기준점 이상 시 자격 부여)"
+  },
+  {
+    "q": "★☆☆ 심리검사에서 행동표본(behavior sample)을 수집하는 이유 [출처: 교재 2장 2.1절 검사의 개념]",
+    "a": "피검자의 모든 행동을 조사할 수 없으므로 대표적인 일부 행동만 표집하여 측정함"
+  },
+  {
+    "q": "★☆☆ 규준 제작을 위한 표본 추출의 핵심 조건 [출처: 교재 2장 2.1절 규준지향검사]",
+    "a": "전체 모집단을 잘 대표할 수 있는 대표성 있는 표본 추출(표준화 과정)"
+  },
+  {
+    "q": "★☆☆ 백분위점수와 Z점수의 분류 [출처: 워크북 2장 2.1절 4번]",
+    "a": "규준지향 점수 (집단 내 상대적 위치를 나타내는 규준점수)"
+  },
+  {
+    "q": "★☆☆ 성별, 출생지, 학과명의 변수 분류 [출처: 워크북 2장 2.2절 3번]",
+    "a": "명명변수 (질적변수/비연속변수)"
+  },
+  {
+    "q": "★☆☆ 학급 석차, 출생 순위, 계급의 변수 분류 [출처: 워크북 2장 2.2절 3번]",
+    "a": "서열변수 (순위 정보만 제공)"
+  },
+  {
+    "q": "★☆☆ 반응시간, 달리기 기록, 통장 잔고의 변수 분류 [출처: 교재 2장 2.2절 척도]",
+    "a": "비율변수 (절대영점 보유, 4칙 연산 가능)"
+  },
+  {
+    "q": "★☆☆ 가감(+,-) 연산은 가능하나 승제(×,÷) 연산은 할 수 없는 척도 [출처: 2019년 기말 42번]",
+    "a": "동간척도 (동간변수)"
+  },
+  {
+    "q": "★☆☆ 가감승제 연산이 모두 불가능하고 오직 구분만 가능한 척도 [출처: 교재 2장 2.2절 척도]",
+    "a": "명명척도 (명명변수)"
+  },
+  {
+    "q": "★☆☆ 원인 변수에 대비되는 결과 변수의 명칭 [출처: 2019년 기말 43번]",
+    "a": "종속변수 (dependent variable)"
+  },
+  {
+    "q": "★☆☆ 3강 「검사결과 이해를 위한 측정학적 개념 1」 교재 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 2장 2.1절~2.2절 (p.43~49), 워크북 2장 2.1절~2.2절 (p.18~22), 3강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

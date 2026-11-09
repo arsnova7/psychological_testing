@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 6, title: "검사의 양호도" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "신뢰도(reliability)의 기본 개념에 대한 설명으로 가장 적절한 것은? [출처: 교재 3장 3.2절 신뢰도, 2013년 기말 9번, 2018년 기말 49번]",
+    "o": [
+      "검사가 측정하고자 의도한 구인을 얼마나 충실하게 측정하는가를 나타낸다.",
+      "검사가 심리적 구인을 일관성 있고 오차 없이 측정하는 정도를 나타낸다.",
+      "검사의 절대적인 합격 및 불합격 기준점 달성 여부를 나타낸다.",
+      "검사의 문항 수와 상관없이 항상 일정하게 고정되는 수치이다."
+    ],
+    "a": 1,
+    "h": "신뢰도는 일관성(consistency)과 오차의 최소성(accuracy)을 의미합니다.",
+    "e": "신뢰도는 검사가 심리적 구인을 '일관성 있게' 그리고 '오차 없이' 측정하는 정도를 의미합니다. ①은 타당도, ③은 준거지향검사의 설명입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "고전검사이론(Classical Test Theory)의 공식 X = T + e 에서 각 기호가 의미하는 것으로 올바른 것은? [출처: 교재 3장 3.2절 신뢰도의 개념, 6강 강의록]",
+    "o": [
+      "X: 진점수, T: 관찰점수, e: 오차점수",
+      "X: 관찰점수, T: 진점수, e: 오차점수",
+      "X: 오차점수, T: 관찰점수, e: 진점수",
+      "X: 표준점수, T: 원점수, e: 평균점수"
+    ],
+    "a": 1,
+    "h": "피검자가 실제로 얻은 관찰값(X)은 진짜 점수(T)와 측정 오차(e)의 합입니다.",
+    "e": "고전검사이론에서 관찰점수(X, Observed score)는 진점수(T, True score)와 임의의 오차점수(e, Error score)의 합으로 구성됩니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "어느 검사의 신뢰도 계수가 0.85 로 산출되었다. 이 결과에 대한 통계적 해석으로 가장 바른 것은? [출처: 교재 3장 3.2절 신뢰도의 개념, 6강 음성]",
+    "o": [
+      "관찰점수 분산의 85%가 진점수 분산이고, 15%가 임의오차 분산에 해당한다.",
+      "피검자의 85%가 해당 시험에 합격했음을 의미한다.",
+      "검사 문항의 85%가 난이도 0.50을 가짐을 의미한다.",
+      "타당도 계수가 자동적으로 0.85로 확정됨을 뜻한다."
+    ],
+    "a": 0,
+    "h": "신뢰도 지수는 관찰점수 분산 대비 진점수 분산의 비율입니다.",
+    "e": "신뢰도 계수 r_xx' = (진점수 분산 / 관찰점수 분산) = 1 - (오차점수 분산 / 관찰점수 분산) 이므로 0.85는 관찰된 변산의 85%가 진점수에 의한 것이고 15%가 측정 오차에 기인함을 의미합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "동일한 피검자 집단에 동일한 검사를 일정한 시간 간격을 두고 두 번 실시하여 얻은 두 점수 간의 상관계수로 신뢰도를 산출하는 방법은? [출처: 교재 3장 3.2절 재검사 신뢰도, 2013년 기말 10번, 2015년 기말 45번, 2018년 기말 48번, 워크북 3장 3.2절 6번]",
+    "o": [
+      "동형검사 신뢰도",
+      "재검사 신뢰도(검사-재검사 신뢰도)",
+      "반분 신뢰도",
+      "문항 내적 합치도"
+    ],
+    "a": 1,
+    "h": "두 번 검사하여 시간에 따른 측정의 일관성(안정성 지수)을 평가합니다.",
+    "e": "재검사 신뢰도(검사-재검사 신뢰도)는 동일 집단에 동일 검사를 두 번 시행하여 얻은 두 측정치 간의 상관을 산출하며 '안정성 지수'라고도 부릅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "재검사 신뢰도를 산출할 때 두 검사 시행 사이의 시간 간격에 따른 영향에 대한 설명으로 옳지 않은 것은? [출처: 교재 3장 3.2절 재검사 신뢰도, 2017년 기말 50번]",
+    "o": [
+      "두 검사의 간격이 너무 짧으면 기억 효과나 연습 효과로 인해 신뢰도가 과대추정될 위험이 있다.",
+      "두 검사의 간격이 너무 길면 피검자의 성숙이나 경험 개입으로 인해 신뢰도가 과소추정될 위험이 있다.",
+      "두 검사의 실시 간격이 짧을수록 무조건 오차점수가 커져 신뢰도가 항상 과소추정된다.",
+      "일반적인 심리검사에서 재검사 간격은 보통 2주에서 1달 정도가 적절하다."
+    ],
+    "a": 2,
+    "h": "간격이 너무 짧으면 기억에 의해 답을 똑같이 적어 신뢰도가 높아지는(과대추정) 현상을 생각해보세요.",
+    "e": "두 검사의 간격이 너무 짧으면 피검자가 이전 응답을 기억하여 동일하게 답하므로 신뢰도가 실제보다 높게 평가(과대추정)됩니다. 과소추정된다는 설명은 오답입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사와 내용, 난이도, 문항 형식, 수 등이 매우 동질적인 별도의 두 검사 세트(Form A, Form B)를 제작하여 피검자에게 실시하고 두 점수 간의 상관을 산출하는 신뢰도는? [출처: 교재 3장 3.2절 동형검사 신뢰도, 2019년 기말 49번, 워크북 3장 3.2절 11번]",
+    "o": [
+      "재검사 신뢰도",
+      "동형검사 신뢰도",
+      "반분 신뢰도",
+      "크론바흐 알파 계수"
+    ],
+    "a": 1,
+    "h": "형태가 동일한 두 검사 세트 간의 동형성 계수를 산출하는 방식입니다.",
+    "e": "동형검사 신뢰도는 동형의 두 검사를 만들어 시행하고 상관계수를 산출하는 방법으로 '동형성 계수'라고 합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "동형검사 신뢰도가 지니는 가장 큰 장점과 한계점을 바르게 짝지은 것은? [출처: 교재 3장 3.2절 동형검사 신뢰도, 6강 음성]",
+    "o": [
+      "장점: 1회 실시로 완결 / 한계: 상관계수 산출 불가능",
+      "장점: 동일 검사 반복에 따른 기억효과 차단 / 한계: 동질성이 보장된 동형검사 제작이 현실적으로 매우 어려움",
+      "장점: 오답의 매력도 자동 산출 / 한계: 동간변수 적용 불가",
+      "장점: 표집오차 완전 제거 / 한계: 4지선다형에만 적용 가능"
+    ],
+    "a": 1,
+    "h": "똑같은 문제를 다시 풀 때 생기는 기억 오염은 막지만 동형 검사 제작이 어렵습니다.",
+    "e": "동형검사 신뢰도는 동일 문항의 기억 효과를 피할 수 있다는 장점이 있으나, 동질적인 동형검사를 제작하기 어렵고 신뢰도가 낮을 때 원인이 검사 자체인지 동형성 부족인지 구별하기 힘듭니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "단 1회 실시한 검사의 문항들을 두 부분으로 나눈 후, 두 하위검사 간 상관을 산출하고 스피어먼-브라운(Spearman-Brown) 공식으로 교정하여 신뢰도를 얻는 방식은? [출처: 교재 3장 3.2절 반분 신뢰도, 2016년 기말 48번, 2017년 기말 49번, 워크북 3장 3.2절 5번]",
+    "o": [
+      "재검사 신뢰도",
+      "동형검사 신뢰도",
+      "반분 신뢰도",
+      "문항 내적 합치도"
+    ],
+    "a": 2,
+    "h": "검사를 두 부분으로 나누어(반분) 1회 실시만으로 신뢰도를 구하고 공식을 적용합니다.",
+    "e": "반분 신뢰도는 1회 실시한 검사를 두 부분으로 나누어 작은 동형검사로 간주하고, 스피어먼-브라운 공식을 활용해 문항 수 감소에 따른 신뢰도를 교정하는 방식입니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "10문항으로 구성된 두 하위검사 간의 상관계수가 0.60 일 때, 스피어먼-브라운 공식을 적용한 20문항 전체 검사의 최종 반분 신뢰도는 얼마인가? [출처: 교재 3장 3.2절 반분 신뢰도 공식 3.4, 6강 강의록]",
+    "o": [
+      "0.60",
+      "0.75",
+      "0.80",
+      "0.90"
+    ],
+    "a": 1,
+    "h": "r = (2 × 0.60) / (1 + 0.60) = 1.20 / 1.60 을 산출하세요.",
+    "e": "공식에 대입하면 r_xx' = (2 × 0.60) / (1 + 0.60) = 1.20 / 1.60 = 0.75 입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "반분 신뢰도를 산출하기 위해 검사를 두 부분으로 나누는 방법(기우반분법, 전후반분법 등)에 대한 설명으로 바르지 않은 것은? [출처: 교재 3장 3.2절 반분 신뢰도, 워크북 3장 3.2절 7번]",
+    "o": [
+      "기우반분법은 홀수 문항과 짝수 문항으로 나뉘어 문항 난이도가 순서대로 배치된 검사에서 유용하다.",
+      "전후반분법은 검사를 앞부분 반과 뒷부분 반으로 나눈다.",
+      "반분 신뢰도는 반분하는 방식에 관계없이 항상 오차 없이 동일한 단일 신뢰도 값을 제공한다.",
+      "시간 제한이 있는 속도검사에서는 기우반분법 적용 시 신뢰도가 과대추정될 수 있다."
+    ],
+    "a": 2,
+    "h": "검사를 나누는 방식(짝홀수 vs 전후 vs 무선)에 따라 신뢰도 값이 다르게 나타나는 단점이 있습니다.",
+    "e": "반분 신뢰도는 검사를 양분하는 방식(기우, 전후, 무선 등)에 따라 서로 다른 신뢰도 수치가 산출되는 단점이 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "반분 신뢰도의 개념을 더욱 확장하여 한 검사 내의 문항 하나하나를 각각 독립된 별개의 검사로 간주하고 피검자 응답의 일관성을 평가하는 신뢰도는? [출처: 교재 3장 3.2절 문항 내적 합치도, 워크북 3장 3.2절 10번]",
+    "o": [
+      "재검사 신뢰도",
+      "동형검사 신뢰도",
+      "문항 내적 합치도(동질성 계수)",
+      "예언타당도"
+    ],
+    "a": 2,
+    "h": "검사를 문항 수(n개)만큼 나누어 문항 간 반응의 일관성(동질성)을 확인합니다.",
+    "e": "문항 하나하나를 독립된 검사로 보고 문항 간 득점 일관성을 평가하는 방식을 문항 내적 합치도(동질성 계수)라 하며, 크론바흐 알파(Cronbach α)가 대표적입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 중 문항 내적 합치도를 산출하기 위한 대표적인 통계적 수식 공식이 아닌 것은? [출처: 교재 3장 3.2절 문항 내적 합치도, 6강 강의록]",
+    "o": [
+      "호이트(Hoyt) 신뢰도",
+      "Kuder-Richardson 20 (KR 20)",
+      "크론바흐 알파 (Cronbach α)",
+      "스피어먼-브라운 (Spearman-Brown) 교정공식"
+    ],
+    "a": 3,
+    "h": "스피어먼-브라운 공식은 문항 수가 반으로 줄어든 '반분 신뢰도'의 교정에 사용됩니다.",
+    "e": "호이트, KR 20, KR 21, 크론바흐 알파는 문항 내적 합치도 산출공식이며, 스피어먼-브라운 공식은 반분 신뢰도의 길이에 따른 교정공식입니다."
+  },
+  {
+    "type": "인과관계",
+    "q": "검사의 신뢰도에 영향을 주는 5대 요인에 관한 설명으로 가장 올바른 것은? [출처: 교재 3장 3.2절 신뢰도 요인, 2014년 기말 10번, 2018년 기말 49번, 워크북 3장 3.2절 1번]",
+    "o": [
+      "검사 문항의 수가 적고 길이가 짧을수록 신뢰도가 높아진다.",
+      "검사 문항들이 이질적일수록 문항 내적 합치도가 높아진다.",
+      "피검자 집단의 이질성(점수 차이 변산)이 높을수록 신뢰도가 높게 산출된다.",
+      "문항의 변별도가 낮을수록 신뢰도가 상승한다."
+    ],
+    "a": 2,
+    "h": "피검자 간 능력 차이가 커서 이질적인 집단일수록 검사점수의 상대적 서열 일관성이 명확해집니다.",
+    "e": "피검자 집단의 이질성이 높으면 학생 간 점수 차이가 분명하여 신뢰도가 높게 산출됩니다. ① 문항 수가 늘수록, ② 문항이 동질적일수록, ④ 변별도가 높을수록 신뢰도가 상승합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "타당도(validity)의 기본 정의로 가장 올바른 것은? [출처: 교재 3장 3.2절 타당도의 개념, 2013년 기말 9번, 2017년 기말 51번, 워크북 3장 3.2절 4번]",
+    "o": [
+      "검사가 측정하고자 의도하는 가설적 구인을 얼마나 충실하게 측정하는가의 정도",
+      "검사를 반복 실시했을 때 두 점수 간에 얼마나 유사한 수치가 나오는가의 정도",
+      "검사점수의 오차점수 분산이 0에 얼마나 가까운가의 정도",
+      "검사의 문항 수가 100개 이상으로 충분히 확보되었는가의 여부"
+    ],
+    "a": 0,
+    "h": "검사가 원래 재려고 의도한 목적이나 구인을 '정확히 재고 있는가'의 문제입니다.",
+    "e": "타당도는 검사가 '측정하고자 하는 것'을 제대로 충실하게 측정하고 있는가를 나타냅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "현대 심리측정학에서 타당도를 바라보는 최신 관점 및 해석 지침으로 가장 적절한 것은? [출처: 교재 3장 3.2절 타당도 개념 논의, 6강 음성]",
+    "o": [
+      "타당도는 검사 도구 자체의 불변적 속성이며, 모든 목적에 항상 공통 적용된다.",
+      "타당도는 '있다/없다'의 이분법이 아니라 '낮다/적정하다/높다' 등 정도의 문제이며 특정 목적에 한정하여 해석한다.",
+      "타당도는 신뢰도가 낮더라도 독립적으로 완전하게 확보될 수 있다.",
+      "타당도는 오직 1개의 단일 연구 실험만으로 100% 입증 완료된다."
+    ],
+    "a": 1,
+    "h": "타당도는 이분법적 존재 유무가 아닌 목적별 적절성의 정도(degree) 문제입니다.",
+    "e": "현대적 관점에서 타당도는 검사점수를 바탕으로 이루어지는 해석과 추론이 특정 목적에 얼마나 적절한가의 '정도' 문제입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사 문항들이 측정하고자 하는 전체 내용 영역과 행동 영역(전집)을 얼마나 잘 대표하고 충실히 반영하는지를 내용전문가들이 점검하는 타당도는? [출처: 교재 3장 3.2절 내용타당도, 2014년 기말 9번, 2018년 기말 50번, 워크북 3장 3.2절 4번]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "수렴타당도"
+    ],
+    "a": 0,
+    "h": "검사의 문항 내용이 원래 의도했던 범위와 목표를 담고 있는지 전문가가 검토합니다.",
+    "e": "내용타당도는 검사의 문항들이 평가 대상 영역 전체(전집)를 얼마나 충실히 대변하는가를 나타내며, 내용전문가의 평가를 통해 검증합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "학교 교육 현장에서 성취도 평가의 내용타당도를 높이기 위하여 교육목표를 내용소와 행동소의 이중 축으로 교차 구성하여 출제 계획을 세우는 표는? [출처: 교재 3장 3.2절 내용타당도 표 3-2, 6강 강의록]",
+    "o": [
+      "규준표",
+      "이원분류표",
+      "산점도표",
+      "요인부하량표"
+    ],
+    "a": 1,
+    "h": "가로축 행동소(지식, 이해, 적용...)와 세로축 내용소를 체계화한 작성 계획표입니다.",
+    "e": "성취도 평가의 내용타당도(교과/교수타당도)를 확보하기 위해 평가목표를 내용소와 행동소로 체계화한 표를 '이원분류표'라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "학교 교육에서 검사문항이 교육과정에서 다루는 내용과 부합하는 정도를 뜻하는 '교과타당도'와, 수업시간에 실제로 가르친 지식·기능과 일치하는 정도를 뜻하는 개념은? [출처: 교재 3장 3.2절 내용타당도, 6강 음성]",
+    "o": [
+      "교수타당도",
+      "예언타당도",
+      "수렴타당도",
+      "변별타당도"
+    ],
+    "a": 0,
+    "h": "교사가 실제 수업(교수활동) 중에 가르친 내용과의 일치 정도입니다.",
+    "e": "수업시간에 다룬 내용과 검사문항이 일치하는 정도를 '교수타당도'라 하며, 교과타당도와 함께 내용타당도의 하위 개념으로 활용됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "현재의 검사점수가 미래의 수행 결과를 얼마나 잘 예측하는가를 상관분석이나 회귀분석을 통해 검증하는 준거타당도의 종류는? [출처: 교재 3장 3.2절 예언타당도, 워크북 3장 3.2절 8번, 12번]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "구인타당도"
+    ],
+    "a": 1,
+    "h": "미래 시점의 준거 변수(직무평가, 학점 등)와의 관동 및 예측도를 평가합니다.",
+    "e": "예언타당도는 비행사 적성검사나 수능처럼 현재 검사 결과가 미래의 직무나 학업 수행을 얼마나 잘 예언하는가를 밝히는 준거타당도입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "다음 사례에서 검증하고자 하는 타당도의 종류는 무엇인가? [출처: 교재 3장 3.2절 예언타당도, 교재 연습문제 5번, 워크북 3장 3.2절 8번, 12번]\n- 신입생 선발 시 실시한 입학전형 성적(수능, 면접 등)과 1년 후 이들의 대학 학점(GPA) 간의 상관계수를 산출하였다.",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "수렴타당도"
+    ],
+    "a": 1,
+    "h": "입학 전 검사 점수로 입학 후 미래의 학업 성취(학점)를 예언해 보는 사례입니다.",
+    "e": "현재 검사점수와 미래의 성과(1년 후 대학 학점) 간의 상관을 통해 검증하는 타당도는 '예언타당도'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "예언타당도 연구 시 선발된 합격자들의 데이터만 분석에 포함되어 모집단 전체의 변산이 좁아짐으로써 타당도 계수가 실제보다 낮게 추정되는 현상은? [출처: 교재 3장 3.2절 예언타당도 단점, 6강 음성]",
+    "o": [
+      "자료의 절단(restriction of range)에 따른 과소추정",
+      "기억 효과에 따른 과대추정",
+      "이원분류표 작성에 따른 편향",
+      "스피어먼-브라운 공식을 통한 과대교정"
+    ],
+    "a": 0,
+    "h": "불합격자의 미래 수행 자료가 없어 검사점수 범위(Range)가 절단되어 발생하는 통계적 축소입니다.",
+    "e": "예언타당도는 시험에 합격한 사람들의 미래 점수만 수집되므로 자료의 범위가 절단(Restriction of range)되어 타당도 계수가 과소추정되는 한계가 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "새로 개발된 검사의 타당도를 검증하기 위하여 동일 피검자 집단에게 기존에 타당성과 공신력을 인정받고 있는 검사를 함께 실시하고 두 점수 간 상관을 산출하는 타당도는? [출처: 교재 3장 3.2절 공인타당도, 2015년 기말 46번, 워크북 3장 3.2절 3번, 9번]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도(concurrent validity)",
+      "구인타당도"
+    ],
+    "a": 2,
+    "h": "이미 공인된 기존 검사(예: MMPI 우울척도)와 새 검사 간의 병행 상관을 구합니다.",
+    "e": "공인타당도는 새로 제작된 간편검사의 타당성을 기존의 타당한 검사와 동시에 비교하여 상관으로 입증하는 방법입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "우울증을 진단하는 새로운 간편 검사를 개발하고, 이 검사의 타당성을 입증하기 위해 피검자들에게 기존의 대표적 검사인 MMPI의 우울증 척도를 함께 실시하여 상관을 구했다. 이 타당도는? [출처: 교재 3장 3.2절 공인타당도, 2015년 기말 46번, 워크북 3장 3.2절 9번]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "변별타당도"
+    ],
+    "a": 2,
+    "h": "공신력 있는 기존의 MMPI 척도와 새 검사를 비교하여 타당성을 공인받는 절차입니다.",
+    "e": "공신력 있는 기존 검사(MMPI 우울 척도)의 점수와 새로 개발한 검사 점수 간 상관을 구하는 것은 공인타당도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사점수가 측정하고자 하는 가설적 구인(construct)을 얼마나 잘 반영하고 있는가를 통계적 요인 구조나 중다특성-중다방법 등을 통해 입증하는 타당도는? [출처: 교재 3장 3.2절 구인타당도, 2019년 기말 50번, 워크북 3장 3.2절 2번]",
+    "o": [
+      "내용타당도",
+      "예언타당도",
+      "공인타당도",
+      "구인타당도(construct validity)"
+    ],
+    "a": 3,
+    "h": "지능, 창의성, 자아존중감 등 눈에 보이지 않는 심리적 가설 구인을 재는 충실성입니다.",
+    "e": "구인타당도는 검사점수가 측정하려는 이론적·가설적 구인을 제대로 반영하고 있는지를 검증하는 타당도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "구인타당도를 검증하기 위해 가장 흔하게 사용되며, 검사의 문항들이 측정하고자 하는 하위 구인 요인별로 통계적으로 잘 묶이는지를 보여주는 다변량 분석 기법은? [출처: 교재 3장 3.2절 구인타당도, 6강 강의록]",
+    "o": [
+      "요인분석 (Factor Analysis)",
+      "스피어먼-브라운 교정법",
+      "기우반분법",
+      "이원분류법"
+    ],
+    "a": 0,
+    "h": "문항 간 상관관계를 바탕으로 공통된 하위 요인을 추출하거나 구조를 확인하는 통계 기법입니다.",
+    "e": "요인분석은 개발된 문항들이 측정하고자 하는 하위 구인 구조를 잘 반영하는지 통계적으로 검증해 주는 구인타당도 평가 도구입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "중다특성-중다방법(MTMM)을 통한 구인타당도 검증 시 '다른 방법으로 측정하더라도 동일한 구인을 측정하는 변수들 간에는 높은 상관이 존재해야 함'을 의미하는 것은? [출처: 교재 3장 3.2절 구인타당도, 6강 음성]",
+    "o": [
+      "수렴타당도 (convergent validity)",
+      "변별타당도 (discriminant validity)",
+      "내용타당도",
+      "예언타당도"
+    ],
+    "a": 0,
+    "h": "같은 구인을 측정하는 지표들이 하나의 개념으로 모이고 집중되는(수렴) 성질입니다.",
+    "e": "수렴타당도는 측정 방법이 달라도 동일한 구인을 측정한다고 가정된 변수 간에 높은 상관관계가 존재해야 함을 뜻합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "중다특성-중다방법(MTMM)을 통한 구인타당도 검증 시 '관련 없는 서로 다른 구인을 측정하는 변수들 간에는 상관계수가 낮아야 함'을 의미하는 것은? [출처: 교재 3장 3.2절 구인타당도, 6강 음성]",
+    "o": [
+      "수렴타당도",
+      "변별타당도 (discriminant validity)",
+      "공인타당도",
+      "교과타당도"
+    ],
+    "a": 1,
+    "h": "서로 다른 독립적 구인 간에는 점수가 겹치지 않고 구분(변별)되어야 합니다.",
+    "e": "변별타당도는 관련 없는 서로 다른 구인을 측정하는 변수들 간의 상관이 낮게 나타나 서로 구별됨을 보여주는 구인타당도의 요소입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "신뢰도와 타당도의 관계에 대한 설명으로 가장 올바른 것은? [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계, 2017년 기말 51번, 워크북 3장 3.2절 4번]",
+    "o": [
+      "신뢰도는 타당도의 필요조건으로, 신뢰도가 낮으면 타당도도 반드시 함께 낮아진다.",
+      "타당도는 신뢰도의 필요조건으로, 타당도가 높아야만 신뢰도를 논할 수 있다.",
+      "타당도 계수는 항상 신뢰도 계수보다 크거나 같다.",
+      "신뢰도가 매우 높으면 타당도는 100% 무조건 보장된다."
+    ],
+    "a": 0,
+    "h": "신뢰도(일관성)는 타당도(정확성)가 성립하기 위한 바탕이자 필요조건입니다.",
+    "e": "신뢰도는 타당도의 필요조건입니다. 신뢰도가 낮으면 타당도는 함께 낮아지며, 타당도 계수는 신뢰도 계수의 제곱근 크기를 초과할 수 없습니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "어느 심리검사의 재검사 신뢰도는 0.95 로 매우 높으나, 검사 문항 전체가 과목 목표와 상관없는 수학 문제로만 구성되어 있어 실제 원하는 특성을 재지 못하고 있다. 이에 대한 평가로 바른 것은? [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계, 6강 음성]",
+    "o": [
+      "신뢰도가 높으므로 타당도도 당연히 매우 높은 우수한 검사이다.",
+      "신뢰도는 높으나 타당도가 낮은 검사의 대표적인 예이다.",
+      "신뢰도와 타당도가 모두 0에 가까운 무효 검사이다.",
+      "준거타당도만 최고 수준으로 확보된 검사이다."
+    ],
+    "a": 1,
+    "h": "반복 측정 시 일관되게 점수가 나오지만(신뢰도 높음) 재려는 구인을 못 잰(타당도 낮음) 경우입니다.",
+    "e": "오차 없이 일관된 점수를 산출하더라도 원래 측정하려던 구인을 재지 못하면 '신뢰도는 높으나 타당도는 낮은 검사'가 됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "타당도 계수(validity coefficient)의 상한선(Maximum ceiling)을 결정짓는 기준 수치는 무엇인가? [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계 그림 3-1, 6강 강의록]",
+    "o": [
+      "검사의 신뢰도 계수 (정확히는 신뢰도 계수의 제곱근)",
+      "검사 문항의 총 개수",
+      "피검자의 최빈값 점수",
+      "상관계수의 제곱인 결정계수"
+    ],
+    "a": 0,
+    "h": "타당도는 신뢰도를 넘을 수 없다는 제약 관계를 떠올려 보세요.",
+    "e": "타당도 계수는 검사 신뢰도 계수의 제곱근보다 클 수 없으므로, 신뢰도가 타당도의 한계치를 결정합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "학업성취도 평가에서 시험 문제가 수업 시간에 전혀 가르치지 않은 매우 생소한 내용에서 출제되었을 때, 이 평가가 직접적으로 훼손당한 성질은? [출처: 교재 3장 3.2절 내용타당도, 교재 연습문제 5번 해설]",
+    "o": [
+      "교수타당도 (및 내용타당도)",
+      "재검사 신뢰도",
+      "동형검사 신뢰도",
+      "스피어먼-브라운 공정성"
+    ],
+    "a": 0,
+    "h": "수업시간(교수활동)에 다룬 내용과 시험 문제가 일치하지 않는 문제입니다.",
+    "e": "수업 시간에 다루지 않은 내용이 출제되면 교수타당도 및 내용타당도가 크게 낮아집니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "전문적인 내용분석 절차 없이 피검자가 검사지를 겉으로 훑어보았을 때 '이 검사가 타당해 보이는가'를 주관적으로 느끼는 표면상의 타당도는? [출처: 교재 3장 3.2절 내용타당도, 보충]",
+    "o": [
+      "안면타당도 (표면타당도, face validity)",
+      "예언타당도",
+      "요인타당도",
+      "수렴타당도"
+    ],
+    "a": 0,
+    "h": "비전문가인 피검자의 눈에 검사문항이 타당해 보이는지 인상(Face)을 가리킵니다.",
+    "e": "안면타당도(표면타당도)는 일반인이나 피검자가 겉으로 보았을 때 검사가 타당해 보이는 정도를 뜻하며, 통계적 타당도와는 구별됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "동일한 검사를 두 번 시행하는 대신, 1회 시행한 검사의 문항들을 홀수 번호 문항과 짝수 번호 문항으로 나누어 상관을 구하는 반분 방식은? [출처: 교재 3장 3.2절 반분 신뢰도, 보충]",
+    "o": [
+      "기우반분법",
+      "전후반분법",
+      "무선추출법",
+      "매칭반분법"
+    ],
+    "a": 0,
+    "h": "기수(홀수)와 우수(짝수)로 문항을 분할하는 방법입니다.",
+    "e": "검사 문항을 짝수 번호와 홀수 번호로 분할하여 두 하위검사를 만드는 반분 방식을 '기우반분법'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사 문항 20개를 1번~10번(전반부)과 11번~20번(후반부)으로 분할하여 반분 신뢰도를 구하는 방법은? [출처: 교재 3장 3.2절 반분 신뢰도, 보충]",
+    "o": [
+      "전후반분법",
+      "기우반분법",
+      "무선추출법",
+      "요인반분법"
+    ],
+    "a": 0,
+    "h": "앞부분(전)과 뒷부분(후)으로 나눈 반분 방법입니다.",
+    "e": "검사 문항을 순서에 따라 앞쪽 반과 뒤쪽 반으로 나누는 방식을 '전후반분법'이라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "문항 내적 합치도계수 중 하나인 '크론바흐 알파(Cronbach α)'의 값이 낮게 나올 때의 주 원인으로 옳은 것은? [출처: 교재 3장 3.2절 문항 내적 합치도, 보충]",
+    "o": [
+      "검사를 구성하는 문항들이 서로 이질적이어서 문항 간 반응의 일관성이 떨어지기 때문에",
+      "피검자 집단의 이질성이 너무 커서 점수 변산이 넓기 때문에",
+      "검사 문항 수가 200개 이상으로 너무 길기 때문에",
+      "문항의 변별도가 극도로 높기 때문에"
+    ],
+    "a": 0,
+    "h": "문항 내적 합치도는 문항의 동질성을 전제로 하므로 이질적인 문항일수록 신뢰도가 낮아집니다.",
+    "e": "문항 내적 합치도는 한 검사를 이루는 문항 간 동질성을 측정하므로, 문항들이 서로 이질적일수록 오차분산 비율이 커져 알파 값이 낮아집니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "속도검사(speed test)에 일반적인 기우반분 신뢰도 공식을 그대로 적용할 때 발생하는 문제점은 무엇인가? [출처: 교재 3장 3.2절 신뢰도 요인, 6강 음성, 보충]",
+    "o": [
+      "신뢰도가 실제보다 과대추정(overestimated)된다.",
+      "신뢰도가 0 이하의 음수로 떨어진다.",
+      "타당도 계수가 자동적으로 1.0이 된다.",
+      "스피어먼-브라운 공식을 절대 적용할 수 없다."
+    ],
+    "a": 0,
+    "h": "시간이 부족해 뒤쪽 문제를 못 푼 피검자들이 짝홀수 문항 모두를 못 풀어 양쪽 모두 0점이 되면서 상관이 부풀려집니다.",
+    "e": "속도검사에서는 미도달 문항으로 인해 짝수 문항과 홀수 문항에 동일하게 0점 처리되므로 기우반분 신뢰도가 과대추정되는 현상이 발생합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "재검사 신뢰도를 '안정성 지수', 동형검사 신뢰도를 '동형성 계수'라 할 때, 문항 내적 합치도를 나타내는 명칭은? [출처: 교재 3장 3.2절 문항 내적 합치도, 6강 강의록, 보충]",
+    "o": [
+      "동질성 계수",
+      "결정 계수",
+      "예언 계수",
+      "변산 계수"
+    ],
+    "a": 0,
+    "h": "검사를 구성하는 문항들이 하나의 구인으로 동질적인가를 나타냅니다.",
+    "e": "문항 내적 합치도는 문항들이 동일한 심리적 특성을 일관되게 재고 있는지를 반영하므로 '동질성 계수'라고도 부릅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "어느 신규 인성검사의 공인타당도를 구하기 위해 타당성이 인정된 기존 검사와 비교하고자 한다. 이때 반드시 선행되어야 할 전제조건은? [출처: 교재 3장 3.2절 공인타당도 한계, 6강 음성, 보충]",
+    "o": [
+      "비교의 기준이 되는 기존 검사가 이미 높은 타당도와 공신력을 인정받고 있어야 한다.",
+      "기존 검사와 새 검사의 문항 수가 100% 동일해야 한다.",
+      "두 검사의 신뢰도 계수가 정확히 1.0 이어야 한다.",
+      "피검자 집단이 최소 100만 명 이상이어야 한다."
+    ],
+    "a": 0,
+    "h": "기대어 비교할 기존 기준 검사가 먼저 타당해야 한다는 원리입니다.",
+    "e": "공인타당도는 기존 검사에 의존하여 타당성을 입증하므로, 비교 대상인 기존 검사가 이미 타당성을 공인받았어야 한다는 전제가 필수적입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "어느 대학에서 새로 도입한 전공적성검사 점수와 입학 후 학점 간의 상관을 구했더니 부적(-) 상관이 나왔다. 이에 대한 올바른 행정적 조치는? [출처: 교재 3장 3.2절 예언타당도, 6강 강의록, 보충]",
+    "o": [
+      "전공적성검사는 예언타당도가 없으므로 선발 도구로서 수정을 거치거나 폐지해야 한다.",
+      "예언타당도가 최고 수준이므로 입학 반영 비율을 2배로 확대한다.",
+      "모든 응시자에게 전공적성검사 만점을 부여한다.",
+      "신뢰도가 1.0이 되었음을 입증하고 대중매체에 홍보한다."
+    ],
+    "a": 0,
+    "h": "시험 점수가 높을수록 오히려 대학 학점이 떨어진다는 의미이므로 예언타당도가 파괴된 경우입니다.",
+    "e": "적성검사 점수와 미래 학점 간에 음의 상관이 나온 것은 예언타당도가 없다는 뜻이므로 해당 검사를 입학 선발 도구로 계속 활용할 수 없습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "구인타당도(construct validity)를 입증하기 위한 방법으로 가장 적절하게 묶인 것은? [출처: 교재 3장 3.2절 구인타당도, 보충]",
+    "o": [
+      "요인분석, 수렴타당도 및 변별타당도 분석(MTMM)",
+      "이원분류표 작성, 출판사 디자인 검토",
+      "재검사 신뢰도 산출, 스피어먼-브라운 교정",
+      "속도검사 시행, 짝우반분 통제"
+    ],
+    "a": 0,
+    "h": "문항의 구조적 묶임을 보는 통계기법(요인분석)과 다중 특성-방법 상관(MTMM)입니다.",
+    "e": "구인타당도는 요인분석, 중다특성-중다방법(수렴 및 변별타당도), 하위요인 간 상관분석 등을 종합하여 검증합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "창의성 검사를 개발한 연구자가 동형검사 신뢰도를 구하고자 할 때, 두 검사 Form A와 Form B가 갖추어야 할 조건으로 옳지 않은 것은? [출처: 교재 3장 3.2절 동형검사 신뢰도, 보충]",
+    "o": [
+      "두 검사의 문항 수와 문항 형식이 동일해야 한다.",
+      "두 검사가 측정하는 내용 영역과 난이도 수준이 동질적이어야 한다.",
+      "두 검사의 문항 내용과 질문 문장을 토씨 하나 틀리지 않고 100% 똑같이 복사해야 한다.",
+      "동형검사 A와 B를 동일 집단에 실시하여 두 점수 간 상관을 산출해야 한다."
+    ],
+    "a": 2,
+    "h": "문장을 그대로 복사하면 동형검사가 아니라 '동일 검사 재검사'가 되어 버립니다.",
+    "e": "문장이나 질문을 100% 완전히 똑같이 복제하면 동형검사가 아니라 동일 검사가 됩니다. 동형검사는 질문의 구체적 내용은 다르되 동일 난이도와 동질적 특성을 가져야 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "신뢰도 지수를 높이기 위해 검사를 개정할 때 적용할 수 있는 가장 효과적인 방안은? [출처: 교재 3장 3.2절 신뢰도 요인, 보충]",
+    "o": [
+      "측정 구인과 부합하는 우수한 양질의 문항 수를 늘려 검사의 길이를 길게 만든다.",
+      "문항들을 서로 관련 없는 이질적인 내용으로 다양하게 섞는다.",
+      "피검자 집단을 실력이 모두 똑같은 극도로 동질적인 집단으로만 한정한다.",
+      "문항의 변별도를 낮추어 누구나 50% 확률로 찍어서 맞히게 한다."
+    ],
+    "a": 0,
+    "h": "양질의 문항 수를 늘리면 검사의 길이가 늘어나 신뢰도가 높아집니다(스피어먼-브라운 원리).",
+    "e": "양질의 동질적 문항 수를 추가하여 검사의 길이를 길게 만들면 신뢰도가 증가합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 설명 중 올바른 것만을 고른 것은? [출처: 교재 3장 3.2절 종합, 보충]\nㄱ. 신뢰도가 0.80이라는 것은 관찰점수 분산의 80%가 진점수 분산임을 뜻한다.\nㄴ. 신뢰도는 타당도의 충분조건이 아니라 필요조건이다.\nㄷ. 내용타당도는 주로 내용전문가의 판단에 의해 평가된다.\nㄹ. 반분 신뢰도는 2회 이상의 반복 검사를 필수 조건으로 요구한다.",
+    "o": [
+      "ㄱ, ㄴ, ㄷ",
+      "ㄱ, ㄷ, ㄹ",
+      "ㄴ, ㄷ, ㄹ",
+      "ㄱ, ㄴ, ㄷ, ㄹ"
+    ],
+    "a": 0,
+    "h": "반분 신뢰도가 1회 실시만으로 산출 가능한 검사인지 검토하세요.",
+    "e": "반분 신뢰도는 단 1회 실시한 검사를 두 부분으로 나누어 산출하므로 2회 반복 검사를 요구하지 않습니다. 따라서 ㄱ, ㄴ, ㄷ이 올바릅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사점수의 관찰점수(X)에서 무선적으로 발생하는 오차의 정도를 표준편차 단위로 나타내어, 진점수가 존재하는 범위를 추정하게 해주는 통계 지수는? [출처: 교재 3장 3.2절 신뢰도, 2015년 기말 44번, 보충]",
+    "o": [
+      "측정의 표준오차 (Standard Error of Measurement, SEM)",
+      "사분편차",
+      "최빈값",
+      "결정계수"
+    ],
+    "a": 0,
+    "h": "관찰점수로부터 진점수를 추정할 때 생기는 측정 오차의 표준편차 지수입니다.",
+    "e": "측정의 표준오차(SEM)는 검사의 신뢰도와 관찰점수 표준편차를 바탕으로 진점수가 위치할 오차 범위를 추정하는 지수입니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "측정의 표준오차(SEM) 산출 공식 SEM = S_x √(1 - r_xx') 에서, 검사의 표준편차 S_x = 10 이고 신뢰도 계수 r_xx' = 0.84 일 때, 측정의 표준오차 값은 얼마인가? [출처: 교재 3장 3.2절 신뢰도, 6강 음성, 보충]",
+    "o": [
+      "1.6",
+      "4.0",
+      "8.4",
+      "16.0"
+    ],
+    "a": 1,
+    "h": "SEM = 10 × √(1 - 0.84) = 10 × √0.16 = 10 × 0.4 공식을 산출하세요.",
+    "e": "SEM = 10 × √(1 - 0.84) = 10 × √0.16 = 10 × 0.4 = 4.0 입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "아동을 대상으로 한 심리검사를 개발할 때 내용타당도를 높이기 위한 지침으로 적절하지 않은 것은? [출처: 교재 3장 3.2절 내용타당도, 6강 음성, 보충]",
+    "o": [
+      "아동의 연령과 문해 수준에 맞는 쉬운 용어와 어휘를 사용한다.",
+      "검사의 지시문과 응답 양식을 복잡하지 않고 간결하게 작성한다.",
+      "아동의 인지발달 수준을 초과하는 성인용 전문 용어와 길고 복잡한 문장을 다수 포함시킨다.",
+      "내용전문가가 아동의 구인 특성에 맞추어 문항의 적합성을 평가한다."
+    ],
+    "a": 2,
+    "h": "어휘가 어렵거나 지시문이 복잡하면 아동이 아는 내용도 틀리게 되어 내용타당도가 저하됩니다.",
+    "e": "아동 대상 검사에서 어려운 어휘나 복잡한 문장을 사용하면 아동이 문항을 오해하여 답하지 못하므로 내용타당도가 저하됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "재검사 신뢰도에서 첫 번째 검사 시와 두 번째 검사 시의 시험장 환경, 조명, 지시사항 등을 동일하게 통제해야 하는 가장 주요한 이유는? [출처: 교재 3장 3.2절 재검사 신뢰도, 보충]",
+    "o": [
+      "환경 변화에 의한 무선적 가외오차(오염 변인)의 개입을 차단하기 위하여",
+      "검사의 문항 수와 표준편차를 2배로 늘리기 위하여",
+      "결정계수를 무조건 1.0으로 만들기 위하여",
+      "타당도 계수를 0으로 낮추기 위하여"
+    ],
+    "a": 0,
+    "h": "실시 상황의 차이로 인해 생기는 오차를 최소화하여 진정한 안정성을 측정하기 위함입니다.",
+    "e": "검사환경이 달라지면 피검자의 수행에 오염 변인 오차가 작용하므로 동일한 환경을 유지하여 신뢰도를 타당하게 측정해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "검사개발 시 신뢰도계수 수치 평가 지침 중 일반적인 판정 기준 연결이 올바르지 않은 것은? [출처: 교재 3장 3.2절 신뢰도의 개념 p.88, 6강 음성, 보충]",
+    "o": [
+      "신뢰도 0.90 이상 - 매우 좋다",
+      "신뢰도 0.80 정도 - 좋다",
+      "신뢰도 0.70 정도 - 적합하다",
+      "신뢰도 0.30 정도 - 학술 및 실무용으로 매우 우수하다"
+    ],
+    "a": 3,
+    "h": "신뢰도가 0.30 이하로 낮은 검사는 오차 분산 비율이 커서 사용할 수 없습니다.",
+    "e": "신뢰도 계수는 .90 이상이면 '매우 좋다', .80 정도면 '좋다', .70 정도면 '적합하다'고 평가하며, 0.30은 오차가 커서 부적절합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "타당도의 3대 대표 유형인 내용타당도, 준거타당도, 구인타당도의 검증 기준을 올바르게 연결한 것은? [출처: 교재 3장 3.2절 타당도의 종류, 6강 강의록, 보충]",
+    "o": [
+      "내용타당도: 전문가 평가 / 준거타당도: 다른 준거 변수와의 상관 / 구인타당도: 가설적 구인 구조 반영(요인분석 등)",
+      "내용타당도: 요인분석 / 준거타당도: 전문가 평가 / 구인타당도: 무선 표집",
+      "내용타당도: Z점수 환산 / 준거타당도: T점수 환산 / 구인타당도: 스테나인 환산",
+      "내용타당도: 재검사 / 준거타당도: 반분법 / 구인타당도: 크론바흐 알파"
+    ],
+    "a": 0,
+    "h": "내용(전문가 점검), 준거(외적 준거와 상관), 구인(이론적 구조 입증)의 검증 방식을 연결하세요.",
+    "e": "내용타당도는 전문가의 내용 점검, 준거타당도는 미래/현재의 다른 준거와의 상관, 구인타당도는 요인분석이나 MTMM을 통한 구인 구조 검증으로 산출됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "6강 「검사의 양호도」에서 다루는 3가지 핵심 주제로 올바르게 짝지어진 것은? [출처: 교재 3장 3.2절 목차, 6강 강의록, 보충]",
+    "o": [
+      "신뢰도의 개념과 종류 - 타당도의 개념과 종류 - 신뢰도와 타당도의 관계",
+      "성악설 - 성선설 - 백지설",
+      "웩슬러 지능검사 - 비네 지능검사 - K-ABC",
+      "MMPI - BDI - Rorschach"
+    ],
+    "a": 0,
+    "h": "6강 학습 목차: 1. 신뢰도, 2. 타당도, 3. 신뢰도와 타당도의 관계",
+    "e": "6강은 검사의 양호도를 다루며, 신뢰도의 개념과 종류, 타당도의 개념과 종류, 신뢰도와 타당도의 관계를 학습합니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

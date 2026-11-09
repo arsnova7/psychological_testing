@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 14, title: "정신건강 관련 객관적 검사" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "미네소타 다면적 인성검사(MMPI)의 개발 과정 및 문항 응답 방식에 관한 설명으로 적절하지 않은 것은? [출처: 교재 7장 7.2절 MMPI 개발, 워크북 7장 7.2절 1번]",
+    "o": [
+      "1943년 미네소타 대학병원의 해서웨이와 매킨리에 의해 개발되었다.",
+      "경험적 문항선정방법으로 개발된 최초의 성격검사이다.",
+      "응답방법은 '그렇다', '보통', '아니다' 3자택일형 검사이다.",
+      "정신질환 환자 집단과 정상인 집단을 구별해 주는 문항을 선별하여 구성하였다."
+    ],
+    "a": 2,
+    "h": "MMPI는 '그렇다'와 '아니다' 중 하나를 고르는 강제선택형 2자택일 검사입니다.",
+    "e": "MMPI는 '그렇다' 또는 '아니다'의 2개 선택지 중 하나를 반드시 고르게 하는 강제선택형 지필검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "성인용 MMPI-2 검사의 구성과 척도에 대한 설명으로 올바르지 않은 것은? [출처: 교재 7장 7.2절 MMPI-2 구성, 워크북 7장 7.2절 2번]",
+    "o": [
+      "총 567개 문항으로 구성되어 있다.",
+      "타당도척도 10개, 기본 임상척도 10개로 총 20개 기본 척도가 포함된다.",
+      "부인(L), 교정(K), 과장된 자기제시(S) 척도는 임상척도에 속한다.",
+      "무응답 문항 수가 많으면 임상척도 점수가 전반적으로 낮아질 수 있다."
+    ],
+    "a": 2,
+    "h": "L, K, S 척도는 피검자의 수검태도를 검증하는 타당도척도입니다.",
+    "e": "부인(L), 교정(K), 과장된 자기제시(S) 척도는 수검태도의 방어성을 포착하는 '타당도척도'에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "대부분의 사람들이 인정할 만한 사소한 결점들에 대해 '아니다'라고 응답하여 세련되지 못하게 자신을 좋게 부인하려는 방어적 수검태도를 측정하는 MMPI-2 타당도척도는? [출처: 교재 7장 7.2절 L 척도, 워크북 7장 7.2절 3번, 2018년 기말 69번]",
+    "o": [
+      "부인 척도 (L)",
+      "교정 척도 (K)",
+      "과장된 자기제시 척도 (S)",
+      "비전형 척도 (F)"
+    ],
+    "a": 0,
+    "h": "사소한 결점까지도 솔직하게 인정하지 않고 좋게 보이려 부인(Lie)하는 척도입니다.",
+    "e": "대부분 인정할 사소한 결점마저 부인하여 자신을 솔직하지 못하게 과장 표장(Faking Good)하려는 수검태도를 포착하는 것은 부인(L) 척도입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MMPI-2 검사 결과를 채점하고 해석할 때 지켜야 하는 올바른 지침은? [출처: 교재 7장 7.2절 채점과 해석, 워크북 7장 7.2절 4번]",
+    "o": [
+      "임상척도는 오직 T점수가 40~60 사이인 평범한 척도만을 기계적으로 해석한다.",
+      "피검자의 성별, 연령, 학력 등 개인적 변인과 무관하게 점수의 높낮이만으로 진단을 내린다.",
+      "특정 임상척도가 65 이상으로 높게 상승하면 무조건 해당 정신병리로 확정 진단한다.",
+      "해석할 때는 기계적 진단 대신 내담자의 정서·행동적 '경향성이 있다'고 추론하여 해석한다."
+    ],
+    "a": 3,
+    "h": "단순 수치로 섣부른 병리 진단을 내리지 않고 내담자의 개인적 맥락과 결합하여 추론해야 합니다.",
+    "e": "MMPI-2 해석 시 단독 수치만으로 성급한 정신병리 진단을 내려서는 안 되며, 내담자의 성별, 학력, 상황적 맥락과 함께 '어떠한 경향성이 있다'고 해석해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 MMPI-2의 척도 중 자신을 나쁜 방향으로 과장해서 응답했는지(Faking Bad) 또는 무작위 반응이나 정신병리를 탐지하는 '타당도 척도'는? [출처: 교재 7장 7.2절 F 척도, 워크북 7장 7.2절 5번]",
+    "o": [
+      "우울증 척도 (D)",
+      "비전형 척도 (F)",
+      "경조증 척도 (Ma)",
+      "사회적 내향성 척도 (Si)"
+    ],
+    "a": 1,
+    "h": "규준집단에서 10% 이하로 거의 선택되지 않는 드문 문항들로 구성된 타당도 척도입니다.",
+    "e": "비전형(F) 척도는 일반 규준집단에서 드물게 반응되는 문항으로 구성되어, 수검자가 자신을 나쁜 방향으로 과장(Faking Bad)했거나 정신병리가 심각함을 나타내는 타당도 척도입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MMPI-2 타당도 척도 중 L(부인) 척도가 높게 측정되었을 때 상담자가 내려야 할 올바른 평가적 시각은? [출처: 교재 7장 7.2절 L 척도 해석, 워크북 7장 7.2절 6번]",
+    "o": [
+      "일상생활에서 거짓말을 입에 달고 사는 사기꾼이나 기만적인 사람이라고 단정한다.",
+      "인사선발과 같이 자신을 잘 보여야 하는 검사 상황에서 사소한 결점을 부인하는 방어적 태도가 반영되었을 수 있다.",
+      "이미 타당도가 100% 검증되었으므로 임상척도를 볼 필요 없이 검사를 전면 폐기한다.",
+      "뇌 손상으로 인해 언어 기능이 완전히 마비된 상태임을 의미한다."
+    ],
+    "a": 1,
+    "h": "검사 상황에서의 방어적 응답 태도일 뿐 일상속 사기성이나 거짓말쟁이로 단정할 수는 없습니다.",
+    "e": "L 척도가 높은 것이 일상생활에서의 기만적인 성품을 의미하는 것은 아니며, 자신을 좋게 보여야 하는 상황에서 사소한 결점을 부인하는 수검 태도가 반영된 것으로 해석합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '비관적 기분 상태와 슬픔의 정도, 미래에 대한 낙담, 자긍심 저하'를 측정하는 척도 2의 명칭은? [출처: 교재 7장 7.2절 우울증 척도, 워크북 7장 7.2절 7번]",
+    "o": [
+      "우울증 (D)",
+      "강박증 (Pt)",
+      "사회적 내향성 (Si)",
+      "건강염려증 (Hs)"
+    ],
+    "a": 0,
+    "h": "검사 당시 느끼는 비관, 슬픔, 우울 기분 상태를 반영하는 임상척도 2입니다.",
+    "e": "비관적 기분 상태, 슬픔, 자긍심 저하 등을 나타내는 척도 2는 '우울증(D)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '피해의식, 과도한 예민성, 타인에 대한 의심과 경계심, 적개심'을 측정하는 척도 6의 명칭은? [출처: 교재 7장 7.2절 편집증 척도, 워크북 7장 7.2절 8번]",
+    "o": [
+      "편집증 (Pa)",
+      "히스테리 (Hy)",
+      "조현병 (Sc)",
+      "반사회성 (Pd)"
+    ],
+    "a": 0,
+    "h": "타인을 의심하고 피해의식을 느끼며 경계하는 성향을 측정하는 척도 6입니다.",
+    "e": "피해의식, 타인에 대한 의심과 경계, 예민성 등을 측정하는 척도 6은 '편집증(Pa)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '현실적 어려움이나 갈등을 회피하기 위해 그것의 존재 자체를 부인(denial)하며, 스트레스 시 신체 증상으로 응답하는' 척도 3은? [출처: 교재 7장 7.2절 히스테리 척도, 워크북 7장 7.2절 9~10번, 2019년 기말 69번]",
+    "o": [
+      "건강염려증 (Hs)",
+      "히스테리 (Hy)",
+      "반사회성 (Pd)",
+      "남성성-여성성 (Mf)"
+    ],
+    "a": 1,
+    "h": "갈등의 부인(denial)과 스트레스 상황에서의 신체증상 호소를 측정하는 척도 3입니다.",
+    "e": "갈등의 존재 자체를 부인하고 스트레스 상황에서 신체적 기능 장애로 대응하려 하는 척도 3은 '히스테리(Hy)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '정신적 에너지 수준과 과잉활동성, 충동성을 나타내며, T점수 70 이상 시 과잉활동 및 억제 부족'을 보이는 척도 9는? [출처: 교재 7장 7.2절 경조증 척도, 워크북 7장 7.2절 11번]",
+    "o": [
+      "편집증 (Pa)",
+      "강박증 (Pt)",
+      "조현병 (Sc)",
+      "경조증 (Ma)"
+    ],
+    "a": 3,
+    "h": "에너지 수준이 고양되어 많은 일에 관여하나 완성을 못 하는 척도 9입니다.",
+    "e": "정신적 에너지 수준, 과잉활동, 불안정, 흥분 성향을 나타내는 척도 9는 '경조증(Ma)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '오랫동안 지속되어 온 만성적인 불안, 사소한 일에 대한 걱정, 완벽성향과 강박적 행동'을 측정하는 척도 7은? [출처: 교재 7장 7.2절 강박증 척도, 워크북 7장 7.2절 12번, 2014년 기말 32번, 2016년 기말 68번]",
+    "o": [
+      "강박증 (Pt)",
+      "우울증 (D)",
+      "편집증 (Pa)",
+      "경조증 (Ma)"
+    ],
+    "a": 0,
+    "h": "Psychasthenia의 약자로 만성적 불안, 긴장, 강박행동을 측정하는 척도 7입니다.",
+    "e": "만성적 불안, 사소한 걱정, 긴장, 완벽주의적 성향을 측정하는 척도 7은 '강박증(Pt)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '전통적인 성 역할에 대한 태도, 취미와 직업적 관심, 심미적 취향'을 측정하는 척도 5의 명칭은? [출처: 교재 7장 7.2절 남성성-여성성 척도, 워크북 7장 7.2절 13번, 2018년 기말 68번]",
+    "o": [
+      "우울증 (D)",
+      "건강염려증 (Hs)",
+      "남성성-여성성 (Mf)",
+      "편집증 (Pa)"
+    ],
+    "a": 2,
+    "h": "생물학적 성과 반대되는 취향이나 전통적 성역할 태도를 재는 척도 5입니다.",
+    "e": "전통적인 성 역할 태도 및 취향을 측정하는 척도 5는 '남성성-여성성(Mf)' 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 피검자의 세련된 방어적 수검태도를 탐지하며, 임상척도 점수의 교정점수로 사용되는 척도는? [출처: 교재 7장 7.2절 K 척도, 워크북 7장 7.2절 14번, 2016년 기말 67번, 2017년 기말 67번, 2019년 기말 70번]",
+    "o": [
+      "부인 척도 (L)",
+      "비전형 척도 (F)",
+      "교정 척도 (K)",
+      "과장된 자기제시 척도 (S)"
+    ],
+    "a": 2,
+    "h": "Correction의 약자로 임상척도 점수를 보정(교정)하는 데 쓰이는 척도입니다.",
+    "e": "세련된 방어적 수검태도를 포착하고, 임상척도(Hs, Pd, Pt, Sc, Ma)의 교정점수로 사용되는 타당도 척도는 교정(K) 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아론 벡(Aron Beck) 등이 개발한 자기보고식 우울 측정 검사로, 총 21개 문항(0~3점 평정)으로 구성된 대표적인 객관적 정신건강 검사는? [출처: 교재 7장 7.2절 BDI, 워크북 7장 7.2절 15번, 2014년 기말 35번]",
+    "o": [
+      "BDI (Beck Depression Inventory)",
+      "HTP (House-Tree-Person)",
+      "TAT (Thematic Apperception Test)",
+      "SCT (Sentence Completion Test)"
+    ],
+    "a": 0,
+    "h": "성인의 우울 정도와 증상을 간편하게 측정하는 객관적 질문지 검사입니다.",
+    "e": "아론 벡이 개발한 성인용 객관적 우울 측정 검사는 BDI(Beck Depression Inventory)입니다. (HTP, TAT, SCT는 투사적 검사)"
+  },
+  {
+    "type": "개념확인",
+    "q": "아나스타시가 구분한 성격검사 개발방법 중 경험적 문항선정 방법(준거집단법)을 적용하여 최초로 개발된 대표적 성격/정신건강 검사는? [출처: 교재 7장 7.2절 MMPI 개발, 2013년 기말 24번]",
+    "o": [
+      "MBTI (성격유형검사)",
+      "MMPI (미네소타 다면적 인성검사)",
+      "16PF (16성격요인검사)",
+      "NEO-PI (NEO 성격검사)"
+    ],
+    "a": 1,
+    "h": "환자 집단과 정상인 집단을 통계적으로 구별해 주는 경험적 문항을 추출해 만든 검사입니다.",
+    "e": "정신과 환자 집단과 정상집단을 구별해 주는 문항을 경험적으로선별하여 만든 최초의 성격검사는 MMPI입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2의 임상척도 1의 척도명과 주요 측정 내용으로 올바르게 연결된 것은? [출처: 교재 7장 7.2절 건강염려증 척도, 2013년 기말 32번, 2015년 기말 66번, 2017년 기말 68번]",
+    "o": [
+      "척도 1 — 건강염려증 (Hs: 신체 증상과 기능이상에 대한 과도한 집착과 불안)",
+      "척도 1 — 우울증 (D: 비관적 기분 및 슬픔)",
+      "척도 1 — 편집증 (Pa: 피해의식과 예민성)",
+      "척도 1 — 강박증 (Pt: 만성적 불안과 긴장)"
+    ],
+    "a": 0,
+    "h": "1번 척도는 신체 기능 이상에 집착하는 건강염려증(Hs)입니다.",
+    "e": "임상척도 1은 건강염려증(Hs, Hypochondriasis)으로, 신체 기능 이상과 통증에 대한 집착을 측정합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 기본 임상척도 10개 중 동형 T점수가 아닌 표준 '선형 T점수(Linear T-score)'가 적용되는 척도는? [출처: 교재 7장 7.2절 T점수 체계, 2014년 기말 33번]",
+    "o": [
+      "우울증 척도 (D)",
+      "반사회성 척도 (Pd)",
+      "경조증 척도 (Ma)",
+      "사회적 내향성 척도 (Si)"
+    ],
+    "a": 3,
+    "h": "임상척도 5(Mf)와 0(Si)은 동형 T점수가 아닌 선형 T점수를 사용합니다.",
+    "e": "MMPI-2 임상척도 중 척도 5(Mf)와 척도 0(Si)은 비임상적 성격 척도의 특성을 가져 선형 T점수가 적용됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 결과 프로파일에서 각 하위 척도 점수를 비교·해석하기 위해 사용하는 표준점수 체계는? [출처: 교재 7장 7.2절 T점수, 2015년 기말 67번]",
+    "o": [
+      "X 점수",
+      "Y 점수",
+      "Z 점수",
+      "T 점수"
+    ],
+    "a": 3,
+    "h": "평균 50, 표준편차 10을 갖는 표준점수 체계입니다.",
+    "e": "MMPI-2 하위 척도들은 평균 50, 표준편차 10인 T점수 표준점수를 바탕으로 프로파일을 해석합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2에 추가된 척도 중 원본 임상척도 간 상관이 높고 모호한 문항 문제를 해결하기 위해 텔레젠(Tellegen) 등이 개발한 척도는? [출처: 교재 7장 7.2절 재구성 임상척도, 2016년 기말 69번]",
+    "o": [
+      "성격병리 5요인 척도",
+      "내용 척도",
+      "재구성 임상 척도 (RC)",
+      "결정적 척도"
+    ],
+    "a": 2,
+    "h": "임상척도의 공통요인인 의기소침을 분리해내고 차별성을 높인 RC(Restructured Clinical) 척도입니다.",
+    "e": "임상척도 간의 높은 상관과 모호함을 보완하기 위해 텔레젠 등이 개발한 9개 척도는 '재구성 임상 척도(RC)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "원판 MMPI(1943)를 최초로 개발한 미네소타 대학병원의 연구자 두 명은? [출처: 교재 7장 7.2절 MMPI 개발, 14강 강의록, 보충]",
+    "o": [
+      "해서웨이(Hathaway)와 매킨리(McKinley)",
+      "코스타(Costa)와 맥크레이(McCrae)",
+      "데이비스(Dawis)와 롭퀴스트(Lofquist)",
+      "스피어만(Spearman)과 터스톤(Thurstone)"
+    ],
+    "a": 0,
+    "h": "미국 미네소타 대학병원의 심리학자와 정신과의사 조합입니다.",
+    "e": "MMPI 원판은 1943년 해서웨이(Hathaway)와 매킨리(McKinley)에 의해 개발되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국에서 MMPI-2를 국내 성인 표준화 연구를 거쳐 공식 출판(2005년)한 연구자는? [출처: 교재 7장 7.2절 MMPI-2 표준화, 14강 강의록, 보충]",
+    "o": [
+      "김중술 등",
+      "정범모 등",
+      "안창규 등",
+      "염태호 등"
+    ],
+    "a": 0,
+    "h": "2005년 한국판 MMPI-2 표준화를 완성한 임상심리학자입니다.",
+    "e": "한국판 MMPI-2는 2005년 김중술 등에 의해 한국 성인 규준 표준화가 이루어졌습니다. (1963년 원판 표준화는 정범모 등)"
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2의 타당도 척도 중 무응답(?) 척도에서 무효 프로파일로 간주되는 무응답 문항 수의 절단 기준은? [출처: 교재 7장 7.2절 무응답 척도, 14강 강의록, 보충]",
+    "o": [
+      "5개 이상 무응답 시",
+      "10개 이상 무응답 시",
+      "30개 이상 무응답 시",
+      "100개 이상 무응답 시"
+    ],
+    "a": 2,
+    "h": "응답하지 않거나 예/아니오 양쪽에 모두 표시한 문항이 30개 이상이면 무효입니다.",
+    "e": "무응답(?) 척도에서 누락되거나 중복 응답된 문항이 30개 이상이면 해당 검사는 무효 프로파일로 처리됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2의 10개 타당도 척도 중 피검자가 검사 문항에 '충실하고 일관성 있게 응답했는가'를 검증하는 3개 척도로 짝지어진 것은? [출처: 교재 7장 7.2절 타당도 척도, 14강 강의록, 보충]",
+    "o": [
+      "무응답(?), VRIN, TRIN",
+      "F, F(B), F(P)",
+      "L, K, S",
+      "FBS, RCd, PSY-5"
+    ],
+    "a": 0,
+    "h": "무응답, 무선반응 비일관성(VRIN), 고정반응 비일관성(TRIN)은 반응 일관성 척도입니다.",
+    "e": "피검자의 반응 충실성과 일관성을 평가하는 척도는 무응답(?), VRIN(무선반응 비일관성), TRIN(고정반응 비일관성)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 내용이 서로 비슷하거나 상반되는 문항 쌍에 무작위로 반응(막 찍음)했는지를 탐지하는 척도와 무효 프로파일 T점수 기준은? [출처: 교재 7장 7.2절 VRIN 척도, 14강 강의록, 보충]",
+    "o": [
+      "VRIN 척도 — T점수 80 이상",
+      "TRIN 척도 — T점수 50 이상",
+      "F 척도 — T점수 30 이하",
+      "L 척도 — T점수 100 이상"
+    ],
+    "a": 0,
+    "h": "Variable Response Inconsistency의 약자인 VRIN 척도입니다.",
+    "e": "비슷하거나 상반된 문항에 무작위로 찍었는지를 탐지하는 척도는 VRIN이며, T점수 80 이상이면 무효 가능성이 높습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 1번부터 끝까지 모든 문항에 '그렇다(T)' 또는 '아니다(F)'로 고정적으로 응답했는지를 탐지하는 척도는? [출처: 교재 7장 7.2절 TRIN 척도, 14강 강의록, 보충]",
+    "o": [
+      "고정반응 비일관성 (TRIN) 척도",
+      "무선반응 비일관성 (VRIN) 척도",
+      "비전형-후반부 (F(B)) 척도",
+      "증상타당도 (FBS) 척도"
+    ],
+    "a": 0,
+    "h": "True Response Inconsistency의 약자로 T점수 뒤에 T나 F 방향성이 표기됩니다.",
+    "e": "모든 문항에 '그렇다'나 '아니다'로 편향되게 응답했는지를 탐지하는 척도는 TRIN(고정반응 비일관성) 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 피검자가 자신을 '나쁜 방향으로 과장해서 응답(Faking Bad)'했는지를 탐지하는 4가지 척도군에 해당하지 않는 것은? [출처: 교재 7장 7.2절 타당도 척도, 14강 강의록, 보충]",
+    "o": [
+      "비전형 척도 (F)",
+      "비전형-후반부 척도 (F(B))",
+      "증상타당도 척도 (FBS)",
+      "과장된 자기제시 척도 (S)"
+    ],
+    "a": 3,
+    "h": "S 척도는 나쁘게 과장이 아닌 '좋게 과장(Faking Good)'하는 방어성 척도입니다.",
+    "e": "S(과장된 자기제시) 척도는 자신을 좋게 방어적으로 제시하는 Faking Good 척도입니다. Faking Bad 척도에는 F, F(B), F(P), FBS가 포함됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 검사 후반부에 위치한 문항들에서의 비전형 반응을 탐색하여 검사 진행 중 피검자의 수검태도 변화를 알려주는 척도는? [출처: 교재 7장 7.2절 F(B) 척도, 14강 강의록, 보충]",
+    "o": [
+      "비전형-후반부 척도 (F(B))",
+      "비전형-정신병리 척도 (F(P))",
+      "무선반응 비일관성 척도 (VRIN)",
+      "부인 척도 (L)"
+    ],
+    "a": 0,
+    "h": "Back Infrequency의 약자로 검사 뒷부분 태도 변화를 탐지합니다.",
+    "e": "검사 후반부 문항에 대한 비전형 반응을 탐색하여 피검자의 수검태도 변화를 파악하는 척도는 F(B) 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 개인상해 소송이나 신체적 장애 신청 장면에서 꾀병(증상 과대반응)을 탐지하기 위해 주로 활용되는 척도는? [출처: 교재 7장 7.2절 FBS 척도, 14강 강의록, 보충]",
+    "o": [
+      "증상타당도 척도 (FBS)",
+      "교정 척도 (K)",
+      "비전형 척도 (F)",
+      "부인 척도 (L)"
+    ],
+    "a": 0,
+    "h": "Symptom Validity의 약자로 소송이나 장애 신청 시 꾀병을 판별합니다.",
+    "e": "개인상해 소송이나 신체 장애 신청 시 과대반응 및 꾀병을 탐지하는 척도는 FBS(증상타당도) 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 피검자가 자신을 '좋은 방향으로 과장해서 방어적으로 응답(Faking Good)'했는지를 검증하는 3개 척도로 짝지어진 것은? [출처: 교재 7장 7.2절 타당도 척도, 14강 강의록, 보충]",
+    "o": [
+      "부인(L), 교정(K), 과장된 자기제시(S)",
+      "F, F(B), F(P)",
+      "VRIN, TRIN, 무응답(?)",
+      "Hs, D, Hy"
+    ],
+    "a": 0,
+    "h": "L(Lie), K(Correction), S(Superlative Self-Presentation)는 방어적 수검태도 척도입니다.",
+    "e": "자신을 좋은 방향으로 과장하거나 방어적으로 응답하는 수검태도를 포착하는 척도는 L, K, S 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 타당도 척도 중 피검자가 검사 전반에 걸쳐 자신을 매우 도덕적이고 결점이 없는 완벽한 사람으로 과장되게 제시하려는 방어성을 측정하는 척도는? [출처: 교재 7장 7.2절 S 척도, 14강 강의록, 보충]",
+    "o": [
+      "과장된 자기제시 척도 (S)",
+      "비전형 척도 (F)",
+      "증상타당도 척도 (FBS)",
+      "무선반응 비일관성 척도 (VRIN)"
+    ],
+    "a": 0,
+    "h": "Superlative Self-Presentation의 약자인 S 척도입니다.",
+    "e": "검사 전반에 걸쳐 자신을 과장되게 좋게 제시하려는 방어성을 측정하는 척도는 S(과장된 자기제시) 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '가정불화, 권위체에 대한 불화, 사회적 적응 곤란, 사회적 규범 비순응 및 충동성'을 측정하는 척도 4의 명칭은? [출처: 교재 7장 7.2절 반사회성 척도, 14강 강의록, 보충]",
+    "o": [
+      "반사회성 (Pd)",
+      "건강염려증 (Hs)",
+      "편집증 (Pa)",
+      "경조증 (Ma)"
+    ],
+    "a": 0,
+    "h": "Psychopathic Deviate의 약자로 권위 불화와 사회적 비순응을 재는 척도 4입니다.",
+    "e": "사회적 적응 곤란, 권위에 대한 저항, 규칙 비순응, 충동성을 측정하는 척도 4는 '반사회성(Pd)' 척도입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MMPI-2 임상척도 5(남성성-여성성: Mf)의 점수 해석에 관한 설명으로 옳은 것은? [출처: 교재 7장 7.2절 Mf 척도, 14강 음성, 보충]",
+    "o": [
+      "척도 5가 높은 남성은 심미적 관심이 많고, 높은 여성은 전통적 여성 역할을 거부하는 경향이 있다.",
+      "척도 5가 높은 남성은 조현병 환자로 확정 진단된다.",
+      "척도 5가 낮을수록 성별과 무관하게 무조건 지능지수가 높다.",
+      "남성과 여성 모두 척도 5의 점수 해석 기준이 100% 동일하다."
+    ],
+    "a": 0,
+    "h": "척도 5는 성별에 따라 해석이 다르며 전통적 성역할 수용 여부를 반영합니다.",
+    "e": "척도 5(Mf)는 남성이 높을 경우 심미적·문학적 관심이 높음을, 여성이 높을 경우 전통적 여성 역할을 거부하고 능동적임을 나타냅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '사고와 감정의 장애, 정신병적 사고, 지각 왜곡, 망상이나 환각 가능성'을 반영하는 척도 8의 명칭은? [출처: 교재 7장 7.2절 조현병 척도, 14강 강의록, 보충]",
+    "o": [
+      "조현병 (Sc)",
+      "강박증 (Pt)",
+      "경조증 (Ma)",
+      "편집증 (Pa)"
+    ],
+    "a": 0,
+    "h": "Schizophrenia의 약자로 사고 장애와 환각, 비논리적 생각을 나타내는 척도 8입니다.",
+    "e": "사고와 감정의 장애, 망상, 환각 가능성, 사회적 소외감을 반영하는 척도 8은 '조현병(Sc)' 척도입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MMPI-2 임상 프로파일에서 척도 2(우울증)와 척도 9(경조증)가 동시에 65 이상으로 높게 동반 상승(2-9 코드타입)할 때 우려되는 임상적 위험성은? [출처: 교재 7장 7.2절 코드타입 해석, 14강 음성, 보충]",
+    "o": [
+      "우울한 기분 속에서 경조증적 에너지가 결합되어 자살 사고를 행동으로 실행에 옮길 위험이 높다.",
+      "지능지수가 상위 0.1%로 폭발하여 천재가 된다.",
+      "피검자가 즉시 수면장애에서 완전히 해방된다.",
+      "모든 검사 결과가 무효로 즉시 처리된다."
+    ],
+    "a": 0,
+    "h": "우울감(자살생각) + 경조증(행동 에너지) 결합 시 행동화 위험이 매우 큽니다.",
+    "e": "척도 2(우울)와 척도 9(경조증)가 동반 상승하면, 우울한 기분과 자살 사고를 경조증의 고양된 에너지를 통해 실제 자살 행동으로 표출할 위험성이 높아 매우 주의해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 임상척도 중 '사회적 상황에서의 편안함 정도'를 측정하며, 점수가 높을수록 고립되고 수줍음이 많고, 연령이 증가함에 따라 약간 상승하는 경향이 있는 척도 0은? [출처: 교재 7장 7.2절 사회적 내향성 척도, 14강 강의록, 보충]",
+    "o": [
+      "사회적 내향성 (Si)",
+      "반사회성 (Pd)",
+      "건강염려증 (Hs)",
+      "히스테리 (Hy)"
+    ],
+    "a": 0,
+    "h": "Social Introversion의 약자로 척도 번호 0을 사용하는 척도입니다.",
+    "e": "사회적 상황에서의 수줍음, 고립, 내향성 성향을 나타내는 척도는 척도 0인 '사회적 내향성(Si)' 척도입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "원판 MMPI와 개정된 MMPI-2의 임상적 절단점(Cut-off point) 기준 및 백분위 비교로 올바른 것은? [출처: 교재 7장 7.2절 MMPI 차이점, 14강 강의록, 보충]",
+    "o": [
+      "원판 MMPI는 T점수 70점이었으나, MMPI-2에서는 T점수 65점(92백분위, 상위 8%)으로 낮추어 진단 민감성을 높였다.",
+      "원판 MMPI는 T점수 30점이었으나, MMPI-2에서는 T점수 100점으로 올렸다.",
+      "두 검사 모두 동일하게 T점수 50점을 절단점으로 사용한다.",
+      "MMPI-2는 컷오프 점수를 전면 폐지하였다."
+    ],
+    "a": 0,
+    "h": "MMPI-2는 임상집단 선별 민감도를 높이기 위해 컷오프를 T 70에서 T 65로 조정했습니다.",
+    "e": "MMPI-2는 수검자의 이상 증상을 놓치지 않고 유용하게 선별하기 위해 컷오프 점수를 기존 T 70에서 T 65(상위 8%, 92백분위)로 낮추었습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MMPI-2 개정 과정에서 내담자의 검사 피로를 줄이고 편의성을 높이기 위해 문항 순서를 조정한 효과는? [출처: 교재 7장 7.2절 MMPI-2 개정, 14강 강의록, 보충]",
+    "o": [
+      "검사의 앞부분 370문항만 응답하더라도 10개 기본 임상척도 및 타당도 척도 점수를 얻을 수 있다.",
+      "문항 응답 시간이 1초로 단축된다.",
+      "채점 과정에서 주관식 서술형 점수가 자동 추가된다.",
+      "컴퓨터 없이 혈액형 검사 결과가 자동으로 도출된다."
+    ],
+    "a": 0,
+    "h": "앞쪽 370문항에 주요 기본 척도 문항들을 배치하여 중도 포기 시에도 기본 척도 산출이 가능하게 했습니다.",
+    "e": "MMPI-2는 문항 순서를 조정하여 내담자가 앞부분 370개 문항만 완성해도 모든 표준 타당도 및 임상 척도 점수를 산출할 수 있도록 제작되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2의 추가 척도 중 공격성, 정신증, 통제부족, 부정적 정서성, 내향성 등 성격 특성에 대한 개념화를 돕는 척도는? [출처: 교재 7장 7.2절 PSY-5, 14강 강의록, 보충]",
+    "o": [
+      "성격병리 5요인 척도 (PSY-5)",
+      "재구성 임상 척도 (RC)",
+      "내용 척도 (Content scales)",
+      "위기질문 목록"
+    ],
+    "a": 0,
+    "h": "Personality Psychopathology Five의 약자인 PSY-5 척도입니다.",
+    "e": "내담자의 주요 성격특성을 5가지 차원으로 개념화하여 해석을 풍부하게 돕는 척도는 '성격병리 5요인 척도(PSY-5)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 검사시간 단축을 목적으로 338개 문항으로 축소 개발되어 약 35분 만에 실시할 수 있는 단축 버전의 명칭은? [출처: 교재 7장 7.2절 MMPI-2-RF, 14강 강의록, 보충]",
+    "o": [
+      "MMPI-2-RF",
+      "MMPI-A",
+      "K-WISC-V",
+      "CATi"
+    ],
+    "a": 0,
+    "h": "Restructured Form의 약자인 MMPI-2-RF (338문항)입니다.",
+    "e": "MMPI-2의 문항을 338개로 축소하여 약 35분 내외로 검사할 수 있게 만든 단축 버전은 MMPI-2-RF입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "만 13~18세 청소년을 대상으로 청소년의 특성(가족, 학교 문제, 또래관계)을 반영하여 478문항으로 구성된 MMPI 검사의 명칭은? [출처: 교재 7장 7.2절 MMPI-A, 14강 강의록, 보충]",
+    "o": [
+      "MMPI-A (Adolescent)",
+      "MMPI-2-RF",
+      "CDI",
+      "JTCI"
+    ],
+    "a": 0,
+    "h": "청소년(Adolescent) 전용 규준과 문항을 갖춘 MMPI-A입니다.",
+    "e": "13~18세 청소년을 대상으로 청소년의 발달적 특성과 규준을 반영한 검사는 MMPI-A(478문항)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아론 벡(Aron Beck)의 성인용 벡 우울척도(BDI)의 문항 수, 문항당 채점 점수, 총점 범위로 올바른 것은? [출처: 교재 7장 7.2절 BDI 구성, 14강 강의록, 보충]",
+    "o": [
+      "총 21개 문항, 문항당 0~3점, 총점 범위 0~63점",
+      "총 50개 문항, 문항당 1~5점, 총점 범위 0~250점",
+      "총 100개 문항, 문항당 0~1점, 총점 범위 0~100점",
+      "총 5개 문항, 문항당 0~10점, 총점 범위 0~50점"
+    ],
+    "a": 0,
+    "h": "BDI는 21개 우울 증상 문항에 대해 0~3점으로 응답하여 총 0~63점을 형성합니다.",
+    "e": "BDI는 총 21개 문항으로 이루어져 있으며, 각 문항을 0~3점으로 평정하여 0~63점의 총점 범위를 갖습니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "BDI(벡 우울척도) 결과 해석 시 '전문가의 전문적 도움이 권장되는 절단 점수' 및 16~23점 구간의 우울 상태 해석은? [출처: 교재 7장 7.2절 그림 7-3 BDI 기준, 14강 강의록, 보충]",
+    "o": [
+      "16점 이상 시 도움 권장 — '중한 우울 상태'",
+      "5점 이상 시 도움 권장 — '우울하지 않은 상태'",
+      "40점 이상 시 도움 권장 — '조현병 상태'",
+      "63점 만점 시에만 도움 권장 — '경미한 우울 상태'"
+    ],
+    "a": 0,
+    "h": "0~9(우울없음), 10~15(경미), 16~23(중한 우울), 24~63(심한 우울)이며 16점 이상부터 도움 권장입니다.",
+    "e": "BDI는 총점 16점 이상일 때 전문가의 도움이 권장되며, 16~23점 구간은 '중한 우울 상태'로 해석합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "1996년에 개정된 BDI-II에서 이전 BDI의 부적절한 4개 항목 대신 새롭게 추가된 4가지 우울 증상 항목은? [출처: 교재 7장 7.2절 BDI-II 개정, 14강 강의록, 보충]",
+    "o": [
+      "초조, 집중력장애, 무가치감, 의욕상실",
+      "체중감소, 신체상변화, 작업곤란, 신체몰입",
+      "환각, 망상, 지남력상실, 발작",
+      "시력저하, 청력상실, 미각변화, 탈모"
+    ],
+    "a": 0,
+    "h": "BDI-II는 DSM-4 기준을 반영해 초조, 집중력장애, 무가치감, 의욕상실 항목을 추가했습니다.",
+    "e": "BDI-II 개정 시 기존 신체 체중/작업곤란 등 4개 항목을 제외하고 '초조, 집중력장애, 무가치감, 의욕상실' 4개 항목을 추가했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "만 7~17세 아동·청소년의 우울 증상(우울정서, 행동장애, 흥미상실, 자기비하, 생리적 증상)을 평가하기 위해 개발된 검사는? [출처: 교재 7장 7.2절 CDI, 14강 강의록, 보충]",
+    "o": [
+      "아동용 우울척도 (CDI: Children's Depression Inventory)",
+      "성인용 우울척도 (BDI)",
+      "아동용 지능검사 (K-WISC-V)",
+      "한국판 성격검사 (16PF)"
+    ],
+    "a": 0,
+    "h": "아동·청소년을 위한 27개 문항(0~2점, 총점 0~54점) 우울검사인 CDI입니다.",
+    "e": "7~17세 아동·청소년의 우울을 측정하기 위한 검사는 코백스(Kovacs) 등이 개발한 CDI(아동용 우울척도, 27문항)입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "BDI(성인용)와 CDI(아동용) 우울척도의 결과 점수 해석 원리에 대한 공통점은? [출처: 교재 7장 7.2절 BDI 및 CDI, 14강 강의록, 보충]",
+    "o": [
+      "총점 수치가 높을수록 우울의 정도가 심하고 다양함을 나타낸다.",
+      "총점 수치가 높을수록 우울이 전혀 없는 완벽하게 건강한 상태이다.",
+      "두 검사 모두 점수가 0점일 때 우울증으로 확정 진단한다.",
+      "두 검사 모두 주관식 이야기 꾸미기로 해석한다."
+    ],
+    "a": 0,
+    "h": "BDI와 CDI 모두 점수가 높아질수록 우울 증상의 심각도가 커지는 방향입니다.",
+    "e": "BDI와 CDI 모두 합산 총점이 높을수록 우울의 정도가 심하고 다양한 우울 증상을 경험하는 것으로 해석합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MMPI-2 결과를 해석할 때 가장 먼저 확인하고 검토해야 하는 척도군은? [출처: 교재 7장 7.2절 채점과 해석, 14강 음성, 보충]",
+    "o": [
+      "타당도 척도 (피검자의 수검태도 및 결과의 타당성 점검)",
+      "기본 임상 척도 (우울, 조현병 등 점수 확인)",
+      "성격병리 5요인 척도",
+      "내용 소척도"
+    ],
+    "a": 0,
+    "h": "임상 척도를 해석하기 전에 내담자가 충실하고 솔직하게 응답했는지 타당도 척도를 먼저 봐야 합니다.",
+    "e": "MMPI-2 해석 시에는 가장 먼저 타당도 척도를 확인하여 무효 프로파일 여부 및 수검태도를 검토한 후 임상 척도를 해석합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 결과 프로파일에서 T점수가 65 이상으로 상승한 상위 2~3개 임상척도를 순서대로 조합하여 내담자의 성격 및 정서 특성을 해석하는 방식은? [출처: 교재 7장 7.2절 코드타입, 14강 강의록, 보충]",
+    "o": [
+      "코드 타입 (Code-type / 형태적 해석)",
+      "단일 요소 1대1 매칭 해석",
+      "수능 백분위 환산 해석",
+      "지능지수 조합 해석"
+    ],
+    "a": 0,
+    "h": "상승한 임상척도의 번호를 조합하여 형태적으로 해석하는 코드 타입(예: 2-7, 4-9) 해석입니다.",
+    "e": "MMPI-2 해석 시 65 이상 높게 상승한 임상척도 2~3개를 순서대로 기재하여 종합 해석하는 방식을 '코드 타입(Code-type) 해석'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MMPI-2 프로파일 해석 중 '한 임상척도만 65 이상으로 유의하게 높고 타 척도들과 20점 이상 현저한 점수 차이를 보이는' 프로파일 형태는? [출처: 교재 7장 7.2절 단독상승 척도, 14강 강의록, 보충]",
+    "o": [
+      "단독상승 척도 (Spike scale)",
+      "동반상승 척도",
+      "미변별 프로파일",
+      "무효 프로파일"
+    ],
+    "a": 0,
+    "h": "다른 척도와 20점 이상 차이 나며 홀로 도드라지게 상승한 척도(Spike)입니다.",
+    "e": "한 임상척도만 65 이상 상승하고 다른 척도들과 20점 이상 큰 차이를 나타낼 때 이를 '단독상승 척도(Spike scale)'라 부릅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "상담자가 MMPI-2 검사 결과를 내담자 이해에 활용할 때 지켜야 할 올바른 임상적 유의사항은? [출처: 교재 7장 7.2절 검사 해석 유의점, 14강 음성, 보충]",
+    "o": [
+      "특정 임상척도 상승 하나만으로 성급하게 특정 정신병리를 단정 진단하지 말고 다양한 임상 정보를 종합 고려한다.",
+      "결과 프로파일 수치를 내담자에게 즉시 보여주고 조현병 환자라고 소리친다.",
+      "타당도 척도 결과는 무시하고 오직 임상 척도 하나만 보고 판단한다.",
+      "컴퓨터 채점 결과지는 전문 상담자의 해석 없이 내담자가 혼자 독학하게 한다."
+    ],
+    "a": 0,
+    "h": "검사 수치 단독으로 성급히 진단을 내리지 않고 접수면접, 관찰 정보 등을 종합 고려해야 합니다.",
+    "e": "상담자는 MMPI-2 척도 점수가 높다고 해서 섣불리 정신병리를 확정 진단해서는 안 되며, 내담자의 생활 맥락과 접수면접, 타 검사 결과를 종합하여 평가해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "14강 「정신건강 관련 객관적 검사」에서 다루는 주요 교재 및 워크북 학습 범주는? [출처: 교재 7장 7.2절, 14강 강의록]",
+    "o": [
+      "교재 7장 7.2절(p.270~280) MMPI, MMPI-2(개발, 타당도/임상척도 10개, 개정차이, 채점/해석) 및 BDI, CDI 우울척도",
+      "교재 7장 7.3절 로르샤흐, TAT, HTP 투사적 검사 전체",
+      "교재 6장 MBTI 성격유형 16가지",
+      "교재 4장 웩슬러 아동지능검사 5판"
+    ],
+    "a": 0,
+    "h": "14강은 7.2절 정신건강 관련 객관적 검사(MMPI, MMPI-2, BDI 등)를 집중 학습합니다.",
+    "e": "14강의 학습 범위는 교재 7장 7.2절(정신건강 관련 객관적 검사)로, MMPI-2의 10개 타당도/임상 척도와 BDI 우울척도 등을 다룹니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

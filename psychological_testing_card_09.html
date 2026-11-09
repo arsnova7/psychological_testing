@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 9, title: "진로검사 1" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 진로교육 및 진로상담의 5대 주요 목표 [출처: 교재 5장 5.1절 진로의 이해, 워크북 5장 5.1절 1번]",
+    "a": "자기 이해, 직업세계 이해, 합리적 의사결정 능력 함양, 정보수집 기술 발달, 올바른 일/직업 가치관 형성"
+  },
+  {
+    "q": "★★★ 파슨즈(Parsons) 특성-요인이론의 3대 핵심 요인 [출처: 교재 5장 5.1절 파슨즈 이론, 9강 강의록]",
+    "a": "자신에 대한 명확한 이해, 직업세계에 대한 이해, 이 둘 간의 합리적 매칭(연결)"
+  },
+  {
+    "q": "★★★ 데이비스와 롭퀴스트(Dawis & Lofquist)의 직업적응이론(TWA) 핵심 [출처: 교재 5장 5.1절 직업적응이론, 2019년 기말 57번]",
+    "a": "개인과 직업 환경 간의 조화·일치성을 강조하며, 개인의 만족(MSQ)과 조직의 충족성(MSS)을 동시에 진단함"
+  },
+  {
+    "q": "★★★ 미네소타 만족질문지(MSQ) vs 미네소타 충족성척도(MSS) [출처: 교재 5장 5.1절 직업적응이론, 9강 강의록]",
+    "a": "MSQ: 직원이 느끼는 직장 만족도 측정 / MSS: 조직(상사) 입장에서 직원의 과제 수행 충족성 측정"
+  },
+  {
+    "q": "★★★ 하렌(Harren)의 진로의사결정 3가지 유형 [출처: 교재 5장 5.1절 하렌 이론, 2013년 기말, 2015년 기말]",
+    "a": "합리적 유형(논리적/정보분석), 직관적 유형(감정/정서/신속결정), 의존적 유형(타인의존/책임회피)"
+  },
+  {
+    "q": "★★★ 수퍼(Super) 생애진로발달이론의 핵심 관점 [출처: 교재 5장 5.1절 수퍼 생애진로발달이론, 워크북 5장 5.1절 3번]",
+    "a": "진로는 전생애에 걸쳐 발달하며, 진로발달 과정은 진로자기개념의 형성 및 다중 생애역할의 실현과정임"
+  },
+  {
+    "q": "★★★ 수퍼의 전생애 진로발달 5단계 순서 [출처: 교재 5장 5.1절 수퍼 생애진로발달이론, 9강 강의록]",
+    "a": "성장기(~13세) → 탐색기(14~24세) → 확립기(25~44세) → 유지기(45~64세) → 쇠퇴기(65세 이상)"
+  },
+  {
+    "q": "★★★ 수퍼의 생애진로무지개(Life-Career Rainbow)의 역할 [출처: 교재 5장 5.1절 생애역할이론, 9강 강의록]",
+    "a": "동일 시점에 개인이 수행하는 다중 생애역할(자녀, 학생, 직업인, 시민 등) 간의 비중과 갈등을 시각적으로 파악하도록 돕는 질적 도구"
+  },
+  {
+    "q": "★★★ 진로성숙도(career maturity)의 정의 [출처: 교재 5장 5.1절 진로성숙도, 2017년 기말 57번, 2019년 기말 56번]",
+    "a": "특정 발달단계에서 당면한 진로발달 과업을 성공적으로 수행하기 위해 개인이 보유한 심리적 자원과 준비도"
+  },
+  {
+    "q": "★★★ 진로성숙도와 진로적응도(career adaptability)의 차이 [출처: 교재 5장 5.1절 진로성숙도, 9강 강의록]",
+    "a": "진로성숙도: 아동청소년의 연령별 발달 준비도 / 진로적응도: 급변하는 환경과 성인기 변화 요구에 대처하는 유연한 대처 준비도"
+  },
+  {
+    "q": "★★★ 수퍼의 청소년 진로성숙 5대 평가 차원 [출처: 교재 5장 5.1절 진로성숙도, 워크북 5장 5.1절 9번]",
+    "a": "직업선택 태도, 정보수집 및 계획 구체성, 선호직업 일관성, 개인특성 분화/통합, 선호의 현실성"
+  },
+  {
+    "q": "★★★ 갓프레드슨(Gottfredson) 제한타협이론의 직업포부 발달 4단계 [출처: 교재 5장 5.1절 갓프레드슨 이론, 9강 강의록]",
+    "a": "1단계: 서열 및 힘 지향(3~5세) → 2단계: 성역할 지향(6~8세) → 3단계: 사회적 가치 지향(9~13세) → 4단계: 고유한 내적 자기 지향(14세 이상)"
+  },
+  {
+    "q": "★★★ 크럼볼츠(Krumboltz) 사회학습진로이론의 4대 결정 요인 [출처: 교재 5장 5.1절 사회학습진로이론, 2018년 기말 57번]",
+    "a": "유전적 재능 및 신체 능력, 환경적 조건 및 사건, 학습경험, 과제접근기술"
+  },
+  {
+    "q": "★★★ 크럼볼츠의 계획된 우연이론(Happenstance Theory) [출처: 교재 5장 5.1절 최근 진로이론, 워크북 5장 5.1절 10번]",
+    "a": "살면서 마주치는 예측하지 못한 우연한 사건들을 적극적인 학습 기회로 변환하고 활용하도록 돕는 이론"
+  },
+  {
+    "q": "★★★ 사회인지진로이론(SCCT)의 4대 핵심 구성요소 [출처: 교재 5장 5.1절 사회인지진로이론, 2017년 기말 58번]",
+    "a": "자기효능감, 결과기대, 진로목표, 진로장벽 평가"
+  },
+  {
+    "q": "★★★ 진로장벽(career barrier)의 정의 [출처: 교재 5장 5.1절 사회인지진로이론, 2014년 기말 19번]",
+    "a": "진로목표를 선택하고 실현하는 과정을 가로막는 내적·외적 장애요인"
+  },
+  {
+    "q": "★★★ 사비카스(Savickas) 구성주의 진로이론의 핵심 [출처: 교재 5장 5.1절 구성주의 진로이론, 워크북 5장 5.1절 11번]",
+    "a": "개인이 자신의 직업적 경험과 생애 이야기에 직접 의미를 부여하며 진로를 스스로 구성해 간다고 보는 이론"
+  },
+  {
+    "q": "★★★ 진로흥미(vocational interest)의 정의 및 주요 측정 검사 [출처: 교재 5장 5.1절 흥미, 워크북 5장 5.1절 6번]",
+    "a": "특정 활동이나 사물에 지속적 주의와 선호를 보이는 경향 (대표 검사: STRONG, 쿠더, 홀랜드, 직업선호도검사)"
+  },
+  {
+    "q": "★★★ 쿠더(Kuder) 흥미검사의 9가지 범주 [출처: 교재 5장 5.1절 흥미, 9강 강의록]",
+    "a": "기계적, 계산적, 과학적, 설득적, 예술적, 문학적, 음악적, 사회봉사적, 사무적 흥미"
+  },
+  {
+    "q": "★★★ 진로적성(vocational aptitude)의 정의 [출처: 교재 5장 5.1절 적성, 2013년 기말 18번]",
+    "a": "특정 직무나 과제를 성공적으로 수행하는 데 요구되는 특수한 잠재능력 및 발현 가능성"
+  },
+  {
+    "q": "★★★ 일반적성검사(GATB)의 주체 및 측정 내용 [출처: 교재 5장 5.2절 직업적성검사, 9강 강의록]",
+    "a": "미국 노동부에서 구직자 진로상담용으로 개발한 최초의 대표적 종합적성검사 (10개 적성요인)"
+  },
+  {
+    "q": "★★★ 성인용 직업적성검사(고용24/워크넷) 개관 [출처: 교재 5장 5.2절 직업적성검사, 9강 강의록]",
+    "a": "한국고용정보원에서 만 18세 이상 성인을 대상으로 11개 적성요인을 측정하여 프로파일 및 희망직업 비교정보 제공"
+  },
+  {
+    "q": "★★★ STRONG 직업흥미검사 II의 5대 하위 척도 [출처: 교재 5장 5.2절 STRONG 검사, 2014년 기말 22번]",
+    "a": "실시지표, 일반직업분류(GOT), 기본흥미척도(BIS), 직업척도(OS), 개인특성척도(PSS)"
+  },
+  {
+    "q": "★★★ STRONG 검사의 일반직업분류(GOT) 척도 [출처: 교재 5장 5.2절 STRONG 검사, 9강 강의록]",
+    "a": "홀랜드의 RIASEC 6개 흥미유형(현실, 탐구, 예술, 사회, 기업, 관습)에 따른 피검자의 포괄적 흥미를 제시"
+  },
+  {
+    "q": "★★★ STRONG 검사의 기본흥미척도(BIS) 2판 [출처: 교재 5장 5.2절 STRONG 검사, 9강 강의록]",
+    "a": "GOT의 6개 유형을 구체화하여 총 30개의 세부 흥미 영역으로 세밀하게 분류한 척도"
+  },
+  {
+    "q": "★★★ STRONG 검사의 개인특성척도(PSS) 4개 하위 척도 [출처: 교재 5장 5.2절 STRONG 검사, 2013년 기말, 2015년 기말]",
+    "a": "업무유형, 학습유형, 리더십유형, 위험감수유형(모험심)"
+  },
+  {
+    "q": "★★★ 직업선호도검사 L형 vs S형의 구성 차이 [출처: 교재 5장 5.2절 직업선호도검사, 2016년 기말 57번]",
+    "a": "S형(Short): 흥미검사 단독 / L형(Long): 흥미검사 + 성격검사(Big 5) + 생활사검사 통합 제공"
+  },
+  {
+    "q": "★★★ 직업선호도검사 L형의 생활사검사 측정 내용 [출처: 교재 5장 5.2절 직업선호도검사, 2015년 기말 58번]",
+    "a": "과거 행동과 다양한 생애 경험(학업, 가족, 직무만족 등 Bio-data)을 바탕으로 미래 수행을 예측하는 검사"
+  },
+  {
+    "q": "★★★ 워크넷 직업가치관검사의 9대 직업가치 목록 [출처: 교재 5장 5.2절 직업가치관검사, 2015년 기말 54번]",
+    "a": "사회적 공헌, 변화지향, 성취, 경제적 보상, 자기개발, 일과 삶의 균형(워라밸), 사회적 인정, 자율성, 직업안정"
+  },
+  {
+    "q": "★★★ 커리어넷 진로성숙도검사의 3개 차원 및 구성 [출처: 교재 5장 5.2절 진로성숙도검사, 2013년~2015년 기말]",
+    "a": "태도차원(계획성, 독립성), 능력차원(자기이해, 정보탐색, 합리적의사결정, 희망직업지식), 행동차원(진로탐색 준비행동)"
+  },
+  {
+    "q": "★★★ 워크넷 진로발달검사(커리어UP)의 2개 세부 영역 [출처: 교재 5장 5.2절 진로발달검사, 9강 강의록]",
+    "a": "진로성숙도검사(태도·지식·행동) 및 진로의사결정검사(동기·정보부족·갈등)"
+  },
+  {
+    "q": "★★★ 직업카드분류(Job Card Sort) 기법의 특징 [출처: 교재 5장 5.2절 도구를 이용한 검사, 2014년 기말 23번]",
+    "a": "수치 규준이 없는 대표적 비표준화 질적 검사로, 직업 카드를 3분류(선호/비선호/미결정)하여 대화와 의미 탐색 유도"
+  },
+  {
+    "q": "★★★ 진로발달그림검사(환상기 그림검사)의 적합 대상 [출처: 교재 5장 5.2절 도구를 이용한 검사, 9강 음성]",
+    "a": "문해력 및 독해력이 부족하고 공상 활동이 많은 초등학교 저학년 아동"
+  },
+  {
+    "q": "★★☆ 진로선택이론 vs 진로발달이론의 차이 [출처: 교재 5장 5.1절 진로이론 분류, 2018년 기말 56번]",
+    "a": "진로선택이론: 개인 특성과 직업의 매칭/의사결정 강조 (파슨즈, TWA, 하렌) / 진로발달이론: 전생애적 발달과정 및 포부 형성 강조 (수퍼, 긴즈버그, 갓프레드슨)"
+  },
+  {
+    "q": "★★☆ 하렌의 '합리적 의사결정 유형' [출처: 교재 5장 5.1절 하렌 이론, 9강 강의록]",
+    "a": "정확한 정보를 수집하고 논리적 체계에 따라 판단하며 결과에 책임을 지는 가장 바람직한 유형"
+  },
+  {
+    "q": "★★☆ 하렌의 '직관적 의사결정 유형' [출처: 교재 5장 5.1절 하렌 이론, 2013년 기말 19번]",
+    "a": "현재의 정서적 느낌과 직관을 토대로 신속하게 결정하고 스스로 책임을 지는 유형"
+  },
+  {
+    "q": "★★☆ 하렌의 '의존적 의사결정 유형' [출처: 교재 5장 5.1절 하렌 이론, 9강 강의록]",
+    "a": "타인이나 외부 조언에 무비판적으로 의존하며 결정에 대한 책임을 회피하려는 수동적 유형"
+  },
+  {
+    "q": "★★☆ 수퍼의 생애진로발달이론 중 '진로자기개념' [출처: 교재 5장 5.1절 수퍼 생애진로발달이론, 9강 음성]",
+    "a": "자신의 자아상을 직업적 역할 속에서 관찰·실험하고 통합해 나가는 주관적 개념"
+  },
+  {
+    "q": "★★☆ 갓프레드슨의 제한(Circumscription)과 타협(Compromise) 개념 [출처: 교재 5장 5.1절 갓프레드슨 이론, 9강 강의록]",
+    "a": "제한: 성역할 및 사회적 가치와 부합하지 않는 직업 대안을 배제함 / 타협: 현실적 장벽에 부딪혀 수용 가능한 직업 대안으로 타협함"
+  },
+  {
+    "q": "★★☆ 크럼볼츠의 도구적 학습경험 vs 연합적 학습경험 [출처: 교재 5장 5.1절 사회학습진로이론, 9강 강의록]",
+    "a": "도구적 학습경험: 행동의 결과(보상/처벌)에 의한 학습 / 연합적 학습경험: 중립 자극과 긍정/부정적 자극의 연쇄 결합 학습"
+  },
+  {
+    "q": "★★☆ 사회인지진로이론(SCCT)의 '자기효능감'과 '결과기대' [출처: 교재 5장 5.1절 사회인지진로이론, 9강 강의록]",
+    "a": "자기효능감: 과제를 성공적으로 해낼 수 있다는 자신의 능력에 대한 신념 / 결과기대: 해당 행동을 수행했을 때 얻을 결과에 대한 예측"
+  },
+  {
+    "q": "★★☆ 적성 측정 방법 중 '실험적 관찰법' [출처: 교재 5장 5.1절 적성 측정, 9강 음성]",
+    "a": "원하는 특수 행동이나 역량이 잘 발현되도록 조건과 환경을 의도적으로 조성한 후 관찰·평가하는 방식"
+  },
+  {
+    "q": "★★☆ STRONG 검사의 개인특성척도 중 '위험감수유형' [출처: 교재 5장 5.2절 STRONG 검사, 2013년 기말 22번]",
+    "a": "신체적 위험상황을 감수하거나 모험적·위기상황을 극복하려는 성향의 정도"
+  },
+  {
+    "q": "★★☆ 직업선호도검사 성격검사의 이론적 기반 [출처: 교재 5장 5.2절 직업선호도검사, 9강 강의록]",
+    "a": "성격 5요인 모델 (Big 5: 외향성, 호감성, 성실성, 신경증, 개방성)"
+  },
+  {
+    "q": "★★☆ 청소년 진로상담자의 바람직한 역할 [출처: 교재 5장 5.1절 개관, 워크북 5장 5.1절 Q1]",
+    "a": "직업을 직접 지정·설계해 주지 않고, 내담자 스스로 합리적 의사결정을 내릴 수 있도록 돕는 조력자 역할"
+  },
+  {
+    "q": "★☆☆ 파슨즈 특성-요인이론의 현대적 의의 [출처: 교재 5장 5.1절 파슨즈 이론, 9강 강의록]",
+    "a": "현대 심리검사를 통한 특성 측정 및 직업정보 시스템 매칭의 기초가 된 최초의 과학적 진로이론"
+  },
+  {
+    "q": "★☆☆ 수퍼 5대 발달단계 중 '탐색기(14~24세)'의 세부 3단계 [출처: 교재 5장 5.1절 수퍼 생애진로발달이론, 9강 강의록]",
+    "a": "잠정기(15~17세) → 전환기(18~21세) → 시행기(22~24세)"
+  },
+  {
+    "q": "★☆☆ STRONG 직업흥미검사의 최초 개발자 및 연도 [출처: 교재 5장 5.2절 STRONG 검사, 워크북 5장 5.2절 4번 해설]",
+    "a": "1927년 스트롱(E. K. Strong Jr.) 교수가 남성용 SVIB를 최초 개발"
+  },
+  {
+    "q": "★☆☆ 한국판 STRONG 직업흥미검사 개발자 [출처: 교재 5장 5.2절 STRONG 검사, 워크북 5장 5.2절 4번 해설]",
+    "a": "2001년 김정택 등이 한국인 표준화 검사로 개발 도입"
+  },
+  {
+    "q": "★☆☆ 9강 「진로검사 1」의 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 5장 5.1절~5.2절 (p.159~191), 워크북 5장 5.1절~5.2절 (p.57~68), 9강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

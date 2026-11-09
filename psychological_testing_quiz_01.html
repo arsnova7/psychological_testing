@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 1, title: "교육과 인간의 이해" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "이상적인 인간상에 대한 학파 및 학자의 연결 중 잘못된 것은? [출처: 워크북 1장 1.1절 1번, 2017년 기말 37번]",
+    "o": [
+      "인본주의 심리학 - 매슬로(Maslow) - 자아실현인",
+      "인간중심 상담이론 - 로저스(Rogers) - 충분히 기능하는 사람",
+      "특질이론 - 올포트(Allport) - 성숙한 인격",
+      "신정신분석학파 - 프롬(Fromm) - 무의식을 탐색하는 사람"
+    ],
+    "a": 3,
+    "h": "프롬이 제시한 바람직한 성격 유형의 명칭을 떠올려 보세요.",
+    "e": "신정신분석학파의 프롬(Fromm)은 타인과 유용한 관계를 맺고 생산적으로 베푸는 '생산적인 사람(productive person)'을 이상적인 인간상으로 보았습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간행동의 원인에 관한 심리학적 관점 중 행동주의에 대한 설명으로 가장 거리가 먼 것은? [출처: 워크북 1장 1.1절 2번]",
+    "o": [
+      "에빙하우스가 최초로 인간학습과 관련한 본격적 실험을 하였다.",
+      "인간을 동물과 한 연속선상에 있는 존재라고 가정하였다.",
+      "주요 학자로는 파블로프, 손다이크, 스키너 등이 있다.",
+      "측정과 관찰이 가능한 인간행동의 원인에 관심을 둔다."
+    ],
+    "a": 0,
+    "h": "에빙하우스의 실험이 어떤 심리학적 관점에 속하는지 생각해 보세요.",
+    "e": "에빙하우스(Ebbinghaus)는 인간의 학습과 기억에 관한 본격적 실험을 수행하였으며, 이는 인간의 정신과정과 기억을 강조하는 인지적 관점에 해당합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "인간행동의 원인에 관한 심리학적 관점 중 인본주의(제3세력 심리학)에 대한 설명으로 가장 적절한 것은? [출처: 워크북 1장 1.1절 3번]",
+    "o": [
+      "인간의 정서는 자율신경계 및 신경전달물질과 밀접한 관련이 있다.",
+      "개인이 자신의 잠재 가능성을 발휘하여 자아실현 욕구를 충족하도록 돕는 것을 강조한다.",
+      "무의식이 인간의 행동과 생각, 정서 등을 지배하고 결정한다.",
+      "감각자극을 변형, 부호화, 저장, 인출하는 정신과정에 관심이 있다."
+    ],
+    "a": 1,
+    "h": "유럽 실존철학에 기반하여 인간의 자율성과 긍정적 성장 가능성을 강조한 관점을 찾으세요.",
+    "e": "①은 신경생물학적 관점, ③은 정신분석적 관점, ④는 인지적 관점 설명입니다. 인본주의적 관점은 자아실현 욕구와 인간의 건강한 심리적 측면을 강조합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 빈칸에 공통으로 들어갈 가장 적절한 용어는? [출처: 워크북 1장 1.1절 4번]\n- 학문적 지식이나 각종 ( )를/을 통하여 인간을 이해하는 방법을 과학적 이해라 한다.\n- ( )에는 규준(norm)이 있어 학생들의 특성을 상대적으로 비교해 볼 수 있다.",
+    "o": [
+      "공감적 이해",
+      "상식적 이해",
+      "표준화 심리검사",
+      "비표준화 심리검사"
+    ],
+    "a": 2,
+    "h": "객관성과 상대적 비교를 위한 규준(norm)을 갖춘 과학적 측정 도구입니다.",
+    "e": "표준화 심리검사는 체계적 절차로 개발되어 규준(norm)을 제공하며, 객관적이고 과학적인 수준의 인간이해를 가능하게 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간이해의 방식에 대한 설명으로 잘못된 것은? [출처: 워크북 1장 1.1절 5번]",
+    "o": [
+      "공감적 이해는 상대방의 관점에서 그의 감정 등을 이해하고 이를 정확하게 전달하는 것을 포함한다.",
+      "상식적 이해는 오류의 가능성이 가장 높은 인간이해 방식이다.",
+      "과학적 이해 방식은 객관적인 자료에 근거하므로 오차가 전혀 발생하지 않는다.",
+      "과학적 이해에는 표준화된 심리검사를 통해 인간을 이해하는 것이 포함된다."
+    ],
+    "a": 2,
+    "h": "과학적 검사 도구나 학문적 지식에도 한계나 오차가 존재하는지 검토하세요.",
+    "e": "과학적 이해 방식은 객관적 자료와 검사를 바탕으로 하므로 상식적 이해보다 높은 수준이지만, 검사의 한계나 오차가 존재할 수 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "내성주의(introspectionism)를 비판하며 창시되었고, 직접 관찰과 측정이 가능한 행동만을 과학적 연구대상으로 삼는 심리학적 관점은? [출처: 2016년 기말 36번]",
+    "o": [
+      "신경생물학적 관점",
+      "행동주의적 관점",
+      "정신분석적 관점",
+      "인지주의적 관점"
+    ],
+    "a": 1,
+    "h": "왓슨(Watson)이 창시하고 파블로프, 스키너 등이 발전시킨 관점입니다.",
+    "e": "왓슨은 주관적 관찰법인 내성주의를 비판하고, 겉으로 드러난 관찰·측정 가능한 행동만을 연구대상으로 하는 행동주의(behaviorism)를 창시했습니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "인간을 이해하는 데 유용한 자료 중 '학교생활기록부, 이력서, 직장 인사기록카드, 포트폴리오' 등이 속하는 범주는? [출처: 2016년 기말 37번]",
+    "o": [
+      "생애사적 자료",
+      "생리학적 측정자료",
+      "표준화 검사",
+      "관찰자 평정자료"
+    ],
+    "a": 0,
+    "h": "개인의 역사적 기록이나 누적된 생활 경험이 담긴 자료의 명칭입니다.",
+    "e": "피검자가 보고하거나 역사적 기록으로 남아 있는 학교생활기록부, 이력서, 인사기록 등은 생애사적 자료에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 중 '상식적 이해의 수준'에 대한 설명으로 가장 적절한 것은? [출처: 2017년 기말 36번]",
+    "o": [
+      "학문적 지식에 근거하여 각종 심리검사를 활용하는 이해 방식이다.",
+      "개인이 가진 특성, 속한 집단이나 지역, 나와의 유사성에 비추어 이해하는 방식으로 오류 가능성이 가장 높다.",
+      "상대방의 내면 심리세계를 그 사람의 입장이 되어 주관적으로 이해하는 방식이다.",
+      "규준(norm)에 비추어 상대적 위치를 비교·평가하는 방식이다."
+    ],
+    "a": 1,
+    "h": "'머리가 크니 머리가 좋을 것이다'나 '내 경험상 저 사람도 그럴 것이다'와 같은 판단 방식입니다.",
+    "e": "상식적 이해는 개인적 경험, 집단적 고정관념, 나와의 유사성에 근거하여 판단하는 수준으로 편견과 오류 가능성이 가장 높은 방식입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "'충분히 기능하는 인간(fully functioning person)'을 이상적인 인간상으로 본 학자는? [출처: 2018년 기말 36번]",
+    "o": [
+      "인본주의 심리학을 창시한 매슬로(Maslow)",
+      "인간중심 상담이론을 주장한 로저스(Rogers)",
+      "신정신분석학파의 프롬(Fromm)",
+      "자연주의 교육관을 주장한 루소(Rousseau)"
+    ],
+    "a": 1,
+    "h": "실제적 자기와 이상적 자기가 일치하고 진정한 자기 모습을 받아들이는 상태를 강조했습니다.",
+    "e": "로저스(Rogers)는 상담의 목표이자 바람직한 인간상으로 내담자가 있는 그대로의 진정한 자기를 수용하고 '충분히 기능하는 인간'이 되는 것을 제시했습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간의 행동과 심리적 사건들은 감각자극의 변형과 부호화, 기억과 인출의 과정과 관련된다고 보며 구조주의 심리학, 형태주의 심리학이 포함되는 관점은? [출처: 2018년 기말 37번]",
+    "o": [
+      "신경생물학적 관점",
+      "행동주의적 관점",
+      "인지적 관점",
+      "정신분석적 관점"
+    ],
+    "a": 2,
+    "h": "정보처리이론 및 게슈탈트(Gestalt) 심리학과 깊은 관련이 있습니다.",
+    "e": "인간을 감각정보의 부호화, 저장, 인출을 수행하는 정보처리 주체로 보고 연구하는 것은 인지적 관점의 핵심 특징입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간행동의 원인을 설명하는 관점 중 '전뇌는 기억과 언어를 관장하고, 편도체는 정서와 공격성에 관여하는 등 인간의 사고, 행동, 정서는 신경계와 뇌의 활동결과이다'라고 설명하는 것은? [출처: 2019년 기말 36번]",
+    "o": [
+      "정신분석적 관점",
+      "인지적 관점",
+      "인본주의적 관점",
+      "신경생물학적 관점"
+    ],
+    "a": 3,
+    "h": "뇌의 구조(대뇌피질, 변연계) 및 신경전달물질(도파민, 세로토닌 등)의 작용에 주목합니다.",
+    "e": "신경생물학적 관점은 인간의 모든 사고, 행동, 정서가 신경계와 중추기관인 뇌의 생리적 활동결과라고 설명합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간을 이해하는 방식 중 '개인 내면의 심리세계를 그 사람의 입장이 되어서 이해하는 것으로 그의 감정과 경험, 주관적 세계를 이해할 뿐만 아니라 이해한 바를 정확하게 전달하는 것까지 포함'하는 것은? [출처: 2019년 기말 37번]",
+    "o": [
+      "상식적 이해의 수준",
+      "과학적 이해의 수준",
+      "공감적 이해의 수준",
+      "주관적 이해의 수준"
+    ],
+    "a": 2,
+    "h": "상담 및 심리치료에서 가장 강조되는 내면적 세계에 대한 깊은 이해 수준입니다.",
+    "e": "공감적 이해는 피검자/내담자의 주관적 세계와 감정을 그 사람 입장에서 이해하고 그것을 정확히 전달해 주는 최고 수준의 이해입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정범모(1968)가 제시한 교육의 대표적 정의로 가장 적절한 것은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "교육은 개인의 자아실현을 원조하는 비의도적 과정이다.",
+      "교육은 인간행동의 계획적 변화이다.",
+      "교육은 국가발전을 위한 인력 공급 투자행위이다.",
+      "교육은 무의식적 본능을 의식화하는 치료활동이다."
+    ],
+    "a": 1,
+    "h": "'인간행동', '계획적', '변화'라는 세 가지 핵심 키워드를 떠올려 보세요.",
+    "e": "정범모 교수는 교육의 실제적 현상과 과정을 과학적으로 파악하기 위해 교육을 '인간행동의 계획적 변화'라고 정의하였습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정범모의 교육 정의에 포함된 '인간행동'의 범주에 대한 설명으로 가장 옳은 것은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "말하고 걷는 것과 같은 외현적 행동만을 의미한다.",
+      "신체적 성숙이나 자연스러운 발달 과정만을 의미한다.",
+      "지식, 사고, 자아개념, 가치관 등 내재적 행동을 제외한 신체적 동작이다.",
+      "외현적 행동뿐만 아니라 지식, 사고, 가치관 등 내재적 행동을 모두 포함한다."
+    ],
+    "a": 3,
+    "h": "교육학에서 다루는 '행동' 개념은 눈에 보이는 신체적 움직임에 국한되지 않습니다.",
+    "e": "교육학적 정의에서의 인간행동은 관찰 가능한 외현적 행동뿐만 아니라 인지, 정서, 자아개념, 가치관 등의 내재적(내면적) 행동까지 광범위하게 포함합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "교육의 특성 중 '가치 지향적 활동'이 의미하는 바는 무엇인가? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "피교육자의 지·정·의·체를 바람직한 방향으로 변화시키고자 도모한다.",
+      "수단과 방법을 가리지 않고 외적 성과만을 높인다.",
+      "자연적 성장과 생물학적 성숙 과정 그 자체를 가리킨다.",
+      "피교육자를 사회적 도구로 훈련시키는 인위적 조작 활동이다."
+    ],
+    "a": 0,
+    "h": "교육에서의 변화는 중립적이거나 부적응적 변화가 아니라 '바람직성'을 전제로 합니다.",
+    "e": "교육은 피교육자의 지(知)·정(情)·의(意)·체(體)를 바람직한 방향으로 이끄는 가치 지향성을 가지고 있으며, 단순 훈련이나 인위적 조종과 구별됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "교육이 인간행동의 '계획적' 변화라는 점에서 교육이 성립하기 위해 필요한 조건이 아닌 것은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "명확한 교육목적의 설정",
+      "이론적·실증적 증거에 기초한 교육프로그램과 교육과정 준비",
+      "의도하지 않은 자연적 성숙에만 의존하는 수동적 태도",
+      "변화를 이끌어내기 위한 교육자의 의도와 계획"
+    ],
+    "a": 2,
+    "h": "'계획적'이란 의도와 목적, 체계적 교육과정이 준비되어 있음을 말합니다.",
+    "e": "자연적 성숙이나 의도하지 않은 무의도적 변화는 '계획성'을 갖춘 교육 활동으로 규정하지 않습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "학교에서 의도한 바는 없으나 학교의 물리적 조건, 제도, 사회심리적 환경을 통해 학생들이 주관적으로 경험하고 학습하게 되는 것은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "공식적 교육과정",
+      "잠재적 교육과정",
+      "영 교육과정",
+      "표준 교육과정"
+    ],
+    "a": 1,
+    "h": "교사의 말투, 학급 분위기, 학교 시설 환경 등에 노출되어 학습되는 교육과정입니다.",
+    "e": "학교가 의도적으로 계획하지 않았으나 학교의 제반 환경이나 문화를 통해 자연스럽게 학습되는 경험을 '잠재적 교육과정(latent curriculum)'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "칸트(Kant)가 \"교육이 사람을 사람답게 만든다\"라고 말했을 때 강조한 인간의 특성은? [출처: 교재 1장 1.1절 인간이해와 교육, 보충]",
+    "o": [
+      "인간은 결정론적이며 변화 불가능한 존재이다.",
+      "인간은 무한한 잠재 가능성과 가소성(可塑性)을 지닌 교육적 존재이다.",
+      "인간은 본질적으로 악하여 엄격한 통제만 필요한 존재이다.",
+      "인간은 성인으로 완벽히 완성된 채 태어나는 존재이다."
+    ],
+    "a": 1,
+    "h": "가소성이란 환경과 교육에 의해 형태가 빚어지고 변화할 수 있는 성질입니다.",
+    "e": "칸트의 명언은 인간이 완제품으로 태어나는 것이 아니라 무한한 가능성과 가소성을 지닌 '교육적 존재(Homo Educatus)'임을 잘 보여줍니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "시대와 사회의 가치관에 따른 이상적 인간상의 연결이 잘못된 것은? [출처: 교재 1장 1.1절 인간이해와 교육, 보충]",
+    "o": [
+      "원시시대 - 생존 유지 및 종족 보존이 가능한 인간",
+      "고대 그리스 시대 - 자유인",
+      "서양 중세시대 - 이성적 비판 능력을 극대화한 독학자",
+      "동양 유교사회 - 군자(君子)"
+    ],
+    "a": 2,
+    "h": "서양 중세시대의 최고 지향점은 종교 및 신앙과 관련이 있었습니다.",
+    "e": "서양 중세시대의 이상적 인간상은 독실한 믿음을 가진 '기독교적 신앙인'이었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "교육학에서 지(知)·정(情)·의(意)·체(體)의 균형적 발달을 이룬 이상적인 인간의 모습을 가리켜 무엇이라 하는가? [출처: 교재 1장 1.1절 인간이해와 교육, 보충]",
+    "o": [
+      "전인(全人)",
+      "초인(超人)",
+      "지식인(知識人)",
+      "기능인(技能人)"
+    ],
+    "a": 0,
+    "h": "머리(지식)만 발달한 인간이 아닌 모든 영역의 조화로운 발달을 뜻합니다.",
+    "e": "교육학에서는 지적, 정의적, 신체적 영역이 종합적이고 균형 있게 발달한 이상적 인간상을 '전인(全人)'으로 표현합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간본성에 관한 철학적 관점 중 '성악설'에 대한 설명으로 옳은 것은? [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점, 보충]",
+    "o": [
+      "인간은 본질적으로 선하여 환경을 정화해야 한다고 본다.",
+      "인간은 백지와 같아 수동적으로 형성된다고 본다.",
+      "대표적 사상가로는 순자, 성 어거스틴, 루터, 칼뱅 등이 있다.",
+      "대표적 사상가로는 맹자와 루소가 있다."
+    ],
+    "a": 2,
+    "h": "인간은 악하게 태어나므로 교육을 통해 교화하고 올바르게 인도해야 한다고 주장합니다.",
+    "e": "성악설은 인간을 본질적으로 악한 존재로 보아 올바르게 인도하는 교육을 강조하며, 동양의 순자와 서양의 기독교 사상가(어거스틴, 루터, 칼뱅)가 대표적입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간본성에 관한 철학적 관점 중 '성선설'을 주창한 대표적인 사상가들로 짝지어진 것은? [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점, 보충]",
+    "o": [
+      "순자, 루터",
+      "맹자, 루소",
+      "고자, 로크",
+      "어거스틴, 칼뱅"
+    ],
+    "a": 1,
+    "h": "동양의 대표 유학자와 서양 자연주의 교육관의 주창자입니다.",
+    "e": "인간은 본래 선하지만 악한 환경에 의해 오염된다고 보며, 선한 마음의 발현을 돕는 교육을 강조한 대표 학자는 맹자(孟子)와 루소(Rousseau)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간은 본질적으로 선악을 평가할 수 없는 수동적 존재이며, 성장 환경 조건이 인간 형성을 결정한다고 보는 관점과 대표 학자는? [출처: 교재 1장 1.1절 인간본성에 관한 철학적 관점, 보충]",
+    "o": [
+      "성악설 - 순자, 칼뱅",
+      "성선설 - 맹자, 루소",
+      "백지설 - 고자, 로크",
+      "도덕설 - 어거스틴, 올포트"
+    ],
+    "a": 2,
+    "h": "인간을 아무것도 적혀 있지 않은 깨끗한 백지(tabula rasa)에 비유했습니다.",
+    "e": "백지설은 인간을 환경에 수동 반응하는 존재로 보며 어떤 환경과 교육 조건을 제공하느냐를 중시합니다. 대표 사상가는 고자(告子)와 로크(Locke)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "독일 라이프치히 대학에 최초의 심리학 실험실을 개설(1879년)하여 현대 과학적 심리학의 출발점을 연 학자는? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "분트(Wundt)",
+      "왓슨(Watson)",
+      "프로이트(Freud)",
+      "에빙하우스(Ebbinghaus)"
+    ],
+    "a": 0,
+    "h": "구조주의 심리학의 시초이자 과학적 실험 심리학의 아버지입니다.",
+    "e": "1879년 분트(Wundt)가 최초의 심리학 실험실을 차린 것이 현대 과학적 심리학의 출발점으로 인정받습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "행동주의 심리학에 관한 설명으로 옳지 않은 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "인간을 동물과 한 연속선상에 있는 존재로 가정하였다.",
+      "자아, 무의식, 동기 등 내면의 가상적 실체에 근거한 행동 설명을 인정하지 않았다.",
+      "하등동물 연구에서 밝혀낸 강화와 벌의 작용 등 법칙을 인간에게 적용하고자 하였다.",
+      "인간의 마음 세계를 알아내기 위해 주관적 내성법(內省法)을 가장 신뢰하였다."
+    ],
+    "a": 3,
+    "h": "행동주의는 주관적 내성주의를 비판하면서 출발했습니다.",
+    "e": "행동주의는 주관적 관찰법인 내성주의를 과학적이지 못하다고 비판하고, 오직 객관적으로 관찰 및 측정 가능한 행동만을 연구대상으로 삼았습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "최초로 인간의 학습과 기억에 관하여 본격적인 실험 연구를 진행한 인지론 학자는? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "피아제(Piaget)",
+      "에빙하우스(Ebbinghaus)",
+      "파블로프(Pavlov)",
+      "올포트(Allport)"
+    ],
+    "a": 1,
+    "h": "망각곡선 연구로 잘 알려진 인지론적 분야의 선구자입니다.",
+    "e": "에빙하우스(Ebbinghaus)는 최초로 무의미 한회를 사용하여 인간의 학습과 기억, 망각에 관한 본격적 실험을 실시했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "베르트하이머, 쾰러, 코프카 등에 의해 창시되었으며 인지적 관점을 대표하는 학파는? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "형태주의 심리학(Gestalt psychology)",
+      "구조주의 심리학(Structuralism)",
+      "기능주의 심리학(Functionalism)",
+      "정신분석학(Psychoanalysis)"
+    ],
+    "a": 0,
+    "h": "'Gestalt'란 사물의 전체적인 모양이나 조직을 뜻합니다.",
+    "e": "베르트하이머, 쾰러, 코프카는 인간이 자극을 지각할 때 단편적 부분이 아닌 전체적 모양과 조직(형태)에 집중한다고 주장하는 형태주의(게슈탈트) 심리학을 창시했습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "형태주의 심리학에서 설명하는 지각 조직화의 법칙에 해당하지 않는 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "근접성의 법칙",
+      "유사성의 법칙",
+      "자율성의 법칙",
+      "전경과 배경의 법칙"
+    ],
+    "a": 2,
+    "h": "형태주의 5대 지각 법칙: 근접성, 유사성, 폐쇄성, 계속성, 전경과 배경",
+    "e": "형태주의 심리학의 지각 법칙에는 근접성, 유사성, 폐쇄성, 계속성, 전경과 배경의 법칙 등이 포함되며, '자율성의 법칙'은 해당하지 않습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정신분석학적 관점(Freud)의 핵심 주장으로 옳은 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "인간의 행동은 전적으로 환경적 강화 자극에 의해서만 결정된다.",
+      "인간 행동의 원인 대부분은 무의식(unconsciousness)에 존재한다.",
+      "인간의 자유의지와 미래지향적 자아실현 욕구가 가장 중요하다.",
+      "뇌의 생물학적 구조와 신경전달물질이 정서를 직접 결정한다."
+    ],
+    "a": 1,
+    "h": "정신 세계를 빙산에 비유하며 수면 아래의 거대한 영역을 강조했습니다.",
+    "e": "정신분석학에서는 인간 행동의 원인 대부분이 무의식 속에 존재하며, 의식적 사고보다 무의식적 욕구가 행동을 결정한다고 봅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "프로이트가 제시한 성격의 3가지 구조에 해당하지 않는 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "원초아(id)",
+      "자아(ego)",
+      "초자아(superego)",
+      "집단무의식(collective unconscious)"
+    ],
+    "a": 3,
+    "h": "집단무의식은 융(Jung)이 제시한 개념입니다.",
+    "e": "프로이트의 성격 구조는 본능적 욕구인 원초아(id), 현실적 조절자인 자아(ego), 도덕적/양심적 기준인 초자아(superego)로 구성됩니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "신(新)정신분석학파(호나이, 프롬, 에릭슨 등)가 전통적 프로이트 정신분석학과 차별화되는 주요 특징은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "무의식적 성적·공격적 본능만을 더욱 절대적으로 강조하였다.",
+      "무의식적 본능보다 개인의 의식적인 선택과 자기지시(self-direction)의 영향력을 강조하였다.",
+      "모든 인간 행동을 하등동물의 강화 법칙으로 환원시켜 설명하였다.",
+      "인간의 뇌 구조와 신경계 연구에만 전념하였다."
+    ],
+    "a": 1,
+    "h": "신정신분석학파는 무의식적 본능 일변도에서 벗어나 의식적 선택과 사회적 관계를 중시했습니다.",
+    "e": "신정신분석학파 학자들은 무의식적 성·공격 본능보다는 개인의 의식적 선택, 자기지시, 사회문화적 환경의 영향력을 상대적으로 더 강조했습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인본주의 심리학이 '제3세력의 심리학'으로 불리는 이유는 무엇인가? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "신경학, 생리학, 사회학이 결합된 제3의 학문이기 때문이다.",
+      "기존 심리학의 두 주요 조류인 정신분석학과 행동주의의 인간관을 비판하며 대안으로 등장했기 때문이다.",
+      "동물실험, 임상실험, 통계분석의 3대 연구방법을 통합했기 때문이다.",
+      "성악설, 성선설, 백지설을 하나로 합쳤기 때문이다."
+    ],
+    "a": 1,
+    "h": "1960년대 초 매슬로를 중심으로 결정론적·비관적·기계적 인간관에 반발해 등장했습니다.",
+    "e": "인본주의 심리학은 당대를 지배하던 정신분석학(무의식 결정론)과 행동주의(환경 결정론)의 기계적 인간관에 반발하여 등장했기 때문에 제3세력이라 불립니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인본주의 심리학의 저변에 깊은 영향을 미친 철학적 사상은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "유럽의 실존철학(existentialism)",
+      "영국의 경험론(empiricism)",
+      "독일의 구조주의(structuralism)",
+      "실용주의(pragmatism)"
+    ],
+    "a": 0,
+    "h": "인간은 자유의지로 자신의 운명을 스스로 창조한다는 철학 사상입니다.",
+    "e": "인본주의 심리학은 유럽의 실존철학과 실존주의 심리학 사상을 바탕으로 하여 인간의 주체성, 자유의지, 자기인식을 강조합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간행동을 이해하는 '통합적 관점'에 대한 설명으로 가장 바른 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "다섯 가지 심리학적 관점 중 하나만을 절대적 진리로 선택해야 한다.",
+      "다섯 가지 관점의 이론만 모두 동원하면 인간을 100% 완벽하게 설명할 수 있다.",
+      "이론은 인간이해의 안내자(지표) 역할을 하되, 어떤 특정 이론에도 얽매이지 않고 있는 그대로의 인간을 보아야 한다.",
+      "이론적 관점은 실제 교육현장에서 아무런 유용성이나 가치가 없다."
+    ],
+    "a": 2,
+    "h": "이론은 항해의 나침반과 같지만, 실제 인간은 이론보다 훨씬 복잡하고 살아 움직이는 존재입니다.",
+    "e": "통합적 관점은 기존의 여러 심리학적 관점이 인간 이해에 유용한 안내자 역할을 하지만, 특정 이론에 학습자를 끼워 맞추지 말고 살아 움직이는 인간 그대로를 종합 이해해야 한다고 강조합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "\"머리가 크니까 머리가 좋을 것이다\", \"경상도 사람은 이렇다\", \"내가 이러하니 저 사람도 그럴 것이다\"와 같은 인간이해 방식은? [출처: 교재 1장 1.1절 인간이해의 방식, 보충]",
+    "o": [
+      "상식적 이해의 수준",
+      "과학적 이해의 수준",
+      "공감적 이해의 수준",
+      "분석적 이해의 수준"
+    ],
+    "a": 0,
+    "h": "개인적 고정관념이나 혈액형/지역별 편견에 기반한 가장 오차 가능성이 높은 방식입니다.",
+    "e": "외형적 특성, 속한 집단/지역, 나와의 유사성 추정에 기초하여 판단하는 것은 '상식적 이해의 수준'으로 편견과 오류 가능성이 매우 높습니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "인간을 이해하는 세 가지 수준(상식적, 과학적, 공감적)의 비교 중 옳지 않은 것은? [출처: 교재 1장 1.1절 인간이해의 방식, 보충]",
+    "o": [
+      "상식적 이해는 오류 가능성이 가장 높다.",
+      "과학적 이해는 학문적 지식이나 표준화 심리검사에 기반한다.",
+      "과학적 이해 수준에는 오차가 전혀 없다.",
+      "공감적 이해는 상대방 입장에서 주관적 세계를 이해하고 전달하는 것이다."
+    ],
+    "a": 2,
+    "h": "표준화 심리검사 등 과학적 검사 자료도 완벽하지는 않으며 측정 오차가 존재할 수 있습니다.",
+    "e": "과학적 이해 방식은 상식적 이해보다 객관적이고 신뢰할 수 있지만, 검사의 한계 및 조건에 따른 오차가 존재할 수 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "표준화 심리검사가 인간이해의 과학적 수단으로서 가지는 가장 대표적인 장점은 무엇인가? [출처: 교재 1장 1.1절 인간이해의 방식, 보충]",
+    "o": [
+      "규준(norm)이 있어 개인의 특성을 상대적으로 비교해 볼 수 있다.",
+      "피검자의 무의식을 아무런 오차 없이 100% 진단해 준다.",
+      "피검자가 스스로 자서전을 작성하게 하므로 주관성이 보장된다.",
+      "상담자의 주관적 느낌만으로 쉽게 평정할 수 있다."
+    ],
+    "a": 0,
+    "h": "표준화 검사는 비교 기준이 되는 표준 집단의 점수 분포(규준)를 제공합니다.",
+    "e": "표준화 심리검사는 규준(norm)을 가지고 있어 피검자의 특성을 객관적이고 상대적으로 비교·평가할 수 있는 것이 가장 큰 장점입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "과학적 인간이해 방법 중 '1일 섭취 음식 칼로리, 운동 시간, 컴퓨터 사용 시간 등 관찰 및 측정 가능한 행동을 사전에 계획하여 기록하는 방법'은? [출처: 강의록 1강, 보충]",
+    "o": [
+      "행동관찰법",
+      "생애사적 자료법",
+      "생리학적 측정법",
+      "투사법"
+    ],
+    "a": 0,
+    "h": "표적 행동의 빈도나 지속 시간을 직접 측정하여 개입 효과를 평가하는 방법입니다.",
+    "e": "구체적인 표적 행동을 정하고 사전에 미리 계획하여 관찰하고 기록하는 방식을 '행동관찰법'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "과학적 인간이해 방법 중 '체온, 근육 수축, 혈압 등 비자발적인 신체적 반응이나 기능을 측정하는 방법'은? [출처: 강의록 1강, 보충]",
+    "o": [
+      "행동관찰 자료",
+      "생애사적 자료",
+      "생리학적 측정 자료",
+      "사회성 측정 자료"
+    ],
+    "a": 2,
+    "h": "시험 불안 이완 훈련이나 바이오피드백 등에서 활용되는 신체 측정 자료입니다.",
+    "e": "자율신경계 반응이나 혈압, 체온, 근전도 등 비자발적 신체 기능을 측정하는 것을 '생리학적 측정 자료'라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인간 행동을 이해하는 심리학적 관점과 주요 학자의 연결이 잘못된 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "행동주의적 관점 - 파블로프, 스키너, 손다이크",
+      "인지적 관점 - 베르트하이머, 쾰러, 피아제",
+      "정신분석적 관점 - 프로이트, 호나이, 에릭슨",
+      "인본주의적 관점 - 왓슨, 에빙하우스, 분트"
+    ],
+    "a": 3,
+    "h": "왓슨은 행동주의, 에빙하우스는 인지론, 분트는 구조주의/실험심리학자입니다.",
+    "e": "인본주의적 관점의 대표 학자는 매슬로(Maslow)와 로저스(Rogers)입니다. 왓슨, 에빙하우스, 분트는 인본주의 학자가 아닙니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "올포트(Allport)가 제시한 바람직한 이상적 인간상의 명칭은? [출처: 교재 1장 1.1절 인간이해와 교육, 보충]",
+    "o": [
+      "자아실현인",
+      "성숙한 인격",
+      "생산적인 사람",
+      "충분히 기능하는 인간"
+    ],
+    "a": 1,
+    "h": "특질이론(trait theory)을 제시한 올포트의 개념입니다.",
+    "e": "특질이론가 올포트(Allport)는 이상적인 인간상으로 '성숙한 인격'을 제시하였습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "프롬(Fromm)이 제시한 이상적인 성격 유형이자 바람직한 인간상은? [출처: 교재 1장 1.1절 인간이해와 교육, 보충]",
+    "o": [
+      "수동적인 사람",
+      "생산적인 사람",
+      "자아실현인",
+      "이성적인 사람"
+    ],
+    "a": 1,
+    "h": "타인과 의미 있는 사랑을 맺고 베풀 줄 아는 성격 유형입니다.",
+    "e": "신정신분석학파 프롬(Fromm)은 이상적인 인간상으로 타인과 조화로운 관계를 맺고 베푸는 '생산적인 사람(productive person)'을 제시했습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "심리학 연구에서 분트의 주관적 관찰법(내성주의)을 강력히 비판하며 직접 관찰 가능한 겉모습의 행동만을 강조한 인물은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "왓슨(Watson)",
+      "프로이트(Freud)",
+      "매슬로(Maslow)",
+      "로저스(Rogers)"
+    ],
+    "a": 0,
+    "h": "행동주의(behaviorism)의 창시자입니다.",
+    "e": "왓슨(Watson)은 내성주의를 비판하며 행동주의를 창시하고, 직접 관찰 및 측정이 가능한 행동만을 심리학의 연구대상으로 강조했습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "형태주의 심리학에서 말하는 사물과 자극의 지각 특징으로 옳은 것은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "자극을 무의미한 감각의 파편이나 부분으로 분해하여 지각한다.",
+      "자극의 단편적 부분에만 주의를 집중한다.",
+      "사물과 자극을 전체적인 모양과 조직, 즉 '형태(전체)'로 지각한다.",
+      "자극 지각은 오직 하등동물에게만 일어나는 현상이다."
+    ],
+    "a": 2,
+    "h": "게슈탈트 명언: '전체는 부분의 합과 다르다.'",
+    "e": "형태주의 심리학자들은 인간이 자극을 지각할 때 요소나 부분으로 쪼개어 지각하지 않고, 유의미한 '전체적인 형태'로 지각한다고 설명합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정신분석적 관점에서 설명하는 성격의 세 구조 간 힘겨루기 중, 현실적 조절 역할을 담당하는 구조는? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "원초아(id)",
+      "자아(ego)",
+      "초자아(superego)",
+      "무의식(unconscious)"
+    ],
+    "a": 1,
+    "h": "현실 원리에 따라 원초아의 욕구와 초자아의 도덕적 규제를 중재합니다.",
+    "e": "자아(ego)는 현실 원칙에 따라 원초아(쾌락 원칙)와 초자아(도덕 원칙) 간의 갈등을 중재하고 조절하는 역할을 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "인본주의 심리학에서 바라보는 인간 행동 결정의 핵심 요인은? [출처: 교재 1장 1.1절 인간행동의 원인에 관한 심리학적 관점, 보충]",
+    "o": [
+      "무의식적 성적 충동",
+      "자발적 자기인식과 자유의지",
+      "환경적 자극과 외적 강화",
+      "뇌의 도파민 분비량"
+    ],
+    "a": 1,
+    "h": "인간은 자기 운명을 스스로 결정하고 자유롭게 창조해 나가는 주체입니다.",
+    "e": "인본주의적 관점에서는 개인이 가진 자기인식(self-awareness)과 자유의지(free will)가 인간 행동을 결정짓는 핵심 요소라고 봅니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "교사가 수업 시간에 가르친 교과 내용 외에 교사의 말투, 복장, 학급의 물리적 조건이나 대인관계 문화를 통해 학생이 경험하고 학습하는 현상은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "잠재적 교육과정",
+      "표준화 교육과정",
+      "행동주의적 조건화",
+      "인지적 부호화"
+    ],
+    "a": 0,
+    "h": "의도되지 않았으나 환경과 경험을 통해 주관적으로 학습되는 메시지입니다.",
+    "e": "학교의 물리적·사회심리적 환경 조건을 통해 학생들이 주관적으로 경험하고 은연중에 배우는 것을 '잠재적 교육과정'이라고 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "교육의 의미에 관한 다양한 관점 중 옳지 않은 것은? [출처: 교재 1장 1.1절 교육의 의미, 보충]",
+    "o": [
+      "문화유산 중 가치 있는 것을 선별하여 가르치는 행위",
+      "사회화의 과정이자 국가 발전에 필요한 인력 공급 투자 개념",
+      "개인의 자아실현과 잠재 가능성을 현실화시키는 과정",
+      "인간을 완성품으로 간주하고 외적 자극으로 조종하는 기계적 과정"
+    ],
+    "a": 3,
+    "h": "교육은 불완전한 인간이 완성을 향해 나아가도록 돕는 인격적 활동입니다.",
+    "e": "교육은 인간을 기계나 완성품으로 보지 않으며, 불완전한 인간의 형성 가능성을 믿고 자아실현과 바람직한 변화를 돕는 활동입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "학습자가 자신의 입장이 아닌, 상대방의 신발을 신은 것처럼 상대방의 주관적 세계를 그의 관점에서 깊이 이해하고 전달하는 인간이해 단계는? [출처: 교재 1장 1.1절 인간이해의 방식, 보충]",
+    "o": [
+      "상식적 이해 수준",
+      "과학적 이해 수준",
+      "공감적 이해 수준",
+      "이론적 이해 수준"
+    ],
+    "a": 2,
+    "h": "상담에서 내담자의 마음을 열고 진정한 변화를 이끄는 가장 깊은 이해 방식입니다.",
+    "e": "상대방의 입장에 서서 그의 감정, 생각, 주관적 세계를 이해하고 이를 정확히 전달해 주는 것을 '공감적 이해의 수준'이라고 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "다음 중 인간이해의 세 가지 수준(상식적, 과학적, 공감적)에 대한 설명으로 가장 올바른 것은? [출처: 교재 1장 1.1절 인간이해의 방식, 보충]",
+    "o": [
+      "상식적 이해는 오류 가능성이 가장 적은 과학적 접근이다.",
+      "상담과 교육 장면에서 가장 널리 쓰이는 과학적 이해 수단은 표준화 심리검사이다.",
+      "공감적 이해는 객관적 지능 검사를 통해서만 달성된다.",
+      "표준화 심리검사를 사용하면 상담자의 공감 능력이 전혀 필요 없다."
+    ],
+    "a": 1,
+    "h": "표준화 심리검사는 객관성과 규준을 갖추어 과학적 이해를 가능하게 하는 대표적 도구입니다.",
+    "e": "교육 및 상담 장면에서 학생이나 내담자를 과학적으로 이해하기 위해 가장 널리 활용되는 수단은 '표준화 심리검사'입니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

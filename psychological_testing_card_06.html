@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 6, title: "검사의 양호도" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 신뢰도(reliability)의 기본 정의 [출처: 교재 3장 3.2절 신뢰도, 2013년 기말 9번, 2018년 기말 49번]",
+    "a": "검사가 심리적 구인을 얼마나 일관성 있게, 오차 없이 측정하는가를 나타내는 정도"
+  },
+  {
+    "q": "★★★ 타당도(validity)의 기본 정의 [출처: 교재 3장 3.2절 타당도, 2013년 기말 9번, 2017년 기말 51번]",
+    "a": "검사가 측정하고자 의도한 구인이나 목표를 얼마나 충실하고 정확하게 측정하는가의 정도"
+  },
+  {
+    "q": "★★★ 고전검사이론의 점수 수식 (X = T + e) [출처: 교재 3장 3.2절 신뢰도의 개념, 6강 강의록]",
+    "a": "관찰점수(X) = 진점수(T) + 오차점수(e)"
+  },
+  {
+    "q": "★★★ 관찰점수 분산과 진점수 분산을 활용한 신뢰도 공식 [출처: 교재 3장 3.2절 신뢰도의 개념]",
+    "a": "신뢰도 r_xx' = (진점수 분산 / 관찰점수 분산) = 1 - (오차점수 분산 / 관찰점수 분산)"
+  },
+  {
+    "q": "★★★ 재검사 신뢰도(검사-재검사 신뢰도)의 정의 [출처: 교재 3장 3.2절 재검사 신뢰도, 2013년 기말, 2015년 기말, 2018년 기말]",
+    "a": "동일 집단에 동일 검사를 일정 시간 간격을 두고 두 번 실시하여 얻은 두 점수 간 상관계수 (안정성 지수)"
+  },
+  {
+    "q": "★★★ 재검사 신뢰도의 파악 지수 명칭 [출처: 교재 3장 3.2절 재검사 신뢰도, 6강 강의록]",
+    "a": "안정성 지수 (coefficient of stability)"
+  },
+  {
+    "q": "★★★ 재검사 간격이 너무 짧을 때의 문제점 [출처: 교재 3장 3.2절 재검사 신뢰도, 2017년 기말 50번]",
+    "a": "기억 효과나 연습 효과로 인해 신뢰도 계수가 실제보다 과대추정됨"
+  },
+  {
+    "q": "★★★ 재검사 간격이 너무 길 때의 문제점 [출처: 교재 3장 3.2절 재검사 신뢰도, 2017년 기말 50번]",
+    "a": "피검자의 성숙, 경험, 환경 변화 등으로 인해 신뢰도 계수가 과소추정됨"
+  },
+  {
+    "q": "★★★ 재검사 신뢰도에 적합한 일반적 재검사 실시 간격 [출처: 교재 3장 3.2절 재검사 신뢰도]",
+    "a": "보통 2주에서 1달 정도"
+  },
+  {
+    "q": "★★★ 동형검사 신뢰도의 정의 [출처: 교재 3장 3.2절 동형검사 신뢰도, 2019년 기말 49번]",
+    "a": "동질적인 두 별개의 동형검사(Form A, Form B)를 동일 집단에 실시하여 얻은 두 점수 간 상관계수"
+  },
+  {
+    "q": "★★★ 동형검사 신뢰도의 파악 지수 명칭 [출처: 교재 3장 3.2절 동형검사 신뢰도]",
+    "a": "동형성 계수 (coefficient of equivalence)"
+  },
+  {
+    "q": "★★★ 동형검사 신뢰도의 가장 대표적인 장점 [출처: 교재 3장 3.2절 동형검사 신뢰도]",
+    "a": "동일 문항 반복에 따른 기억 효과 및 연습 효과를 차단할 수 있음"
+  },
+  {
+    "q": "★★★ 동형검사 신뢰도의 가장 대표적인 한계점 [출처: 교재 3장 3.2절 동형검사 신뢰도]",
+    "a": "문항 난이도와 내용이 완전히 동질적인 동형검사를 제작하기가 현실적으로 매우 어려움"
+  },
+  {
+    "q": "★★★ 반분 신뢰도(split-half reliability)의 정의 [출처: 교재 3장 3.2절 반분 신뢰도, 2016년 기말, 2017년 기말]",
+    "a": "1회 실시한 검사 문항을 두 부분으로 나누어 두 하위검사 간 상관을 구하고 검사 길이에 맞춰 교정하는 신뢰도"
+  },
+  {
+    "q": "★★★ 반분 신뢰도에서 검사 길이 감소를 보정할 때 사용하는 교정 공식 [출처: 교재 3장 3.2절 반분 신뢰도, 6강 강의록]",
+    "a": "스피어먼-브라운(Spearman-Brown) 공식 [ r_xx' = 2r_hh / (1 + r_hh) ]"
+  },
+  {
+    "q": "★★★ 기우반분법과 전후반분법의 정의 [출처: 교재 3장 3.2절 반분 신뢰도, 워크북 3장 3.2절]",
+    "a": "기우반분법: 홀수/짝수 문항으로 반분 / 전후반분법: 전반부/후반부 문항으로 반분"
+  },
+  {
+    "q": "★★★ 속도검사(speed test)에서 기우반분법 적용 시 발생하는 문제 [출처: 교재 3장 3.2절 신뢰도 요인, 6강 음성]",
+    "a": "미도달 문항의 동일 0점 처리로 인해 반분 신뢰도가 과대추정됨"
+  },
+  {
+    "q": "★★★ 문항 내적 합치도(동질성 계수)의 정의 [출처: 교재 3장 3.2절 문항 내적 합치도, 워크북 3장 3.2절]",
+    "a": "검사 내 문항 하나하나를 독립된 검사로 보고 문항 간 응답의 일관성을 측정한 신뢰도"
+  },
+  {
+    "q": "★★★ 문항 내적 합치도의 대표적 산출 공식 [출처: 교재 3장 3.2절 문항 내적 합치도, 6강 강의록]",
+    "a": "크론바흐 알파 (Cronbach α), KR-20, KR-21, 호이트(Hoyt) 신뢰도"
+  },
+  {
+    "q": "★★★ 피검자 집단의 이질성이 신뢰도에 미치는 영향 [출처: 교재 3장 3.2절 신뢰도 요인, 2014년 기말, 2018년 기말]",
+    "a": "집단이 이질적일수록(점수 변산이 클수록) 신뢰도가 높게 산출됨"
+  },
+  {
+    "q": "★★★ 검사의 길이가 신뢰도에 미치는 영향 [출처: 교재 3장 3.2절 신뢰도 요인, 워크북 3장 3.2절]",
+    "a": "양질의 동질적 문항 수가 증가하여 검사의 길이가 길어질수록 신뢰도가 상승함"
+  },
+  {
+    "q": "★★★ 측정의 표준오차(SEM)의 정의 [출처: 교재 3장 3.2절 측정의 표준오차, 2015년 기말 44번]",
+    "a": "관찰점수로부터 진점수를 추정할 때 생기는 측정 오차의 표준편차 지수"
+  },
+  {
+    "q": "★★★ 측정의 표준오차(SEM) 산출 공식 [출처: 교재 3장 3.2절 측정의 표준오차, 6강 음성]",
+    "a": "SEM = S_x × √(1 - r_xx')  (단, S_x는 검사 표준편차, r_xx'는 신뢰도)"
+  },
+  {
+    "q": "★★★ 내용타당도(content validity)의 정의 [출처: 교재 3장 3.2절 내용타당도, 2014년 기말, 2018년 기말]",
+    "a": "검사의 문항들이 측정하고자 하는 전체 내용 영역과 행동 목표를 얼마나 잘 대변하고 충실히 반영하는가의 정도"
+  },
+  {
+    "q": "★★★ 내용타당도 평가 담당자 [출처: 교재 3장 3.2절 내용타당도]",
+    "a": "해당 분야의 내용전문가(Subject Matter Experts)"
+  },
+  {
+    "q": "★★★ 이원분류표의 작성 목적 [출처: 교재 3장 3.2절 내용타당도, 6강 강의록]",
+    "a": "성취도 평가에서 내용소와 행동소를 체계화하여 교과타당도 및 내용타당도를 확보하기 위해"
+  },
+  {
+    "q": "★★★ 교과타당도와 교수타당도의 구분 [출처: 교재 3장 3.2절 내용타당도, 6강 음성]",
+    "a": "교과타당도: 교육과정 내용과의 부합 정도 / 교수타당도: 수업 시간에 실제로 가르친 내용과의 일치 정도"
+  },
+  {
+    "q": "★★★ 안면타당도(표면타당도, face validity)의 정의 [출처: 교재 3장 3.2절 내용타당도]",
+    "a": "전문적 검토 없이 피검자나 일반인이 검사를 보았을 때 타당해 보이는가에 대한 주관적 인상"
+  },
+  {
+    "q": "★★★ 예언타당도(predictive validity)의 정의 [출처: 교재 3장 3.2절 예언타당도, 워크북 3장 3.2절]",
+    "a": "현재 실시한 검사점수가 미래 시점의 수행 기준(준거)을 얼마나 잘 예측해 주는가의 정도"
+  },
+  {
+    "q": "★★★ 예언타당도 연구 시 발생할 수 있는 주요 한계 현상 [출처: 교재 3장 3.2절 예언타당도, 6강 음성]",
+    "a": "자료의 절단(restriction of range) 현상으로 인해 타당도 계수가 과소추정됨"
+  },
+  {
+    "q": "★★★ 공인타당도(concurrent validity)의 정의 [출처: 교재 3장 3.2절 공인타당도, 2015년 기말 46번]",
+    "a": "새 검사의 타당성을 입증하기 위해 이미 공신력을 인정받은 기존 검사를 동시 실시하여 구한 상관"
+  },
+  {
+    "q": "★★★ 구인타당도(construct validity)의 정의 [출처: 교재 3장 3.2절 구인타당도, 2019년 기말 50번]",
+    "a": "검사점수가 측정하고자 하는 이론적·가설적 구인을 얼마나 충실하게 반영하는가의 정도"
+  },
+  {
+    "q": "★★★ 구인타당도 검증을 위한 대표적 다변량 통계기법 [출처: 교재 3장 3.2절 구인타당도, 6강 강의록]",
+    "a": "요인분석 (Factor Analysis)"
+  },
+  {
+    "q": "★★★ 수렴타당도(convergent validity)의 정의 [출처: 교재 3장 3.2절 구인타당도, 6강 음성]",
+    "a": "다른 측정방법을 사용하더라도 동일 구인을 측정하는 변수들 간에 높은 상관이 존재하는 정도"
+  },
+  {
+    "q": "★★★ 변별타당도(discriminant validity)의 정의 [출처: 교재 3장 3.2절 구인타당도, 6강 음성]",
+    "a": "서로 다른 무관한 구인을 측정하는 변수들 간에 상관계수가 낮게 나타나 구별되는 정도"
+  },
+  {
+    "q": "★★★ 수렴타당도와 변별타당도를 동시에 검증하는 행렬 분석법 [출처: 교재 3장 3.2절 구인타당도]",
+    "a": "중다특성-중다방법 (MTMM, Multi-Trait Multi-Method)"
+  },
+  {
+    "q": "★★★ 신뢰도와 타당도의 논리적 관계 [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계, 2017년 기말 51번]",
+    "a": "신뢰도는 타당도의 필요조건임 (신뢰도가 낮으면 타당도도 반드시 낮음)"
+  },
+  {
+    "q": "★★★ 타당도 계수의 최댓값(상한선)을 결정하는 수치 [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계]",
+    "a": "신뢰도 계수의 제곱근 [ r_xy ≤ √(r_xx') ]"
+  },
+  {
+    "q": "★★★ '신뢰도는 높으나 타당도가 낮은 검사'의 의미 [출처: 교재 3장 3.2절 신뢰도와 타당도의 관계]",
+    "a": "측정 오차 없이 매우 일관되게 점수가 나오지만, 원래 재고자 한 심리 특성을 재지 못하는 검사"
+  },
+  {
+    "q": "★★★ '신뢰도 계수 = 0.80' 의 구체적 통계 해석 [출처: 교재 3장 3.2절 신뢰도의 개념, 6강 음성]",
+    "a": "관찰점수 전체 변산의 80%가 진점수에 의한 것이고 20%가 임의 오차에 의한 것임"
+  },
+  {
+    "q": "★★☆ 검사의 동질성과 크론바흐 알파 계수의 관계 [출처: 교재 3장 3.2절 문항 내적 합치도]",
+    "a": "문항들이 하나의 구인으로 동질적일수록 알파 계수가 증가하고, 이질적일수록 감소함"
+  },
+  {
+    "q": "★★☆ 문항 변별도가 높을 때 신뢰도에 미치는 영향 [출처: 교재 3장 3.2절 신뢰도 요인]",
+    "a": "문항 변별도가 높으면 피검자 간 점수 분산이 명확해져 신뢰도가 상승함"
+  },
+  {
+    "q": "★★☆ 검사 실시 상황의 표준화가 신뢰도에 주는 이점 [출처: 교재 3장 3.2절 신뢰도 요인]",
+    "a": "시험 장소, 조명, 지시문 등 가외 오차 요인을 통제하여 무선 오차를 줄임"
+  },
+  {
+    "q": "★★☆ 준거타당도의 2가지 하위 분류 [출처: 교재 3장 3.2절 준거타당도]",
+    "a": "예언타당도 (미래 준거 예측) 및 공인타당도 (현재 준거와의 동시 비교)"
+  },
+  {
+    "q": "★★☆ 일반적인 심리검사 평가 시 신뢰도 0.90 이상의 의미 [출처: 교재 3장 3.2절 신뢰도의 개념 p.88]",
+    "a": "측정 오차가 매우 적어 '매우 좋다'고 평가함"
+  },
+  {
+    "q": "★☆☆ 고전검사이론에서 진점수(T)의 통계적 정의 [출처: 교재 3장 3.2절 신뢰도의 개념]",
+    "a": "한 피검자에게 동일 검사를 무한히 반복 실시했을 때 얻어지는 관찰점수들의 평균값"
+  },
+  {
+    "q": "★☆☆ 오차점수(e)의 성질 [출처: 교재 3장 3.2절 신뢰도의 개념]",
+    "a": "무선적으로 발생하므로 평균은 0이며, 진점수와 오차점수 간 상관은 0임"
+  },
+  {
+    "q": "★☆☆ 이원분류표의 세로축과 가로축 구성 요인 [출처: 교재 3장 3.2절 내용타당도]",
+    "a": "세로축: 교과 내용소 (주제) / 가로축: 행동소 (지식, 이해, 적용 등)"
+  },
+  {
+    "q": "★☆☆ 대학 수능 시험 성적이 1년 후 대학 학점을 예언하는 타당도 [출처: 워크북 3장 3.2절 12번]",
+    "a": "예언타당도"
+  },
+  {
+    "q": "★☆☆ 6강 「검사의 양호도」 교재 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 3장 3.2절 (p.86~99), 워크북 3장 3.2절 (p.39~44), 6강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 12, title: "성격검사 2" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "Myers-Briggs 성격유형검사(MBTI)에서 정보수집 및 인식기능에 대한 개인의 선호를 측정하는 척도 축은? [출처: 교재 6장 6.3절 선호경향, 워크북 6장 6.3절 1번]",
+    "o": [
+      "외향 - 내향 (E-I)",
+      "사고 - 감정 (T-F)",
+      "감각 - 직관 (S-N)",
+      "판단 - 인식 (J-P)"
+    ],
+    "a": 2,
+    "h": "오감을 통한 사실 수집(S)과 이면의 가능성·의미 포착(N)에 관한 인식 축입니다.",
+    "e": "MBTI에서 정보수집 및 인식기능을 나타내는 선호축은 감각(Sensing)과 직관(iNtuition)의 S-N 축입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 중 MBTI의 4가지 선호지표와 그 설명의 연결이 올바르지 않은 것은? [출처: 교재 6장 6.3절 선호경향, 워크북 6장 6.3절 2번]",
+    "o": [
+      "에너지의 방향 — 외향(E) 대 내향(I)",
+      "인식기능 — 감각(S) 대 직관(N)",
+      "판단기능 — 사고(T) 대 감정(F)",
+      "생활양식 — 외향(E) 대 내향(I)"
+    ],
+    "a": 3,
+    "h": "생활양식은 외부세계에 대한 태도로 판단(J)과 인식(P)으로 구분됩니다.",
+    "e": "생활양식(외부세계에 대한 접근 방식)은 판단(J, Judging)과 인식(P, Perceiving)으로 구분됩니다. 외향과 내향은 에너지의 방향입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 검사의 대상 및 실시 조건에 관한 설명으로 적절하지 않은 것은? [출처: 교재 6장 6.3절 역사적 배경, 워크북 6장 6.3절 3번]",
+    "o": [
+      "성인용 MBTI는 대체로 중학교 3학년 이상의 학력과 읽기능력을 가진 일반인에게 적합하다.",
+      "어린이 및 청소년용 CATi는 초등학교 4학년부터 중학생을 대상으로 한다.",
+      "정신장애가 있거나 극심한 삶의 변화·곤란을 겪는 사람도 자기 성격유형을 완벽히 정확히 보고할 수 있다.",
+      "자기보고식 지필/온라인 응답 방식으로 진행된다."
+    ],
+    "a": 2,
+    "h": "정신적 장애나 극심한 스트레스 상황의 피검자는 자신의 성격유형을 명확히 보고하기 어려울 수 있습니다.",
+    "e": "정신장애가 있거나 극심한 생활상의 변화·곤란을 겪고 있는 사람은 자신의 선호경향을 객관적으로 보고하기 어려워 검사 결과의 정확도가 떨어질 수 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 선호지표 중 '진실과 사실에 주 관심이 있고, 객관적·논리적·분석적 근거를 바탕으로 규범과 원칙에 따라 판단'하려는 성향은? [출처: 교재 6장 6.3절 판단기능, 워크북 6장 6.3절 4번, 2013년 기말 26번, 2016년 기말 63번]",
+    "o": [
+      "감각형 (S)",
+      "직관형 (N)",
+      "사고형 (T)",
+      "판단형 (J)"
+    ],
+    "a": 2,
+    "h": "객관적 원리와 원칙, 원인과 결과의 논리적 분석을 중시하는 판단 유형입니다.",
+    "e": "진실과 사실에 관심을 갖고 논리적·객관적 분석과 규범·기준을 중시하여 의사결정을 내리는 것은 '사고형(Thinking: T)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 선호지표 중 '오감에 의존하여 실제 경험을 중시하며, 지금·현재에 초점을 맞추어 정확하고 철저하게 일처리'를 하는 성향은? [출처: 교재 6장 6.3절 인식기능, 워크북 6장 6.3절 5번]",
+    "o": [
+      "감각형 (S)",
+      "직관형 (N)",
+      "사고형 (T)",
+      "판단형 (J)"
+    ],
+    "a": 0,
+    "h": "보고 듣고 느끼는 오감 및 가시적 사실과 현재의 실무에 초점을 맞추는 유형입니다.",
+    "e": "오감을 통한 사실 수집, 실제 경험, 현재 초점 및 철저한 일처리를 특징으로 하는 것은 '감각형(Sensing: S)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 선호지표 중 '상황에 맞추는 개방성, 유유자적한 과정 지향, 융통성과 적응성, 자율성'을 특징으로 하는 생활양식 유형은? [출처: 교재 6장 6.3절 생활양식, 워크북 6장 6.3절 6번, 2018년 기말 64번]",
+    "o": [
+      "감각형 (S)",
+      "인식형 (P)",
+      "사고형 (T)",
+      "판단형 (J)"
+    ],
+    "a": 1,
+    "h": "결정을 서두르지 않고 수집과 상황 변화에 유연하게 적응하려는 성향입니다.",
+    "e": "목적과 방향의 유연성, 개방성, 융통성, 유유자적한 과정을 선호하는 생활양식은 '인식형(Perceiving: P)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 성격유형검사의 4가지 양극적 선호경향 문자의 조합으로 도출되는 성격유형의 총 개수는? [출처: 교재 6장 6.3절 성격유형, 워크북 6장 6.3절 7번, 2016년 기말 64번, 2019년 기말 66번]",
+    "o": [
+      "4가지",
+      "8가지",
+      "16가지",
+      "32가지"
+    ],
+    "a": 2,
+    "h": "E-I, S-N, T-F, J-P의 2 × 2 × 2 × 2 조합입니다.",
+    "e": "MBTI는 4개 선호지표의 조합에 따라 총 16가지 성격유형(2의 4제곱)을 제시합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 성격유형 중 '사교적이고 다정하며 긍정적이고, 타인과 함께 일하는 것을 즐기며 현장 경험과 융통성 있게 빠르게 적응하는 사교형'에 해당하는 유형은? [출처: 교재 6장 6.3절 표 6-10, 워크북 6장 6.3절 8번]",
+    "o": [
+      "INFP",
+      "ESFP",
+      "ENTP",
+      "ENFP"
+    ],
+    "a": 1,
+    "h": "외향(E), 감각(S), 감정(F), 인식(P)이 결합된 사교가적 성격유형입니다.",
+    "e": "타인과 함께 일하기를 즐기고(E), 오감 경험을 중시하며(S), 인간관계가 다정하고(F), 자발적·융통성 있는(P) 성격은 'ESFP'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 심리적 기능(인식+판단) 중 'ST 유형'의 핵심 특징으로 올바른 것은? [출처: 교재 6장 6.3절 심리적 기능, 워크북 6장 6.3절 9번]",
+    "o": [
+      "보고, 듣고, 측정하는 구체적 감각으로 정보를 수집하며 논리적 분석에 따라 결정을 내리는 실질적·사실적 유형",
+      "타인에 대한 온정과 주관적 느낌으로 결정을 내리는 열정적·통찰적 유형",
+      "새로운 미래 가능성을 추구하며 인간관계에 주관심을 두는 동정적·우호적 유형",
+      "초자연적 비전만을 추구하는 환상적 유형"
+    ],
+    "a": 0,
+    "h": "감각(S)의 구체적 정보 수집과 사고(T)의 논리 분석이 결합된 유형입니다.",
+    "e": "ST(감각-사고) 기능 조합은 구체적 감각 수집과 논리적 분석 판단을 사용하는 '실질적, 사실적 유형'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 심리적 기능 중 'NF 유형'의 핵심 특징으로 올바른 것은? [출처: 교재 6장 6.3절 심리적 기능, 워크북 6장 6.3절 10번]",
+    "o": [
+      "구체적 숫자만 측정하는 실질적 유형",
+      "가능성과 비전, 의미에 관심을 두고 개인적 주관과 온정을 바탕으로 의사결정을 내리는 열정적·통찰적 유형",
+      "오직 수량과 규정만을 엄수하는 사무적 유형",
+      "타인의 정서를 무시하고 기계적 분석만 수행하는 유형"
+    ],
+    "a": 1,
+    "h": "직관(N)의 미래 가능성 인식과 감정(F)의 온정적 가치 판단이 결합된 유형입니다.",
+    "e": "NF(직관-감정) 기능 조합은 가능성과 상징적 의미를 추구하고 온정과 주관을 바탕으로 결정하는 '열정적, 통찰적 유형'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 4가지 기질(Temperament) 중 '성장 지향, 의미와 심사숙고, 타인 가르치기, 자아실현, 진실하고자 하는 욕구'를 지닌 기질은? [출처: 교재 6장 6.3절 기질, 워크북 6장 6.3절 11번]",
+    "o": [
+      "SJ (보호자적 기질)",
+      "SP (예술가/장인적 기질)",
+      "NF (이상가적 기질)",
+      "NT (합리적 기질)"
+    ],
+    "a": 2,
+    "h": "자아실현, 영적 의미, 잠재력 발달을 갈망하는 기질입니다.",
+    "e": "성장, 자아실현, 의미 탐색, 진실성에 대한 욕구를 대표로 하는 기질은 'NF(이상가적 기질)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 기질 중 '안전 지향, 소속감, 책임성, 의무 수행, 전통주의, 위계질서 존중'을 핵심 특성으로 하는 기질은? [출처: 교재 6장 6.3절 기질, 워크북 6장 6.3절 12번]",
+    "o": [
+      "SJ (보호자적 기질)",
+      "SP (예술가/장인적 기질)",
+      "NF (이상가적 기질)",
+      "NT (합리적 기질)"
+    ],
+    "a": 0,
+    "h": "소속과 책임, 의무 완수를 가치 있게 여기는 대표적 보존형 기질입니다.",
+    "e": "책임감, 의무 완수, 소속감, 질서 준수가 핵심인 기질은 'SJ(보호자적 기질)'입니다. (NT는 합리적 기질)"
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 검사 결과를 해석하고 상담 현장에서 활용할 때 바람직한 지침으로 볼 수 없는 것은? [출처: 교재 6장 6.3절 유의점, 워크북 6장 6.3절 13번]",
+    "o": [
+      "선호지표 점수에는 우월성이나 우열이 없으므로 중립적 태도를 유지한다.",
+      "내담자를 16개 성격 범주에 고정시켜 이해를 제한하는 행동은 지양해야 한다.",
+      "자신의 주 선호 유형 외에 열등하거나 반대되는 선호 특성도 발전시킬 기회를 제공해야 한다.",
+      "MBTI 결과로 나온 16개 코드는 절대적 진리이므로 평생 바뀌지 않는 성격으로 명명하고 단정 짓는다."
+    ],
+    "a": 3,
+    "h": "MBTI는 사람을 한정된 범주에 넣어 규정하거나 명명하는 것을 엄격히 지양합니다.",
+    "e": "MBTI 결과를 가지고 사람을 고정된 범주에 넣어 단정하고 규정짓는 것은 지양해야 하며, 반대 성향 특성의 발전 기회도 도모해야 합니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "MBTI 검사 결과를 수기 자가채점할 때, 두 양극 경향성 간의 선호점수 환산 수식으로 올바른 것은? [출처: 교재 6장 6.3절 채점과 해석, 2013년 기말 27번]",
+    "o": [
+      "(큰 수 - 작은 수) × 2 - 1",
+      "(큰 수 + 작은 수) ÷ 2",
+      "(큰 수 - 작은 수) ÷ 10",
+      "(큰 수 × 작은 수) + 1"
+    ],
+    "a": 0,
+    "h": "두 척도 점수 차이에 2를 곱하고 1을 빼는 표준 환산 공식입니다.",
+    "e": "MBTI 자가채점 시 선호점수 환산은 (큰 수 - 작은 수) × 2 - 1 공식을 적용하여 산출합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 첫 번째 양극 선호지표인 '에너지의 방향(E-I)'에 관한 설명으로 옳은 것은? [출처: 교재 6장 6.3절 선호경향, 2014년 기말 26번]",
+    "o": [
+      "피검자가 에너지를 외부세계의 사람·사물에 두는지, 내부세계의 아이디어에 집중하는지를 보여준다.",
+      "정보를 오감으로 수집하는지 육감으로 수집하는지를 보여준다.",
+      "판단을 논리로 내리는지 감정으로 내리는지를 보여준다.",
+      "외부세계를 사전 계획하는지 개방 수용하는지를 보여준다."
+    ],
+    "a": 0,
+    "h": "외향(Extraversion)과 내향(Introversion)은 에너지의 주된 방향성 축입니다.",
+    "e": "에너지의 방향(E-I)은 에너지를 외부 사람·활동에 사용하는지, 내부 생각·아이디어에 집중하는지를 나타냅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 채점 결과와 점수 해석에 대한 설명으로 옳은 것은? [출처: 교재 6장 6.3절 채점 및 해석, 2014년 기말 27번]",
+    "o": [
+      "선호지표의 환산점수가 클수록 해당하는 유형에 대한 선호경향이 뚜렷함을 의미한다.",
+      "선호점수가 클수록 도덕적으로 우수하고 뛰어난 성격임을 의미한다.",
+      "MBTI 결과로 도출되는 성격유형은 총 100가지이다.",
+      "어린이용 CATi 검사는 만 20세 이상 성인에게만 적용한다."
+    ],
+    "a": 0,
+    "h": "MBTI 점수의 크기는 선호의 '분명함/뚜렷함'을 나타내며 성격의 우열을 의미하지 않습니다.",
+    "e": "점수가 크다는 것은 해당 지표에 대한 선호 경향이 뚜렷함을 의미하며, 성격 자체의 우월성이나 도덕적 우수성과는 무관합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 선호지표 중 '육감이나 영감에 의존하며 미래 지향적이고 가능성과 이면의 의미를 추구하며 신속·비약적으로 일하는 경향'은? [출처: 교재 6장 6.3절 인식기능, 2015년 기말 62번]",
+    "o": [
+      "감각형 (S)",
+      "감정형 (F)",
+      "직관형 (N)",
+      "인식형 (P)"
+    ],
+    "a": 2,
+    "h": "오감 너머의 영감, 가능성, 숲을 보는 직관(iNtuition) 성향입니다.",
+    "e": "육감과 영감, 미래 가능성 및 이면의 의미 추구를 선호하는 인식기능은 '직관형(N)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 선호지표 중 '깊이 있는 대인관계를 유지하며 조용하고 신중하며, 자기 내부에 주의를 집중하고 이해한 다음에 경험하는 경향'은? [출처: 교재 6장 6.3절 에너지의 방향, 2017년 기말 63번]",
+    "o": [
+      "내향형 (I)",
+      "외향형 (E)",
+      "판단형 (J)",
+      "인식형 (P)"
+    ],
+    "a": 0,
+    "h": "내부 세계의 개념과 아이디어에 에너지를 쏟는 내향(Introversion) 성향입니다.",
+    "e": "소수와의 깊이 있는 대인관계, 내부 주의집중, 신중함, 이해 후 경험을 선호하는 것은 '내향형(I)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI Form Q 검사에서 '감각-직관(S-N)' 선호지표를 세부적으로 파악하기 위한 다면척도 항목에 해당하지 않는 것은? [출처: 교재 6장 6.3절 Form Q 다면척도, 2017년 기말 64번]",
+    "o": [
+      "구체적 - 추상적",
+      "실용적 - 개념적",
+      "논리적 - 정서적",
+      "현실적 - 창의적"
+    ],
+    "a": 2,
+    "h": "논리적 - 정서적 항목은 '사고-감정(T-F)' 지표의 하위 다면척도입니다.",
+    "e": "논리적 - 정서적 축은 사고(T)와 감정(F) 지표의 세부 다면척도입니다. (감각-직관에는 구체적-추상적, 실용적-개념적, 현실적-창의적 등이 속함)"
+  },
+  {
+    "type": "개념확인",
+    "q": "융(Jung)의 심리유형론에서 정의한 선호경향(Preference)의 학술적 개념으로 가장 바른 것은? [출처: 교재 6장 6.3절 선호경향, 2018년 기말 65번]",
+    "o": [
+      "교육이나 후천적 환경의 영향을 받기 이전부터 인간에게 잠재된 선천적 심리 경향성",
+      "성인이 된 후 수능 시험 공부를 통해 후천적으로 완성되는 지적 능력",
+      "부모의 훈육에 의해 마지못해 강제로 억압된 우울 기질",
+      "사회적 신분에 의해 결정되는 직업적 소득 계층"
+    ],
+    "a": 0,
+    "h": "후천적 교육 이전부터 인간에게 선천적으로 잠재된 편안한 경향성입니다.",
+    "e": "융과 MBTI 이론에서 선호경향이란 환경이나 교육의 영향을 받기 전부터 인간에게 타고난 선천적 심리적 경향성을 뜻합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI(Myers-Briggs Type Indicator) 성격유형검사의 역사적 개발 배경으로 바른 것은? [출처: 교재 6장 6.3절 역사적 배경, 12강 강의록, 보충]",
+    "o": [
+      "1920년대 캐서린 브릭스(Briggs)와 딸 이사벨 마이어스(Myers)가 융의 심리유형론을 기반으로 개발하였다.",
+      "프로이트가 정신분석 학회 공식 도구로 개발하였다.",
+      "스킨어가 행동주의 강화를 측정하기 위해 개발하였다.",
+      "미국 육군이 신병 배치를 위해 만든 지필 동작검사이다."
+    ],
+    "a": 0,
+    "h": "브릭스와 마이어스 모녀 연구자가 융의 심리유형론을 접목하여 개발했습니다.",
+    "e": "MBTI는 브릭스와 마이어스 모녀가 융(Jung)의 심리유형론을 실생활에 적용할 수 있도록 경험적으로 다듬어 개발한 검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "현재 성인들에게 가장 널리 활용되고 있는 MBTI Form G의 문항 수와 표준 소요시간은? [출처: 교재 6장 6.3절 표 6-8, 12강 강의록, 보충]",
+    "o": [
+      "94문항, 약 20~30분 소요",
+      "500문항, 약 180분 소요",
+      "10문항, 약 1분 소요",
+      "1,000문항, 약 24시간 소요"
+    ],
+    "a": 0,
+    "h": "Form G는 94문항으로 약 20~30분이 소요됩니다.",
+    "e": "일반인 대상의 MBTI Form G는 94문항으로 구성되며 소요시간은 20~30분입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "어린이 및 청소년용 성격유형검사인 CATi(구 MMTIC)의 적용 대상 연령과 문항 수는? [출처: 교재 6장 6.3절 표 6-8, 12강 음성, 보충]",
+    "o": [
+      "초등학교 4학년 ~ 중학생, 51문항",
+      "만 18세 이상 성인전용, 500문항",
+      "유아기 3세 미만, 1문항",
+      "대학원 박사과정생, 200문항"
+    ],
+    "a": 0,
+    "h": "초등 4학년부터 중학생 대상의 51문항 검사입니다.",
+    "e": "CATi는 초등학교 4학년부터 중학생까지의 아동·청소년을 대상으로 하는 51문항 성격유형검사입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 성인용 검사 판본 중 Form G와 이를 업그레이드하여 내담자의 최적유형(best-fit type) 탐색을 돕는 Form M의 차이에 관한 설명으로 바른 것은? [출처: 교재 6장 6.3절 표 6-8, 12강 강의록, 보충]",
+    "o": [
+      "Form M은 Form G의 개정판으로 문항 선발, 채점 및 중간점수 결정법이 개선되었으며 93문항으로 구성된다.",
+      "Form M은 오직 수능 출제위원만 볼 수 있다.",
+      "Form M은 혈액형만을 채점하는 검사이다.",
+      "Form G와 Form M은 완전하게 100% 동일한 서식이다."
+    ],
+    "a": 0,
+    "h": "Form M은 93문항으로 최적유형 탐색을 돕는 Form G의 개정 업그레이드 버전입니다.",
+    "e": "Form M은 Form G의 개정판으로 최적유형(best-fit type)을 찾도록 93문항과 개선된 채점 방식을 제공합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI Form K와 이를 업그레이드하여 20개 세부 하위척도(다면척도) 정보 및 IRT 채점을 제공하는 Form Q의 특징은? [출처: 교재 6장 6.3절 표 6-8, 12강 강의록, 보충]",
+    "o": [
+      "Form Q는 144문항으로 4개 양극지표 외에 20개 하위 다면척도를 다루어 선호가 불분명한 이유를 세밀하게 파악한다.",
+      "Form Q는 3문항으로 구성된 주관식 서술형 검사이다.",
+      "Form Q는 유아 전용 그림검사이다.",
+      "Form Q는 지능지수를 산출하는 검사이다."
+    ],
+    "a": 0,
+    "h": "Form Q(144문항)는 4개 양극지표와 20개 세부 다면척도를 분석합니다.",
+    "e": "Form Q는 144문항으로 4가지 양극지표와 20개 하위 척도를 분석하여 선호가 불분명한 원인을 정밀 탐색합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 검사 서식 중 워크숍이나 출석수업 현장에서 수기 채점(Self-scoring)을 할 때 주로 활용되는 검사 판본은? [출처: 교재 6장 6.3절 채점 및 해석, 12강 음성, 보충]",
+    "o": [
+      "MBTI Form M (수기채점 가능)",
+      "MBTI Form Q (컴퓨터 IRT 채점 전용)",
+      "MMPI-2-RF",
+      "WAIS-IV"
+    ],
+    "a": 0,
+    "h": "Form M은 수기 채점 용지 활용이 가능한 판본입니다.",
+    "e": "MBTI Form M은 현장에서 지필 실시 후 수기 채점이 가능한 검사지입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 선호지표 중 '외향형(E)'과 '내향형(I)'의 행동 표현 차이로 옳은 것은? [출처: 교재 6장 6.3절 표 6-9, 12강 강의록, 보충]",
+    "o": [
+      "외향형: 말로 표현, 경험한 뒤 이해, 활동적 / 내향형: 글로 표현, 이해한 뒤 경험, 조용·신중",
+      "외향형: 혼자 생각만 함 / 내향형: 하루 종일 소리침",
+      "외향형: 수능 점수 높음 / 내향형: 수능 점수 낮음",
+      "외향형과 내향형은 표현 방식이 100% 동일함"
+    ],
+    "a": 0,
+    "h": "E(말 표현, 경험 후 이해, 적극적) vs I(글 표현, 이해 후 경험, 신중함)",
+    "e": "외향형(E)은 주로 말로 표현하고 경험 후 이해하는 경향이 크며, 내향형(I)은 글로 표현하고 이해한 다음 경험하는 성향이 강합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 선호지표 중 '감각형(S)'과 '직관형(N)'의 표현 방식 차이로 옳은 것은? [출처: 교재 6장 6.3절 표 6-9, 12강 강의록, 보충]",
+    "o": [
+      "감각형: 사실적 사건 묘사, 나무를 봄, 가꾸고 추수함 / 직관형: 비유적·암시적 묘사, 숲을 봄, 씨 뿌림",
+      "감각형: 오직 시를 지음 / 직관형: 숫자를 세지 못함",
+      "감각형: 미래 비전만 추구 / 직관형: 현재 시각에만 고정",
+      "두 지표는 100% 동일한 시각을 가짐"
+    ],
+    "a": 0,
+    "h": "S(나무, 사실적 묘사, 현재) vs N(숲, 비유적 묘사, 미래 가능성)",
+    "e": "감각형(S)은 사실적 묘사 및 나무를 보려는 경향이 강하고, 직관형(N)은 비유적 묘사 및 숲 전체의 가능성을 보는 경향이 큽니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 선호지표 중 '사고형(T)'과 '감정형(F)'의 판단 표현 및 언어 기준 비교로 옳은 것은? [출처: 교재 6장 6.3절 표 6-9, 12강 강의록, 보충]",
+    "o": [
+      "사고형: '맞다/틀리다', 원리와 원칙, 지적 논평 / 감정형: '좋다/나쁘다', 사람과 관계, 우호적 협조",
+      "사고형: 사람 관계만 신경 씀 / 감정형: 기계 분석만 시행",
+      "사고형: 뇌파 측정 / 감정형: 혈액형 측정",
+      "두 유형은 판단 기준이 완전히 동일함"
+    ],
+    "a": 0,
+    "h": "T(맞다/틀리다, 원리원칙, 논리) vs F(좋다/나쁘다, 사람관계, 정상참작)",
+    "e": "사고형(T)은 '맞다/틀리다'의 객관적 논거와 원칙을 기준 삼고, 감정형(F)은 '좋다/나쁘다'의 상황적 가치와 대인관계를 기준으로 판단합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 선호지표 중 '판단형(J)'과 '인식형(P)'의 생활양식 표현 차이로 옳은 것은? [출처: 교재 6장 6.3절 표 6-9, 12강 강의록, 보충]",
+    "o": [
+      "판단형: 신속한 결론, 정리 정돈, 통제와 조정, 사전계획 / 인식형: 유유자적한 과정, 융통과 적응, 자율성",
+      "판단형: 일정이 항상 무너짐 / 인식형: 1분 단위 초시계 마감",
+      "판단형: 무조건 연기함 / 인식형: 무조건 당일 완결",
+      "두 유형은 생활 습관이 100% 동일함"
+    ],
+    "a": 0,
+    "h": "J(사전 계획, 체계, 신속 결론) vs P(자율, 융통, 과정 지향)",
+    "e": "판단형(J)은 체계적 사전 계획과 신속한 결론을 지향하고, 인식형(P)은 자율적인 개방성과 융통적 적응을 선호합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 16가지 성격유형 중 '조용하고 신중하며 철저함과 책임감이 강하고 전통과 성실을 가치 있게 여겨 세상의 소금형'으로 불리는 대표 유형은? [출처: 교재 6장 6.3절 표 6-10, 12강 강의록, 보충]",
+    "o": [
+      "ISTJ",
+      "ENFP",
+      "ESTP",
+      "ENTP"
+    ],
+    "a": 0,
+    "h": "I(내향), S(감각), T(사고), J(판단) 조합의 소금형 유형입니다.",
+    "e": "신중하고 철저하며 책임감이 강해 '세상의 소금형'이라 불리는 유형은 'ISTJ'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 16가지 성격유형 중 '열정적이고 따뜻하며 세상을 가능성이 풍부한 곳으로 바라보고 상상력과 언변이 뛰어난 스파크형'은? [출처: 교재 6장 6.3절 표 6-10, 12강 강의록, 보충]",
+    "o": [
+      "ENFP",
+      "ISTJ",
+      "INTJ",
+      "ESTJ"
+    ],
+    "a": 0,
+    "h": "E(외향), N(직관), F(감정), P(인식) 조합의 스파크형 유형입니다.",
+    "e": "열정적이고 풍부한 가능성을 보며 타인을 동기화하는 '스파크형'은 'ENFP'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 16가지 성격유형 중 '사무적, 실용적, 현실적이며 결정을 내리고 프로젝트와 사람들을 효율적으로 조직화하는 사업가형'은? [출처: 교재 6장 6.3절 표 6-10, 12강 강의록, 보충]",
+    "o": [
+      "ESTJ",
+      "INFP",
+      "ISFP",
+      "INFJ"
+    ],
+    "a": 0,
+    "h": "E(외향), S(감각), T(사고), J(판단) 조합의 사업가형 유형입니다.",
+    "e": "사무적·현실적이며 규칙적인 체계로 조직을 이끄는 '사업가형'은 'ESTJ'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 16가지 성격유형 중 '이상주의자이며 자신에게 의미 있는 가치나 사람에게 충성하고 내적 가치와 조화를 이루고자 하는 잔다르크형'은? [출처: 교재 6장 6.3절 표 6-10, 12강 강의록, 보충]",
+    "o": [
+      "INFP",
+      "ESTJ",
+      "ESTP",
+      "ENTJ"
+    ],
+    "a": 0,
+    "h": "I(내향), N(직관), F(감정), P(인식) 조합의 이상가 유형입니다.",
+    "e": "깊은 내적 신념과 이상을 소중히 지켜나가는 '잔다르크형'은 'INFP'입니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "MBTI 16가지 성격유형 중 '독창적이고 창의적인 마인드로 비전을 제시하고 포괄적으로 일을 수행하는 과학자형'은? [출처: 교재 6장 6.3절 표 6-10, 12강 강의록, 보충]",
+    "o": [
+      "INTJ",
+      "ESFP",
+      "ESFJ",
+      "ISFP"
+    ],
+    "a": 0,
+    "h": "I(내향), N(직관), T(사고), J(판단) 조합의 독창적 전략가 유형입니다.",
+    "e": "비전을 세우고 목적 달성을 포괄적으로 추진하는 '과학자형'은 'INTJ'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 '심리적 기능(Psychological function)'을 나누는 2가지 축의 조합으로 옳은 것은? [출처: 교재 6장 6.3절 심리적 기능, 12강 강의록, 보충]",
+    "o": [
+      "인식기능(S-N)과 판단기능(T-F)의 조합",
+      "에너지 방향(E-I)과 생활양식(J-P)의 조합",
+      "혈액형과 체형의 조합",
+      "지능지수와 적성점수의 조합"
+    ],
+    "a": 0,
+    "h": "정보수집(S-N)과 의사결정(T-F) 척도가 결합한 4가지 심리 기능입니다.",
+    "e": "심리적 기능은 인식기능(S-N)과 판단기능(T-F)이 조합되어 ST, SF, NF, NT 4가지로 분류됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 심리적 기능 중 'SF (동정적, 우호적 유형)'의 주요 특성은? [출처: 교재 6장 6.3절 표 6-11, 12강 강의록, 보충]",
+    "o": [
+      "감각(S)으로 사람에 대한 사실을 파악하고 감정(F)으로 인간관계 영향을 고려하여 의사결정을 내린다.",
+      "오직 0점 채점표만 보고 기계적으로 결정한다.",
+      "새로운 우주 이론만 논리적으로 분석한다.",
+      "야외에서 기계를 수리하는 데만 몰두한다."
+    ],
+    "a": 0,
+    "h": "사람에 대한 사실 관심(S) + 관계에 주는 영향 반영(F) 유형입니다.",
+    "e": "SF 유형은 사람에 대한 사실적 정보를 인식하고 타인에게 미칠 정서적 영향을 고려하는 동정적·우호적 유형입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI 심리적 기능 중 'NT (논리적, 창의적 유형)'의 주요 특성은? [출처: 교재 6장 6.3절 표 6-11, 12강 강의록, 보충]",
+    "o": [
+      "직관(N)으로 미래 가능성을 정보 수집하고 사고(T)의 객관적·합리적 분석으로 판단한다.",
+      "오감으로 당장 일어나는 구체적 수치만 세어 결정한다.",
+      "자신에 대한 찬사만 따지고 정서적 호소만 수행한다.",
+      "규칙과 전통에 무조건 복종하기만 한다."
+    ],
+    "a": 0,
+    "h": "미래 비전·가능성(N) + 객관적 논리 분석(T) 유형입니다.",
+    "e": "NT 유형은 알려지지 않은 새로운 가능성을 탐구하고 객관적·합리적 분석으로 의사결정을 내리는 논리적·창의적 유형입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 4가지 기질 중 'SP (예술가/장인적 기질)'의 핵심 욕구 및 특징은? [출처: 교재 6장 6.3절 표 6-12, 12강 강의록, 보충]",
+    "o": [
+      "자연스러움, 충동적, 현재 몰입, 도구 사용의 숙련성, 강한 인상을 주고 자극을 추구하는 욕구",
+      "위계질서와 엄격한 규칙만을 평생 준수하는 욕구",
+      "오직 천문학 학위를 얻고자 하는 지적 욕구",
+      "남을 가르치고 자아실현만 추구하려는 이상적 욕구"
+    ],
+    "a": 0,
+    "h": "현재 몰입, 자발성, 절충과 적응, 자극 추구를 선호하는 기질입니다.",
+    "e": "SP 기질은 현재에 몰입하고 자유로우며 도구 숙련성과 흥취·자극을 추구하는 예술가(장인)적 기질입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "MBTI의 4가지 기질 중 'NT (합리적 기질)'의 핵심 욕구 및 특징은? [출처: 교재 6장 6.3절 표 6-12, 12강 강의록, 보충]",
+    "o": [
+      "지식 지향, 자질 향상, 비전 중심, 성취 및 능력 발휘 욕구",
+      "전통에 순응하고 무조건 규칙만 지키려는 소속 욕구",
+      "자유롭게 춤추고 현재에만 충동 몰입하는 장인 욕구",
+      "타인에게 무조건 봉사만 하려는 동정 욕구"
+    ],
+    "a": 0,
+    "h": "지식 추구, 이론적 비전, 능력 발휘를 중시하는 기질입니다.",
+    "e": "NT 기질은 지식과 능력을 향상시키고 이론적 비전과 성취를 지향하는 합리적 기질입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 채점 결과 두 선호 경향 간 점수가 비슷하거나 점수 차이가 매우 적을 때의 올바른 해석은? [출처: 교재 6장 6.3절 채점 및 해석, 12강 강의록, 보충]",
+    "o": [
+      "해당 지표에 대한 선호가 덜 뚜렷하거나 아직 자신에 대한 이해가 충분히 명확하지 않을 수 있음을 시사한다.",
+      "피검자가 천재적인 멀티 플레이어임을 입증한다.",
+      "검사지가 불에 타서 파기되어야 함을 뜻한다.",
+      "점수가 비슷하면 무조건 지능지수가 0점 처리된다."
+    ],
+    "a": 0,
+    "h": "점수 차이가 적으면 그 영역 선호가 명확히 분화되지 않았음을 나타냅니다.",
+    "e": "선호지표 간 점수 차이가 작다는 것은 해당 유형 선호가 덜 뚜렷하거나 자기 이해가 명확히 정립되지 않았음을 시사합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "MBTI 채점 방식에 대해 학술적으로 지적되는 가장 대표적인 제한점(한계)은? [출처: 교재 6장 6.3절 채점 및 해석, 12강 음성, 보충]",
+    "o": [
+      "점수 차이가 매우 적거나 동점이더라도 무조건 둘 중 하나로 배정하는 이분법적 분류의 이론적 근거 부족",
+      "문항 수가 1,000,000개로 너무 많아 검사를 끝낼 수 없음",
+      "검사 비용이 10억 원으로 너무 비쌈",
+      "결과가 오직 한글이 아닌 한자로만 인쇄됨"
+    ],
+    "a": 0,
+    "h": "미세한 점수 차이에도 불구하고 2가지 범주 중 하나로 강제 배정하는 이분법의 한계입니다.",
+    "e": "MBTI는 점수 차가 미세해도 어느 한 유형으로 분류하는 이분법적 채점을 적용하여 이론적 한계가 지적되기도 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "상담자가 내담자에게 MBTI 결과를 해석할 때 유지해야 하는 올바른 태도는? [출처: 교재 6장 6.3절 검사의 해석, 12강 강의록, 보충]",
+    "o": [
+      "선호지표 점수나 유형에 우열이 없으므로 객관성과 중립성을 유지하고 강약점을 함께 안내한다.",
+      "판단형(J)이 인식형(P)보다 우월하므로 인식형 내담자를 강하게 비난한다.",
+      "내향형(I) 내담자에게 외향형(E)으로 성격을 개조하라고 명령한다.",
+      "검사 결과지를 무조건 비밀로 숨기고 알려주지 않는다."
+    ],
+    "a": 0,
+    "h": "성격 유형에는 우열이 없으므로 객관적·중립적 태도로 다름을 인정하도록 돕습니다.",
+    "e": "MBTI 해석 시 성격의 우열이나 좋은/나쁜 성격이 없으므로 상담자는 중립성과 객관성을 지켜야 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 검사 결과를 대인관계 및 부부·가족 상담에 적용할 때의 유용한 효과는? [출처: 교재 6장 6.3절 검사의 활용, 12강 강의록, 보충]",
+    "o": [
+      "서로 간의 선호 차이를 파악하여 상호 통찰을 얻고 오해와 갈등을 줄여 상대방을 이해하게 된다.",
+      "상대방의 성격이 나쁘다고 법원에 이혼 소송 증거로 제출하게 한다.",
+      "집안에서 권력을 잡은 사람이 상대방을 무조건 통제하게 만든다.",
+      "가족 간의 대화를 일절 중단하도록 만든다."
+    ],
+    "a": 0,
+    "h": "서로의 다름과 선호 차이를 통찰하여 갈등을 줄이고 상호 이해를 돕습니다.",
+    "e": "MBTI는 대인관계 및 가족 상담에서 공통점과 차이점을 통찰하게 하여 오해를 해소하고 이해를 돕습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "직장 조직 및 기업체 팀빌딩(Team building)에 MBTI를 적용하는 목적으로 가장 올바른 것은? [출처: 교재 6장 6.3절 검사의 활용, 12강 강의록, 보충]",
+    "o": [
+      "팀원들의 선호경향을 파악하여 갈등 요인을 관리하고 팀의 강점과 약점을 진단하여 의사소통을 증진한다.",
+      "선호지표 점수가 낮은 사원을 즉시 해고하기 위해",
+      "팀장의 MBTI 유형으로 회사의 모든 규정을 독단 개편하기 위해",
+      "야근을 가장 많이 하는 사원에게 벌칙을 주기 위해"
+    ],
+    "a": 0,
+    "h": "팀 구성원의 강약점 파악, 갈등 관리, 효율적 의사소통 기술 훈련 목적입니다.",
+    "e": "기업 현장에서 MBTI는 팀원 간 성향 이해, 갈등 요인 발견, 팀의 강약점 보완 및 원활한 의사소통을 위해 활용됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 검사 결과를 진로상담 및 직무 선택에 활용하는 방식으로 적절한 것은? [출처: 교재 6장 6.3절 검사의 활용, 12강 강의록, 보충]",
+    "o": [
+      "자신의 선호경향과 기질 특성을 파악하여 자신에게 편안하고 적합한 업무 환경 및 직업군을 탐색하는 가이드로 활용한다.",
+      "MBTI 결과지에 표기된 1개 직업 외에는 절대로 진출하지 못하게 금지한다.",
+      "수능 시험 과목을 전면 면제받는 용도로 제출한다.",
+      "취업 면접 시 다른 사람의 MBTI를 위조하여 제출한다."
+    ],
+    "a": 0,
+    "h": "자신의 선호 환경을 이해하고 직업 선택의 방향성을 탐색하는 가이드라인입니다.",
+    "e": "진로상담에서 MBTI는 자신의 성격 선호 및 환경적 수용성을 파악하여 적합한 직업군을 탐색하는 가이드로 활용됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI를 활용할 때 상담 현장에서 경계하고 지양해야 하는 부정적 부작용은? [출처: 교재 6장 6.3절 유의점, 12강 음성, 보충]",
+    "o": [
+      "MBTI 16개 성격 유형으로 사람을 한정된 범주에 가두고 낙인을 찍어 이해를 제한하는 것",
+      "피검자에게 성격의 강점을 알려주고 용기를 주는 것",
+      "부부 간의 다름을 인정하고 서로 존중하도록 권유하는 것",
+      "자신의 반대 선호 성향을 개발할 기회를 모색하는 것"
+    ],
+    "a": 0,
+    "h": "사람을 16개 틀에 넣어 고정관념과 낙인을 갖는 것은 지양해야 합니다.",
+    "e": "MBTI 결과를 바탕으로 사람을 한정된 16개 범주에 밀어 넣고 고정관념이나 낙인을 찍어 이해를 제한하는 것은 피해야 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "MBTI 해석 상담 시 내담자의 주 성격 선호 외에 '반대 성향의 특성(열등기능 등)'을 다루는 바람직한 접근 방식은? [출처: 교재 6장 6.3절 유의점, 12강 강의록, 보충]",
+    "o": [
+      "자신의 편안한 주 선호 유형을 활용하면서도, 반대 성향 특성을 발전시킬 기회를 제공하여 유연한 반응 능력을 기르도록 돕는다.",
+      "반대 성향 특성은 나쁜 것이므로 평생 억제하고 봉인하도록 교육한다.",
+      "반대 성향 특성이 나타나면 비난하고 점수를 감점한다.",
+      "반대 성향 특성은 뇌 손상의 증상이므로 병원에 입원시킨다."
+    ],
+    "a": 0,
+    "h": "자신의 주 선호 활용과 더불어 반대 성향 발전으로 상황 대처의 유연성을 키워 줍니다.",
+    "e": "상담자는 내담자의 강점 활용을 독려함과 동시에 반대 성향 특성도 보완·발전시켜 다양한 상황에 유연히 대응하도록 조력해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "12강 「성격검사 2」의 핵심 학습 주제 및 대상 검사로 가장 바른 것은? [출처: 교재 6장 6.3절, 12강 강의록]",
+    "o": [
+      "Myers-Briggs 성격유형검사(MBTI)의 역사적 배경, 4개 선호지표, 16가지 성격유형, 채점 및 해석, 활용 및 유의점",
+      "웩슬러 아동지능검사 5판(K-WISC-V) 소검사 실시 및 해석",
+      "고용노동부 직업선호도검사 L형 및 S형",
+      "로르샤흐 잉크반점 검사 및 주제통각검사"
+    ],
+    "a": 0,
+    "h": "12강은 MBTI 검사의 이론적 토대부터 16가지 성격유형, 실무 지침을 다룹니다.",
+    "e": "12강은 성격검사의 두 번째 시간으로서 Myers-Briggs 성격유형검사(MBTI)의 역사, 선호지표, 16개 유형, 채점 및 해석, 상담 활용 지침을 학습합니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

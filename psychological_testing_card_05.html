@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 5, title: "검사개발 절차" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 검사개발의 7단계 절차 순서 [출처: 교재 3장 3.1절 검사개발 절차, 5강 강의록]",
+    "a": "계획수립 → 문항제작 → 예비검사 실시 → 예비검사 분석 → 본검사 제작·실시 → 양호도 분석 및 규준 제작 → 검사 매뉴얼 작성"
+  },
+  {
+    "q": "★★★ 검사개발 계획 수립의 첫 단계 [출처: 교재 3장 3.1절 검사개발 계획 수립, 2017년 기말]",
+    "a": "누구를 대상으로 어떤 특성을 잴 것인지 검사목적과 대상(피검자)을 명확히 확정하는 것"
+  },
+  {
+    "q": "★★★ 최대 수행검사(maximum performance test)의 정의 및 예시 [출처: 교재 3장 3.1절 계획 수립]",
+    "a": "피검자가 최선의 능력을 발휘하도록 유도하는 검사 (예: 수능, 지능검사, 적성검사, 성취도검사)"
+  },
+  {
+    "q": "★★★ 전형적 수행검사(typical performance test)의 정의 및 예시 [출처: 교재 3장 3.1절 계획 수립]",
+    "a": "일상적·습관적 성향이나 태도를 측정하는 검사 (예: 성격검사, 흥미검사, 우울검사)"
+  },
+  {
+    "q": "★★★ 비언어성 검사(동작검사)의 주적합 피검자 [출처: 교재 3장 3.1절 계획 수립]",
+    "a": "영유아, 노인, 언어장애인, 문해력이 낮거나 글을 읽지 못하는 피검자"
+  },
+  {
+    "q": "★★★ 구인(construct)의 정의 [출처: 교재 3장 3.1절 검사내용 결정]",
+    "a": "검사를 통해 측정하고자 내재되어 있다고 가정하는 인간의 내면적 심리·행동 특성"
+  },
+  {
+    "q": "★★★ 내용타당도(content validity)의 확보 방법 [출처: 교재 3장 3.1절 검사내용 결정]",
+    "a": "내용전문가가 각 문항이 측정 구인을 얼마나 잘 대변하고 구성을 반영하는지 평가함"
+  },
+  {
+    "q": "★★★ 평정척도형 문항(리커트 척도)의 정의 [출처: 교재 3장 3.1절 문항형식, 2016년 기말]",
+    "a": "미리 정해 놓은 연속적 척도를 제시하고 피검자가 자신에게 부합하는 정도를 선택하게 하는 문항"
+  },
+  {
+    "q": "★★★ 평정척도형 문항의 주요 단점 [출처: 교재 3장 3.1절 문항형식, 워크북 3장 3.1절]",
+    "a": "피검자가 솔직한 답을 피하고 '보통이다' 등 중간값으로 응답이 쏠리는 편향이 발생함"
+  },
+  {
+    "q": "★★★ 양자택일형 문항의 정의 [출처: 교재 3장 3.1절 문항형식, 워크북 3장 3.1절]",
+    "a": "진술문에 대해 '예/아니오' 또는 'O/X' 중 하나만을 고르도록 하는 이분질문법 문항"
+  },
+  {
+    "q": "★★★ 자유응답형 문항(주관식)의 정의 및 단점 [출처: 교재 3장 3.1절 문항형식, 워크북 3장 3.1절]",
+    "a": "자유롭게 서술형으로 답하게 함 / 요약·정리에 시간·노력이 많이 들고 채점자 주관이 개입됨"
+  },
+  {
+    "q": "★★★ 선다형 문항(최선답형 vs 중복응답형)의 구분 [출처: 교재 3장 3.1절 문항형식, 2018년 기말]",
+    "a": "최선답형: 가장 적합한 보기 1개 선택 / 중복응답형: 해당되는 보기를 다수 선택"
+  },
+  {
+    "q": "★★★ 순위형 문항의 정의 [출처: 교재 3장 3.1절 문항형식, 2019년 기말]",
+    "a": "제시된 항목들을 일정한 기준이나 중요도에 따라 순서를 매기도록 요구하는 문항"
+  },
+  {
+    "q": "★★★ 문항 작성 시 여분 문항 제작 비율 [출처: 교재 3장 3.1절 문항제작]",
+    "a": "부적절 문항 제거를 고려하여 최종 문항 수 대비 약 10~20% 넉넉하게 제작함"
+  },
+  {
+    "q": "★★★ 예비검사(pilot test)의 실시 목적 [출처: 교재 3장 3.1절 예비검사]",
+    "a": "문항 타당성, 소요시간, 지시문 및 어휘의 적절성, 오해 여부 등 검사 운영 전반을 점검하기 위해"
+  },
+  {
+    "q": "★★★ 문항난이도(곤란도, p)의 정의 [출처: 교재 3장 3.1절 예비검사 분석, 2014년 기말]",
+    "a": "검사 응답자 중 정답을 맞힌 피검자의 비율 (p = 정답자 수 / 전체 응답자 수)"
+  },
+  {
+    "q": "★★★ 문항난이도(p) 수치 해석 법칙 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "p 값이 1.0에 가까울수록 쉬운 문항, 0.0에 가까울수록 어려운 문항"
+  },
+  {
+    "q": "★★★ 문항변별도의 정의 [출처: 교재 3장 3.1절 예비검사 분석, 2017년 기말, 2018년 기말]",
+    "a": "능력이 높은 피검자와 능력이 낮은 피검자를 문항이 구분해 주는 정도 (문항 득점과 총점 간 상관)"
+  },
+  {
+    "q": "★★★ 오답의 매력도 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "선다형 문항에서 오답 선택지가 피검자를 정답으로 오인하도록 매력적으로 유인하는 성능"
+  },
+  {
+    "q": "★★★ 유층표집(층화표집)의 정의 [출처: 교재 3장 3.1절 본검사 실시]",
+    "a": "모집단을 성별, 지역 등 주요 유층으로 나눈 뒤 각 유층 내에서 무선표집을 수행하는 표집법"
+  },
+  {
+    "q": "★★★ 표준화 규준 산출을 위한 본검사 표본 크기 [출처: 교재 3장 3.1절 본검사 실시]",
+    "a": "규준의 대표성 확보를 위한 통상 1,000명 이상의 대규모 표본"
+  },
+  {
+    "q": "★★★ 규준(norm)의 역할 [출처: 교재 3장 3.1절 규준 제작]",
+    "a": "본검사 결과를 바탕으로 피검자의 원점수를 상대적으로 비교·해석할 수 있는 점수 분포 기준 제공"
+  },
+  {
+    "q": "★★★ 검사 매뉴얼(검사요강)에 포함될 주요 내용 [출처: 교재 3장 3.1절 검사 매뉴얼, 2017년 기말]",
+    "a": "검사 목적, 대상, 이론적 배경, 실시·채점법, 규준표, 신뢰도/타당도 정보, 결과 해석 가이드"
+  },
+  {
+    "q": "★★★ 검사 매뉴얼이 작성되는 시점 [출처: 교재 3장 3.1절 검사 매뉴얼, 2017년 기말]",
+    "a": "검사개발 7단계 절차 중 맨 마지막 7번째 단계"
+  },
+  {
+    "q": "★★★ 재표준화(re-standardization)가 필요한 이유 [출처: 교재 3장 3.1절 규준 제작]",
+    "a": "시간 경과에 따른 피검자 모집단의 특성 및 사회문화적 변화를 최신 규준에 반영하기 위해"
+  },
+  {
+    "q": "★★☆ 검사개발 계획 수립 시 확정해야 할 4가지 [출처: 교재 3장 3.1절 검사개발 계획 수립]",
+    "a": "검사 목적, 검사 대상, 검사 내용, 검사 형식"
+  },
+  {
+    "q": "★★☆ 문항 작성 시 피해야 할 지침 3가지 [출처: 교재 3장 3.1절 문항제작]",
+    "a": "모호한 표현 사용, 복이중 질문(한 문항에 두 가지 질문), 피검자 편향 유도 질문"
+  },
+  {
+    "q": "★★☆ 질적 문항분석의 개념 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "내용전문가가 문항의 내용적 적합성, 타당성, 표면타당도 등을 종합적으로 검토하는 분석"
+  },
+  {
+    "q": "★★☆ 양적 문항분석의 개념 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "수집된 피검자 데이터를 바탕으로 통계적 지수(난이도, 변별도, 신뢰도 등)를 산출하는 분석"
+  },
+  {
+    "q": "★★☆ 크론바흐 알파(Cronbach α)를 활용한 부적절 문항 선별 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "특정 문항을 제거했을 때 알파 신뢰도 수치가 상승하면 해당 문항을 제거 대상으로 판정함"
+  },
+  {
+    "q": "★★☆ 요인분석(Factor Analysis)을 활용한 예비검사 문항 선별 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "설정한 하위요인 구인 구조에 묶이지 않고 동떨어지는 문항을 선별하여 제거함"
+  },
+  {
+    "q": "★★☆ 문항변별도가 음수(-)로 나타나는 문항의 원인 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "상위권 학생이 틀리고 하위권 학생이 맞힌 문항으로, 정답 오류나 문항 결함에 기인함"
+  },
+  {
+    "q": "★★☆ 최종 본검사 문항 선정 시 통계 외 고려사항 [출처: 교재 3장 3.1절 본검사 제작]",
+    "a": "통계 지수가 다소 낮더라도 하위 영역의 내용적 대표성(내용타당도)이 높다면 채택 가능함"
+  },
+  {
+    "q": "★★☆ 본검사 제작 단계에서 확정하는 외형 구조 [출처: 교재 3장 3.1절 본검사 제작]",
+    "a": "최종 문항 수 및 배치 순서, 검사 지시문, 답안지 양식, 레이아웃 및 편집 디자인"
+  },
+  {
+    "q": "★★☆ 예비검사의 피검자 표집 기준 [출처: 교재 3장 3.1절 예비검사]",
+    "a": "실제 본검사가 활용될 대상 피검자 집단과 연령, 특성 등이 매우 유사한 집단"
+  },
+  {
+    "q": "★★☆ 영유아 및 저학년 아동 대상 검사 제작 지침 [출처: 교재 3장 3.1절 검사대상]",
+    "a": "문해력 편차를 고려하여 쉬운 어휘를 사용하고 관찰이나 비언어성 동작 과제를 활용함"
+  },
+  {
+    "q": "★★☆ 개인용 검사와 집단용 검사의 비교 [출처: 교재 3장 3.1절 검사형식]",
+    "a": "개인용: 관찰 및 라포 형성에 유리하나 시간·비용 큼 / 집단용: 대규모 시행으로 경제적이나 심층 관찰 한계"
+  },
+  {
+    "q": "★★☆ 본검사 실시 시 표준화 환경 통제 [출처: 교재 3장 3.1절 본검사 실시]",
+    "a": "조용하고 안락하며 물리적 조건(소음, 조명, 지시사항 준수)이 통제된 환경에서 실시"
+  },
+  {
+    "q": "★★☆ 검사내용 결정 시 기존 유사 검사 분석의 목적 [출처: 교재 3장 3.1절 검사내용 결정]",
+    "a": "기존 검사의 하위요인과 한계를 파악하여 차별화되고 발전된 구인 구조를 수립하기 위해"
+  },
+  {
+    "q": "★★☆ 하위 피검자 집단별 다중 규준표 제작 사유 [출처: 교재 3장 3.1절 규준 제작]",
+    "a": "연령이나 성별에 따라 점수 차이가 유의미한 구인의 경우 집단별 규준을 구분 제공함"
+  },
+  {
+    "q": "★☆☆ 객관식 선다형 문항의 보편적 선택지 개수 [출처: 교재 3장 3.1절 문항형식]",
+    "a": "보통 4지선다형 또는 5지선다형"
+  },
+  {
+    "q": "★☆☆ 이분질문법(양자택일형)의 대표적 검사 예시 [출처: 교재 3장 3.1절 문항형식]",
+    "a": "MMPI 다면적 인성검사 (참/거짓)"
+  },
+  {
+    "q": "★☆☆ 자유응답형 문항의 대표적 검사 예시 [출처: 교재 3장 3.1절 문항형식]",
+    "a": "문장완성검사(SCT), 주제통각검사(TAT)"
+  },
+  {
+    "q": "★☆☆ 문항난이도 p = 0.50 의 통계적 가치 [출처: 교재 3장 3.1절 예비검사 분석]",
+    "a": "응답자의 50%가 맞힌 문항으로, 변별을 위한 정보량이 가장 극대화되는 난이도"
+  },
+  {
+    "q": "★☆☆ 예비검사 후 피검자 면담의 목적 [출처: 교재 3장 3.1절 예비검사]",
+    "a": "피검자가 지시문이나 어휘를 오해하거나 어렵게 느끼지 않았는지 질적 피드백 수집"
+  },
+  {
+    "q": "★☆☆ 웩슬러 지능검사의 개발 역사 특징 [출처: 교재 3장 3.1절 계획 수립]",
+    "a": "본래 1대1 개인용으로 개발된 후 학교 현장의 단체 실시 필요로 집단용도 개정 제작됨"
+  },
+  {
+    "q": "★☆☆ 본검사 최종 완성 및 인쇄 단계의 명칭 [출처: 교재 3장 3.1절 본검사 제작]",
+    "a": "본검사 제작 및 실시 단계"
+  },
+  {
+    "q": "★☆☆ 검사 매뉴얼의 주 이용자 [출처: 교재 3장 3.1절 검사 매뉴얼]",
+    "a": "검사를 실제로 구매하여 시행·채점·해석하려는 상담사, 교사, 전문가 등 검사사용자"
+  },
+  {
+    "q": "★☆☆ 문항(item)의 정의 [출처: 교재 3장 3.1절 문항제작]",
+    "a": "피검자의 심리적 특성을 측정하기 위한 질문 진술문이자 채점의 기본 단위"
+  },
+  {
+    "q": "★☆☆ 5강 「검사개발 절차」의 교재 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 3장 3.1절 (p.77~85), 워크북 3장 3.1절 (p.34~39), 5강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 학습장</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --ink: #14213d;
+        --muted: #55657d;
+        --paper: #f3f6fa;
+        --rule: #d5deea;
+        --c-card: #1f6b46;
+        --c-quiz: #b45309;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+        margin: 0;
+        font-family: 'Pretendard', -apple-system, 'Noto Sans KR', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        line-height: 1.5;
+        word-break: keep-all;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* 머리말 */
+    .hero { padding: 56px 0 8px; }
+    h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2.1rem, 6vw, 3.6rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+    }
+    .lead { margin: 0; color: var(--muted); font-size: 1.1rem; max-width: 26em; }
+
+    /* 장 목록 */
+    .part { margin-top: 40px; }
+    .part-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--ink);
+    }
+    .part-head h2 { margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+    .part-head .range { color: var(--muted); font-size: 0.95rem; }
+    .list { list-style: none; margin: 0; padding: 0; }
+    .lec {
+        display: grid;
+        grid-template-columns: 3rem 1fr auto;
+        gap: 6px 12px;
+        align-items: center;
+        padding: 14px 8px;
+        border-bottom: 1px solid var(--rule);
+    }
+    .lec:hover { background: #fff; }
+    .n { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 1.05rem; color: var(--muted); }
+    .t { margin: 0; font-size: 1.08rem; font-weight: 650; }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1.5px solid var(--c);
+        border-radius: 8px;
+        color: var(--c);
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background .15s, color .15s;
+    }
+    .a:hover { background: var(--c); color: #fff; }
+    .a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .a.card { --c: var(--c-card); }
+    .a.quiz { --c: var(--c-quiz); }
+
+    footer { margin-top: 56px; padding-top: 24px; padding-bottom: 56px; border-top: 1px solid var(--rule); color: var(--muted); }
+    footer .motto { margin: 0 0 6px; color: var(--ink); font-size: 1.3rem; font-weight: 800; }
+    footer .sub { margin: 0 0 14px; color: var(--muted); font-size: 1.05rem; font-weight: 600; }
+    footer .credit { margin: 0; font-size: 0.92rem; }
+
+    @media (max-width: 680px) {
+        .wrap { padding: 0 18px; }
+        .hero { padding: 36px 0 4px; }
+        .lec { grid-template-columns: 2.4rem 1fr; padding: 14px 4px; }
+        .acts { grid-column: 2; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .a { transition: none; }
+    }
+</style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="wrap">
+        <h1>심리검사 및 측정 학습</h1>
+        <p class="lead">심리검사 및 측정 학습을 향한 15단계 여정</p>
+    </div>
+</header>
+
+<main class="wrap" id="parts"></main>
+
+<footer class="wrap">
+    <p class="motto">"재기 전에, 먼저 이해하다"</p>
+    <p class="sub">오늘의 목표: 15강 완주</p>
+    <p class="credit">만든이: 유승욱 (다른 곳에 공유하기 없기!)<br>도우미: 클로드, 쳇지피티, 제미나이, 노트북 L.M., 젠스파크</p>
+</footer>
+
+<script>
+    // 교재 7장을 단위로 묶고, 그 안에 강의 1~15강을 나열했습니다.
+    // 제목을 바꾸고 싶으면 아래 title 글자만 고치세요.
+    const parts = [
+        { title: "1장 교육과 심리검사", lectures: [
+            { no: 1, title: "교육과 인간의 이해" },
+            { no: 2, title: "심리검사의 이해" }
+        ]},
+        { title: "2장 검사결과 이해를 위한 측정학적 개념", lectures: [
+            { no: 3, title: "측정학적 개념 1: 검사의 개념과 기초통계" },
+            { no: 4, title: "측정학적 개념 2: 자료의 요약, 규준점수, 상관계수" }
+        ]},
+        { title: "3장 검사개발 절차와 검사의 양호도", lectures: [
+            { no: 5, title: "검사개발 절차" },
+            { no: 6, title: "검사의 양호도: 신뢰도와 타당도" }
+        ]},
+        { title: "4장 지능검사", lectures: [
+            { no: 7, title: "지능의 이해와 다양한 지능검사" },
+            { no: 8, title: "한국 웩슬러 아동지능검사" }
+        ]},
+        { title: "5장 진로검사", lectures: [
+            { no: 9, title: "진로의 이해와 다양한 진로검사" },
+            { no: 10, title: "홀랜드 SDS 검사와 도구를 이용한 진로검사" }
+        ]},
+        { title: "6장 성격검사", lectures: [
+            { no: 11, title: "성격의 이해와 다양한 성격검사" },
+            { no: 12, title: "Myers-Briggs 성격유형검사(MBTI)" }
+        ]},
+        { title: "7장 정신건강검사", lectures: [
+            { no: 13, title: "정신건강의 이해" },
+            { no: 14, title: "정신건강 관련 객관적 검사" },
+            { no: 15, title: "정신건강 관련 투사적 검사" }
+        ]}
+    ];
+
+    // 파일 이름 앞부분: psychological_testing_card_01.html, psychological_testing_quiz_01.html 형태
+    const prefix = "psychological_testing";
+
+    const root = document.getElementById('parts');
+
+    parts.forEach(function (p) {
+        const first = p.lectures[0].no;
+        const last = p.lectures[p.lectures.length - 1].no;
+
+        const section = document.createElement('section');
+        section.className = 'part';
+
+        const head = document.createElement('div');
+        head.className = 'part-head';
+        const h2 = document.createElement('h2');
+        h2.textContent = p.title;
+        const range = document.createElement('span');
+        range.className = 'range';
+        range.textContent = (first === last) ? first + '강' : first + '~' + last + '강';
+        head.appendChild(h2);
+        head.appendChild(range);
+        section.appendChild(head);
+
+        const list = document.createElement('ol');
+        list.className = 'list';
+
+        p.lectures.forEach(function (lec) {
+            const f = String(lec.no).padStart(2, '0');
+            const li = document.createElement('li');
+            li.className = 'lec';
+            li.innerHTML =
+                `<span class="n">${f}</span>` +
+                `<h3 class="t">${lec.title}</h3>` +
+                `<div class="acts">` +
+                    `<a class="a card" href="${prefix}_card_${f}.html">플래시카드</a>` +
+                    `<a class="a quiz" href="${prefix}_quiz_${f}.html">퀴즈 풀기</a>` +
+                `</div>`;
+            list.appendChild(li);
+        });
+
+        section.appendChild(list);
+        root.appendChild(section);
+    });
+</script>
+</body>
+</html>

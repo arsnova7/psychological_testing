@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 15, title: "정신건강 관련 투사적 검사" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "투사적 검사(Projective Test)의 일반적 특성에 관한 설명으로 올바르지 않은 것은? [출처: 교재 7장 7.3절 투사적 검사 개관, 워크북 7장 7.3절 1번, 2014년 기말 31번]",
+    "o": [
+      "검사 자극이 모호하고 비구조화되어 있다.",
+      "피검자의 무의식적 욕구, 갈등, 동기가 반응에 투영된다.",
+      "피검자가 의도적으로 자신을 포장하거나 방어하기가 용이하다.",
+      "반응의 다양성이 보장되며 피검자의 독특한 성격 역동을 파악할 수 있다."
+    ],
+    "a": 2,
+    "h": "자극이 모호하기 때문에 피검자가 문항 의도를 파악하여 솔직하지 못하게 방어하기 어렵습니다.",
+    "e": "투사적 검사는 자극이 모호하므로 피검자가 의도를 파악하여 의도적으로 반응을 방어하거나 포장하기 어렵다는 장점이 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "투사적 검사가 갖는 일반적인 장점과 단점의 연결이 바르게 설명된 것은? [출처: 교재 7장 7.3절 투사적 검사의 장단점, 워크북 7장 7.3절 2번, 2015년 기말 33번, 2018년 기말 70번]",
+    "o": [
+      "장점: 검사 신뢰도와 타당도가 객관적으로 매우 높다. / 단점: 반응이 단조롭다.",
+      "장점: 방어 형성이 어렵고 무의식적 내용을 측정할 수 있다. / 단점: 검사자의 주관이 개입되기 쉽고 신뢰도가 낮아 보일 수 있다.",
+      "장점: 채점이 정량적이고 객관적이다. / 단점: 실시 시간이 너무 짧다.",
+      "장점: 피검자의 수능 성적을 예측할 수 있다. / 단점: 검사지가 비싸다."
+    ],
+    "a": 1,
+    "h": "무의식과 방어 감소가 장점이나, 검사자의 전문성 및 주관성 개입과 객관적 신뢰도 확보의 어려움이 단점입니다.",
+    "e": "투사적 검사는 피검자의 방어를 줄이고 깊은 무의식적 성격을 탐색하는 장점이 있는 반면, 채점 및 해석에 검사자의 주관이 개입되기 쉽고 검사신뢰도 측정이 어렵다는 단점이 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐(Rorschach) 잉크반점 검사의 도구 구성으로 올바른 것은? [출처: 교재 7장 7.3절 로르샤흐 검사, 워크북 7장 7.3절 3번, 2013년 기말 31번, 2017년 기말 69번]",
+    "o": [
+      "총 10장의 잉크반점 카드 (흑백 3장, 칼라 7장)",
+      "총 20장의 잉크반점 카드 (전부 흑백)",
+      "총 10장의 잉크반점 카드 (흑백 5장, 흑백+붉은색 2장, 파스텔 색채 3장)",
+      "총 31장의 잉크반점 카드 (흑백 30장, 백지 1장)"
+    ],
+    "a": 2,
+    "h": "10장의 카드는 흑백 5장, 흑백에 붉은색 추가 2장, 여러 색채(파스텔) 3장으로 구성됩니다.",
+    "e": "로르샤흐 검사는 총 10장의 대칭형 잉크반점 카드로 구성되며, 5장은 흑백, 2장은 흑백에 붉은색, 3장은 파스텔톤 복합 색채 카드입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "엑스너(Exner) 종합체계에서 로르샤흐 검사의 기호화(채점)를 위해 분류하는 5대 기본 평가 범주에 해당하지 않는 것은? [출처: 교재 7장 7.3절 엑스너 종합체계, 워크북 7장 7.3절 4번, 2019년 기말 70번]",
+    "o": [
+      "위치 (Location)",
+      "결정인자 (Determinants)",
+      "내용 (Content)",
+      "피검자의 학력과 지능지수 (IQ)"
+    ],
+    "a": 3,
+    "h": "엑스너 채점 카테고리는 위치(어디서), 결정인자(무엇을 보고), 내용(무엇인가), 평범성/독창성입니다.",
+    "e": "엑스너 종합체계의 5대 핵심 채점 항목은 반응위치, 반응결정인자, 반응내용, 평범반응, 발달수준 및 특수점수 등입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "머레이(Murray)와 모건(Morgan)이 개발하였으며, 피검자의 욕구(Need)와 환경적 압력(Press) 간의 상호작용을 파악하는 대표적인 투사적 회화 검사는? [출처: 교재 7장 7.3절 TAT, 워크북 7장 7.3절 5번, 2013년 기말 33번, 2017년 기말 70번]",
+    "o": [
+      "주제통각검사 (TAT)",
+      "로르샤흐 검사",
+      "문장완성검사 (SCT)",
+      "집-나무-사람 검사 (HTP)"
+    ],
+    "a": 0,
+    "h": "Murray의 욕구-압력 이론(Need-Press Theory)에 기초한 주제통각검사(Thematic Apperception Test)입니다.",
+    "e": "머레이의 욕구-압력 이론을 바탕으로 피검자가 인물들의 그림 카드를 보고 이야기를 꾸며내도록 하는 검사는 주제통각검사(TAT)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "벅(Buck)이 개발한 집-나무-사람 검사(HTP)에서 각각의 그리기 대상이 상징하는 기본 내면적 의미의 연결로 올바른 것은? [출처: 교재 7장 7.3절 HTP 검사, 워크북 7장 7.3절 6번, 2013년 기말 34번]",
+    "o": [
+      "집 — 현실 자아 / 나무 — 대인관계 / 사람 — 무의식 자아",
+      "집 — 가정생활과 상징적 인지 / 나무 — 깊은 무의식적 자아개념과 성격 발달 / 사람 — 현실적 자아상 및 대인관계",
+      "집 — 사회적 성취 / 나무 — 성적 충동 / 사람 — 가족 갈등",
+      "세 대상 모두 단순한 신체 근육 발달 상태만을 의미한다."
+    ],
+    "a": 1,
+    "h": "집(가정/환경), 나무(무의식 성격/자아개념), 사람(현실적 자아 및 대인관계)을 상징합니다.",
+    "e": "HTP 검사에서 집은 가정 및 환경적 태도를, 나무는 깊은 무의식적 자아개념 및 성장을, 사람은 현실적 자아상과 대인관계적 태도를 나타냅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한 장의 종이에 집, 나무, 사람을 함께 그리도록 지시하여, 세 대상 간의 무의식적 상호작용과 역동적 관계를 파악하는 벅과 번즈(Burns)의 수정 HTP 검사는? [출처: 교재 7장 7.3절 K-HTP, 워크북 7장 7.3절 7번]",
+    "o": [
+      "동적 가족화 (KFD)",
+      "동적 집-나무-사람 검사 (K-HTP)",
+      "문장완성검사 (SCT)",
+      "로르샤흐 종합체계"
+    ],
+    "a": 1,
+    "h": "Kinetic House-Tree-Person Test의 약자로 한 화면에 상호작용 행동을 그리게 하는 검사입니다.",
+    "e": "세 대상을 한 장의 종이에 그리고 움직이는 동작(Kinetic)을 추가하여 대상 간의 상호작용 역동을 파악하는 검사는 'K-HTP'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "삭스(Sacks)의 문장완성검사(SSCT)에서 분류하는 4가지 주요 심리적 영역에 해당하지 않는 항목은? [출처: 교재 7장 7.3절 SSCT, 워크북 7장 7.3절 8번, 2015년 기말 35번]",
+    "o": [
+      "가족 영역",
+      "성(이성) 영역",
+      "대인관계 영역 및 자아개념 영역",
+      "지능지수(IQ) 및 수능점수 평가 영역"
+    ],
+    "a": 3,
+    "h": "SSCT의 4대 영역: 가족, 성, 대인관계, 자아개념 영역입니다.",
+    "e": "삭스의 문장완성검사(SSCT)는 총 60개 문항으로 구성되며 가족, 성(이성), 대인관계, 자아개념의 4개 영역을 평가합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "객관적 검사(MMPI 등)와 투사적 검사(로르샤흐, TAT 등)를 비교한 설명으로 가장 바르지 않은 것은? [출처: 교재 7장 7.3절 검사 비교, 워크북 7장 7.3절 9번, 2016년 기말 70번]",
+    "o": [
+      "객관적 검사는 반응 채점 및 해석의 객관성이 높고 채점이 용이하다.",
+      "투사적 검사는 검사 자극이 비구조화되어 피검자의 독특한 반응을 유도할 수 있다.",
+      "객관적 검사는 문항 의도가 노출되어 피검자가 방어하거나 사회적으로 바람직하게 포장하기 쉽다.",
+      "투사적 검사는 검사 결과의 객관적 신뢰도와 타당도가 항상 100% 보장되므로 전문가의 해석이 필요 없다."
+    ],
+    "a": 3,
+    "h": "투사적 검사는 신뢰도와 타당도 확보가 상대적으로 까다로우며 임상전문가의 숙련된 전문성이 필수적입니다.",
+    "e": "투사적 검사는 구조화된 검사에 비해 검사 신뢰도와 타당도가 낮다는 한계가 있으며, 임상 전문가의 숙련된 해석 기술이 요구됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 잉크반점 검사를 실제로 실시할 때 거치는 2가지 기본 단계 순서로 올바른 것은? [출처: 교재 7장 7.3절 로르샤흐 실시, 2014년 기말 34번]",
+    "o": [
+      "선택 단계 → 채점 단계",
+      "자유연상 단계 (Free Association) → 정밀조사 단계 (Inquiry)",
+      "그리기 단계 → 질문 단계",
+      "암기 단계 → 회상 단계"
+    ],
+    "a": 1,
+    "h": "카드를 보여주고 첫 반응을 받는 연상 단계 후, 어디서 무엇을 보고 왜 그렇게 느꼈는지 묻는 조사 단계로 진행됩니다.",
+    "e": "로르샤흐 검사 실시는 10장의 카드를 순서대로 제시하며 첫 연상 반응을 기록하는 '자유연상 단계'와, 반응 위치와 결정인자를 묻는 '정밀조사 단계'로 구성됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 엑스너 채점 항목 중 '피검자가 반점의 어느 부위를 보고 반응했는가'를 나타내는 위치(Location) 기호의 연결로 옳지 않은 것은? [출처: 교재 7장 7.3절 로르샤흐 채점 위치, 2015년 기말 34번]",
+    "o": [
+      "W (Whole response) — 반점 전체 반응",
+      "D (Common detail response) — 평범하게 흔히 보고되는 부분 반응",
+      "Dd (Unusual detail response) — 드물게 보고되는 드문 부분 반응",
+      "S (Space response) — 피검자의 지능지수가 상위 1%임을 의미하는 반응"
+    ],
+    "a": 3,
+    "h": "S(Space response)는 잉크반점 주변의 여백(흰 공간)을 활용한 반응입니다.",
+    "e": "로르샤흐 위치 기호에서 S(Space)는 잉크반점 부위가 아닌 배경 여백(흰 공간)을 사용하여 반응한 것을 뜻합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 엑스너 채점 항목 중 '반점의 어떠한 특성(형태, 색채, 음영, 운동 등)에 의해 피검자의 반응이 결정되었는가'를 나타내는 영역은? [출처: 교재 7장 7.3절 결정인자, 2019년 기말 69번]",
+    "o": [
+      "위치 (Location)",
+      "내용 (Content)",
+      "발달수준 (Developmental Level)",
+      "결정인자 (Determinants)"
+    ],
+    "a": 3,
+    "h": "형태(F), 색채(C), 운동(M), 음영(Y, V, T) 등 반응을 일으킨 요인을 결정인자라 부릅니다.",
+    "e": "피검자가 카드를 보고 반응하게 만든 잉크반점의 시각적 속성(형태, 색채, 운동, 음영 등)을 나타내는 것은 '결정인자(Determinants)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "투사적 검사의 이론적 기틀이 되는 심리학적 원리인 '투사(Projection)' 개념을 처음으로 제시한 학자와 설명은? [출처: 교재 7장 7.3절 투사 개념, 15강 강의록, 보충]",
+    "o": [
+      "프로이트 (Freud) — 자신의 수용하기 힘든 무의식적 충동과 갈등을 외부 자극 대상에게 무의식적으로 과사하는 방어기제",
+      "스킨어 (Skinner) — 조작적 조건형성을 위한 보상 체계",
+      "비네 (Binet) — 정신연령을 계산하는 수식",
+      "홀랜드 (Holland) — 직업 흥미를 6개 육각형으로 나눈 모델"
+    ],
+    "a": 0,
+    "h": "정신분석학의 창시자로 무의식적 방어기제로서의 '투사'를 제시했습니다.",
+    "e": "투사(Projection) 개념은 프로이트(Freud)가 제시한 개념으로, 자신의 억압된 무의식적 욕구와 갈등을 외부의 자극에 반영하여 나타내는 현상입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐(Hermann Rorschach)가 1921년 자신의 잉크반점 검사와 연구 결과를 최초로 발표한 저서의 명칭은? [출처: 교재 7장 7.3절 로르샤흐 역사, 15강 강의록, 보충]",
+    "o": [
+      "성격진단학 (Psychodiagnostik)",
+      "꿈의 해석 (Die Traumdeutung)",
+      "정신장애 진단 편람 (DSM)",
+      "인간과 심리 (Human Psychology)"
+    ],
+    "a": 0,
+    "h": "1921년 혜르만 로르샤흐가 출판한 'Psychodiagnostik'입니다.",
+    "e": "로르샤흐는 1921년 저서 『성격진단학(Psychodiagnostik)』을 통해 10장의 잉크반점 카드와 임상 연구 결과를 세상에 발표했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 분산되어 있던 다양한 체계들(클롭퍼, 벡, 피오롭스키 등)을 통합하여 임상적 신뢰도와 객관성을 획기적으로 높인 '엑스너 종합체계(Exner Comprehensive System)'가 발표된 연도는? [출처: 교재 7장 7.3절 엑스너 종합체계, 15강 강의록, 보충]",
+    "o": [
+      "1974년",
+      "1921년",
+      "1905년",
+      "2020년"
+    ],
+    "a": 0,
+    "h": "존 엑스너(John Exner)가 1974년에 종합체계를 발표했습니다.",
+    "e": "존 엑스너(John Exner)는 1974년 로르샤흐 검사의 채점 및 해석을 표준화한 종합체계(Comprehensive System)를 발표하였습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사 실시 중 피검자가 카드를 정방향(0도)이 아닌 옆이나 위아래로 돌려서 보는 행동을 기록하는 시각 기호 표기는? [출처: 교재 7장 7.3절 로르샤흐 실시, 15강 강의록, 보충]",
+    "o": [
+      "카드 회전 기호 (∧, ∨, ＜, ＞)",
+      "T점수 수식 기호",
+      "알파벳 Z 기호",
+      "숫자 100 표기"
+    ],
+    "a": 0,
+    "h": "카드의 윗방향을 기준으로 ∧(0도), ∨(180도), ＜(좌 90도), ＞(우 90도)로 기록합니다.",
+    "e": "피검자가 카드를 돌려볼 때 검사자는 화살표 기호(∧, ∨, ＜, ＞)를 이용하여 카드의 윗방향과 회전 각도를 기록합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 엑스너 채점 기호 중 '인간의 움직임이나 동작'을 나타내는 결정인자 기호는? [출처: 교재 7장 7.3절 결정인자, 15강 강의록, 보충]",
+    "o": [
+      "M (Human Movement)",
+      "FM (Animal Movement)",
+      "m (Inanimate Movement)",
+      "C (Pure Color)"
+    ],
+    "a": 0,
+    "h": "Human Movement의 M 기호입니다.",
+    "e": "로르샤흐 결정인자 중 인간의 운동이나 행동을 지각한 경우 기호 M(Human Movement)으로 채점합니다. (동물 운동은 FM, 비생물 운동은 m)"
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 엑스너 채점 기호 중 '순수 붉은색이나 파스텔 색채만을 바탕으로 꼴이나 형태 없이 반응'했을 때 부여하는 결정인자 기호는? [출처: 교재 7장 7.3절 결정인자, 15강 강의록, 보충]",
+    "o": [
+      "C (Pure Color)",
+      "FC (Form Color)",
+      "CF (Color Form)",
+      "F (Pure Form)"
+    ],
+    "a": 0,
+    "h": "형태(F)가 결여되고 색채(Color)만 우세한 Pure Color 기호 C입니다.",
+    "e": "형태 우세 없이 오직 색채 특성으로만 응답한 반응은 C(Pure Color)로 기호화합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 엑스너 채점 항목 중 일반인 규준집단에서 3명 중 1명 이상(33% 이상)이 공통적으로 보고하는 '통상적·평범 반응'을 뜻하는 기호는? [출처: 교재 7장 7.3절 평범반응, 15강 강의록, 보충]",
+    "o": [
+      "P (Popular response)",
+      "O (Original response)",
+      "W (Whole)",
+      "S (Space)"
+    ],
+    "a": 0,
+    "h": "Popular response의 약자 P입니다.",
+    "e": "일반인들이 대중적으로 공통되게 보고하는 평범한 반응은 P(Popular response) 기호로 채점합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "주제통각검사(TAT)의 도구 구성으로, 전체 카드 수와 피검자 1인당 실제 적용·실시하는 표준 카드 수는? [출처: 교재 7장 7.3절 TAT 구성, 15강 강의록, 보충]",
+    "o": [
+      "전체 31장 카드 중 피검자의 성별·연령에 맞추어 20장 선정 적용",
+      "전체 100장 카드 중 5장 적용",
+      "전체 10장 카드 중 10장 모두 적용",
+      "전체 3장 카드 중 1장 적용"
+    ],
+    "a": 0,
+    "h": "총 31장(그림 30+백지 1) 중 피검자 성별/연령(M, F, B, G)에 맞게 20장을 실시합니다.",
+    "e": "TAT는 총 31장(그림 30장, 백지 1장)의 카드로 구성되며, 피검자의 성별과 연령에 맞는 20장의 카드를 선정하여 실시합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "주제통각검사(TAT) 카드 뒷면에 인쇄된 기호 중 '성인 남성용 카드'와 '성인 여성용 카드'를 나타내는 알파벳 기호는? [출처: 교재 7장 7.3절 TAT 카테고리, 15강 강의록, 보충]",
+    "o": [
+      "M (Male) — F (Female)",
+      "B (Boy) — G (Girl)",
+      "S (Space) — P (Popular)",
+      "T (T-score) — Z (Z-score)"
+    ],
+    "a": 0,
+    "h": "Male(성인 남성), Female(성인 여성), Boy(소녀/소년 아동) 기호 구분입니다.",
+    "e": "TAT 카드 뒤에는 M(성인 남성), F(성인 여성), B(소년), G(소녀) 기호가 표기되어 피검자 대상에 맞게 구분 사용됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "주제통각검사(TAT)를 진행할 때 상담자가 피검자에게 지시하는 '이야기 구성의 4대 핵심 요소'에 해당하지 않는 것은? [출처: 교재 7장 7.3절 TAT 실시 지시, 15강 강의록, 보충]",
+    "o": [
+      "그림 속 인물들의 수리 계산 능력 및 백분위 점수",
+      "그림에 이르게 된 과거 선행 사건",
+      "그림 속 인물들이 느끼고 생각하는 정서와 생각",
+      "이 이야기의 종결 및 미래 결과"
+    ],
+    "a": 0,
+    "h": "과거(선행사건), 현재(느낌/생각/상황), 미래(결말) 3시제와 인물 정서를 구성하게 합니다.",
+    "e": "TAT 실시 시 피검자에게 1)과거 선행 사건, 2)현재 일어나는 일, 3)인물들의 생각과 느낌, 4)미래 결과의 이야기를 자유롭게 구성하도록 지시합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "머레이(Murray)의 욕구-압력 이론에서 '환경으로부터 주어지는 물리적·사회적 자극이나 압박 및 위협'을 뜻하는 용어는? [출처: 교재 7장 7.3절 욕구-압력 이론, 15강 강의록, 보충]",
+    "o": [
+      "압력 (Press)",
+      "욕구 (Need)",
+      "통각 (Apperception)",
+      "투사 (Projection)"
+    ],
+    "a": 0,
+    "h": "개인 내면의 욕구(Need)에 대비되는 외부 환경의 자극/강요(Press)입니다.",
+    "e": "머레이 이론에서 개인이 경험하는 외부 환경의 자극, 조건, 압박이나 위협을 '압력(Press)'이라 부릅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아동의 발달적 특성에 맞추어 동물의 그림 카드로 제작된 아동용 주제통각검사의 명칭과 개발자는? [출처: 교재 7장 7.3절 CAT, 15강 강의록, 보충]",
+    "o": [
+      "아동용 주제통각검사 (CAT) — 벨락 (Bellak)",
+      "노인용 주제통각검사 (SAT) — 벅 (Buck)",
+      "학령기 적성검사 — 비네 (Binet)",
+      "아동용 성격검사 — 카텔 (Cattell)"
+    ],
+    "a": 0,
+    "h": "Children's Apperception Test의 약자인 CAT를 개발한 벨락(Bellak)입니다.",
+    "e": "3~10세 아동을 위해 동물이 주인공으로 등장하는 10장의 카드로 구성된 검사는 벨락(Bellak)이 개발한 'CAT(아동용 통각검사)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "노년기 어르신들의 특성(고독, 질병, 죽음, 부양 문제)을 반영하여 제작된 노인용 주제통각검사의 약칭은? [출처: 교재 7장 7.3절 SAT, 15강 강의록, 보충]",
+    "o": [
+      "SAT (Senior Apperception Test)",
+      "CAT (Children's Apperception Test)",
+      "TAT (Thematic Apperception Test)",
+      "HTP (House-Tree-Person Test)"
+    ],
+    "a": 0,
+    "h": "Senior / Gerontological Apperception Test의 약자인 SAT입니다.",
+    "e": "노년기 어르신들의 노화, 퇴직, 고독, 건강 문제를 탐색하기 위한 노인용 검사는 SAT입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "집-나무-사람(HTP) 검사를 처음 창안한 임상심리학자와 발표 연도는? [출처: 교재 7장 7.3절 HTP 역사, 15강 강의록, 보충]",
+    "o": [
+      "존 벅 (John Buck) — 1948년",
+      "아론 벡 (Aron Beck) — 1996년",
+      "혜르만 로르샤흐 — 1921년",
+      "존 엑스너 — 1974년"
+    ],
+    "a": 0,
+    "h": "John Buck이 1948년에 개발한 대표적 투사적 그림 검사입니다.",
+    "e": "HTP 검사는 1948년 존 벅(John Buck)에 의해 창안된 대표적인 그림 투사검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "HTP 검사 실시에서 그림 그리기가 모두 종료된 후 상담자가 그림에 대해 추가적인 질문을 던져 내면 의도를 탐색하는 2단계 과정의 명칭은? [출처: 교재 7장 7.3절 PDI, 15강 강의록, 보충]",
+    "o": [
+      "사후 면담 / 사후 질문 단계 (PDI: Post-Drawing Interrogation)",
+      "자유연상 단계",
+      "컴퓨터 자동 채점 단계",
+      "수능 면접 평가 단계"
+    ],
+    "a": 0,
+    "h": "Post-Drawing Interrogation의 약자인 PDI 과정입니다.",
+    "e": "그림을 다 그린 후 그림에 관한 구체적 의미와 내면 의도를 묻는 사후 질문 단계를 'PDI(Post-Drawing Interrogation)'라고 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "HTP 검사에서 그림의 '크기(Size)'가 관찰용지의 2/3 이상으로 지나치게 거대하게 그려졌을 때 의미하는 피검자의 심리적 특성은? [출처: 교재 7장 7.3절 HTP 해석, 15강 음성, 보충]",
+    "o": [
+      "과대망상, 공격성, 환경에 대한 과도한 활동성 및 통제력 부족",
+      "극심한 위축, 열등감, 우울 및 자아 위축",
+      "완벽한 논리적 정서 안정",
+      "언어 지능지수가 상위 0.1%임"
+    ],
+    "a": 0,
+    "h": "지나치게 큰 그림은 과대성, 공격성, 환경에 과도히 반응하는 성향을 나타냅니다.",
+    "e": "HTP에서 도화지를 가득 채울 정도로 거대한 그림은 과대망상, 공격성, 환경 통제 불능 및 보상 행동을 시사합니다. (너무 작으면 위축, 우울)"
+  },
+  {
+    "type": "내용이해",
+    "q": "집-나무-사람(HTP) 검사를 표준적인 방법으로 실시할 때, 피검자에게 그림을 그리도록 안내하는 올바른 기본 순서는? [출처: 교재 7장 7.3절 HTP 실시방법, 워크북 7장 7.3절 9번]",
+    "o": [
+      "자유화 → 인물 → 나무 → 집",
+      "집 → 나무 → 인물(사람) → 자유화",
+      "나무 → 집 → 자유화 → 인물",
+      "인물 → 집 → 나무 → 자유화"
+    ],
+    "a": 1,
+    "h": "건물(집)을 먼저 그린 후 식물(나무), 사람(인물), 자유화 순으로 진행됩니다.",
+    "e": "HTP 검사 실시 시 검사자는 피검자로 하여금 집, 나무, 인물, 자유화를 차례로 그리도록 안내합니다. (교재 7장 7.3절 p.287, 워크북 7장 7.3절 9번)"
+  },
+  {
+    "type": "내용이해",
+    "q": "HTP 검사에서 집(House)의 '창문(Window)'이나 '문(Door)'을 지나치게 굳게 닫히거나 자물쇠가 채워진 모습으로 그렸을 때의 심리적 의미는? [출처: 교재 7장 7.3절 HTP 세부상징, 15강 음성, 보충]",
+    "o": [
+      "외부 세계 및 타인과의 대인관계 교류에 대한 강한 경계, 회피 및 방어성",
+      "외향적이고 적극적인 사교성",
+      "언어적 지능의 우수성",
+      "가족 간의 완벽한 화목"
+    ],
+    "a": 0,
+    "h": "문과 창문은 외부 환경과의 의사소통 및 대인관계 교류 통로를 상징합니다.",
+    "e": "집의 문과 창문은 외부 세계와의 접촉과 환경 교류를 상징하므로 닫히거나 없으면 경계성, 방어성, 관계 회피를 뜻합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "HTP 검사에서 나무(Tree)의 '줄기(Trunk)'와 '뿌리(Root)'가 의미하는 주요 성격적 요소는? [출처: 교재 7장 7.3절 HTP 세부상징, 15강 음성, 보충]",
+    "o": [
+      "줄기: 자아강도(Ego-strength) 및 내적 자원 / 뿌리: 본능적 자아 및 과거/현실에의 접지력",
+      "줄기: 수능 점수 / 뿌리: 외모 자부심",
+      "줄기: 우울증 척도 / 뿌리: 조현병 척도",
+      "둘 다 아무런 의미가 없음"
+    ],
+    "a": 0,
+    "h": "줄기는 성격을 지지하는 자아강도, 뿌리는 현실 접지력 및 기초적인 내적 자원을 뜻합니다.",
+    "e": "나무의 줄기는 내적 자존감과 자아강도를, 뿌리는 현실에 대한 뿌리내림(접지력)과 본능적 기반을 상징합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "HTP 검사에서 사람(Person)을 그릴 때 '손(Hand)'이나 '팔(Arm)'을 생략하거나 주머니 속에 숨겨진 상태로 그릴 때의 심리적 의미는? [출처: 교재 7장 7.3절 HTP 세부상징, 15강 음성, 보충]",
+    "o": [
+      "환경을 조작하거나 대인관계를 이끌어가는 수행 능력에 대한 무력감, 죄책감 또는 부적절감",
+      "타인을 조종하는 뛰어난 권력감",
+      "수리적 능력의 결함",
+      "신체 근육의 이상 완벽성"
+    ],
+    "a": 0,
+    "h": "손과 팔은 환경 접촉 및 대인관계 조작 도구이므로 생략/숨김은 무력감과 관계 부적절감을 뜻합니다.",
+    "e": "손과 팔은 환경을 조작하고 사회적 관계를 형성하는 기관이므로, 이를 생략하거나 숨기는 것은 관계적 무력감과 도피 욕구를 반영합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "버튼(Burns)이 개발하였으며, 가족들이 무엇인가를 하고 있는 움직이는 모습을 그리게 하여 가족 간의 정서적 역동과 친밀도를 파악하는 그림 검사는? [출처: 교재 7장 7.3절 KFD, 15강 강의록, 보충]",
+    "o": [
+      "동적 가족화 (KFD: Kinetic Family Drawing)",
+      "동적 집-나무-사람 검사 (K-HTP)",
+      "로르샤흐 검사",
+      "벡 우울척도"
+    ],
+    "a": 0,
+    "h": "Kinetic Family Drawing의 약자인 KFD 검사입니다.",
+    "e": "가족 구성원 전체가 무언가를 하고 있는 동적 포즈를 그리게 하여 가족 간 상호작용과 역동을 파악하는 검사는 '동적 가족화(KFD)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "문장완성검사(SCT)의 주요 특징 및 검사 자극의 성격에 대한 설명으로 올바른 것은? [출처: 교재 7장 7.3절 SCT 특징, 15강 강의록, 보충]",
+    "o": [
+      "완성되지 않은 문장 줄기(Sentence stem)를 제시하는 '반투사적(Semi-projective)' 검사이다.",
+      "오직 잉크반점 그림으로만 구성된 투사검사이다.",
+      "실시 시간이 10시간 이상 소요되는 최고난도 검사이다.",
+      "피검자의 반응을 지필이 아닌 뇌파로만 측정한다."
+    ],
+    "a": 0,
+    "h": "문장 줄기가 제시되어 다른 완전 모호한 자극에 비해 '반투사적' 특성을 갖습니다.",
+    "e": "문장완성검사(SCT)는 미완성된 문장 줄기를 제시하므로 모호성이 약간 낮아 '반투사적 검사'로 분류됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "문장완성검사(SCT)가 다른 그림이나 잉크반점 투사검사에 비해 가지는 실무적 장점은? [출처: 교재 7장 7.3절 SCT 장점, 15강 강의록, 보충]",
+    "o": [
+      "집단 실시가 가능하며, 검사 시간이 비교적 짧고, 피검자의 주요 정서적 관심사를 간편하게 파악할 수 있다.",
+      "검사자의 주관이 0%로 완벽히 자동 기계 채점된다.",
+      "피검자의 지능지수를 정확히 측정해 준다.",
+      "피검자의 성격이 평생 변하지 않도록 고정시켜 준다."
+    ],
+    "a": 0,
+    "h": "글쓰기가 가능한 피검자에게 집단 실시가 가능하며 짧은 시간 내에 탐색이 가능합니다.",
+    "e": "SCT는 집단 검사가 가능하고 실시가 비교적 간단하며 피검자의 현재 정서와 태도를 빠르게 파악할 수 있는 실무적 장점이 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아동·청소년용 문장완성검사(SCT) 문항의 예시로 가장 적절한 형태는? [출처: 교재 7장 7.3절 SCT 문항 예시, 15강 강의록, 보충]",
+    "o": [
+      "\"나의 어머니는 ____________\", \"내가 가장 두려워하는 것은 ____________\"",
+      "\"1 + 1 = ____________\"",
+      "\"대한민국의 수도는 ____________\"",
+      "\"다음 잉크반점이 무엇으로 보이는가? ____________\""
+    ],
+    "a": 0,
+    "h": "자신의 느낌과 생각을 이어 쓰도록 유도하는 미완성 문장 줄기입니다.",
+    "e": "SCT는 '나의 어머니는 ~', '내가 가장 두려워하는 것은 ~' 등 미완성 문장을 자유롭게 완성하도록 구성되어 있습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "투사적 검사를 종합 임상 진단 현장에서 활용할 때 상담자가 유지해야 하는 올바른 통합 지침은? [출처: 교재 7장 7.3절 검사의 통합 활용, 15강 음성, 보충]",
+    "o": [
+      "투사적 검사의 풍부한 무의식 정보와 객관적 검사(MMPI-2 등)의 신뢰로운 정량 정보를 상호보완적으로 통합하여 다면평가를 시행한다.",
+      "투사적 검사 결과만을 100% 신봉하고 객관적 검사는 전면 폐기한다.",
+      "객관적 검사 결과만을 100% 신봉하고 투사적 검사는 가짜 과학으로 비난한다.",
+      "상담자는 두 검사를 모두 수행하지 않고 관상과 사주팔자로 진단한다."
+    ],
+    "a": 0,
+    "h": "투사적 검사의 깊이 있는 정서 정보와 객관적 검사의 신뢰도 정보를 상호보완하여 통합 해석합니다.",
+    "e": "임상 현장에서는 투사적 검사의 무의식/정서 역동 정보와 객관적 검사의 통계적/정량 정보를 통합하는 다면적 평가(Battery Test)를 수행하는 것이 바람직합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 엑스너 종합체계에서 잉크반점의 형태(Form)와 색채(Color)가 함께 반영된 반응 중 '형태가 색채보다 우세하게 관찰된' 결정인자 기호는? [출처: 교재 7장 7.3절 FC 척도, 15강 강의록, 보충]",
+    "o": [
+      "FC (Form Color)",
+      "CF (Color Form)",
+      "C (Pure Color)",
+      "Cn (Color Naming)"
+    ],
+    "a": 0,
+    "h": "형태(F)가 앞에 오고 색채(C)가 뒤에 오는 FC 기호입니다.",
+    "e": "형태가 정교하게 수반되고 색채가 반영된 반응은 FC(Form Color)로 기록되며, 정서적 통제가 잘 이루어짐을 나타냅니다. (CF는 색채 우세, C는 순수 색채)"
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 결정인자 중 '동물(Animal)의 움직임이나 동작'을 지각했을 때 부여하는 기호는? [출처: 교재 7장 7.3절 결정인자 FM, 15강 강의록, 보충]",
+    "o": [
+      "FM (Animal Movement)",
+      "M (Human Movement)",
+      "m (Inanimate Movement)",
+      "V (Vista)"
+    ],
+    "a": 0,
+    "h": "동물(Animal)의 운동 반응을 나타내는 FM 기호입니다.",
+    "e": "동물의 생동감 있는 움직임을 지각했을 때는 결정인자 기호 FM(Animal Movement)을 부여합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사의 결정인자 중 '바람에 날리는 깃발, 떨어지는 물방울 등 비생물체(Inanimate)의 운동'을 나타내는 기호는? [출처: 교재 7장 7.3절 결정인자 m, 15강 강의록, 보충]",
+    "o": [
+      "m (Inanimate Movement)",
+      "M (Human Movement)",
+      "FM (Animal Movement)",
+      "T (Texture)"
+    ],
+    "a": 0,
+    "h": "무생물체/비생물체의 운동 반응 기호 소문자 m입니다.",
+    "e": "시계의 움직임, 떨어지는 물방울 등 무생물의 운동 지각은 소문자 m으로 기호화하며 상황적 긴장과 스트레스를 반영합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사에서 반응 내용(Content) 카테고리 중 '인간의 전신이나 일부'를 지각한 반응에 부여하는 기호는? [출처: 교재 7장 7.3절 반응내용 H, 15강 강의록, 보충]",
+    "o": [
+      "H (Human)",
+      "A (Animal)",
+      "An (Anatomy)",
+      "Art (Art)"
+    ],
+    "a": 0,
+    "h": "Human의 약자 H 기호입니다.",
+    "e": "반응 내용이 사람(인간) 형태인 경우 H(Human) 기호로 채점합니다. (동물은 A, 장기/해부는 An)"
+  },
+  {
+    "type": "개념확인",
+    "q": "로르샤흐 검사에서 반응 내용 카테고리 중 '동물의 모습'을 지각한 반응에 부여하는 기호는? [출처: 교재 7장 7.3절 반응내용 A, 15강 강의록, 보충]",
+    "o": [
+      "A (Animal)",
+      "H (Human)",
+      "C (Color)",
+      "W (Whole)"
+    ],
+    "a": 0,
+    "h": "Animal의 약자 A 기호입니다.",
+    "e": "반응 내용이 동물 형태인 경우 A(Animal) 기호로 채점합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "주제통각검사(TAT) 해석 시 피검자가 이야기 속에서 자신과 가장 동일시하는 주요 인물을 칭하는 용어는? [출처: 교재 7장 7.3절 TAT 주인공, 15강 강의록, 보충]",
+    "o": [
+      "주인공 (Hero / Main Character)",
+      "악당 (Villain)",
+      "관찰자 (Observer)",
+      "검사자 (Examiner)"
+    ],
+    "a": 0,
+    "h": "피검자가 자신의 욕구와 감정을 투사하여 이야기를 이끌어가는 중심인물(Hero)입니다.",
+    "e": "TAT 분석 시 피검자가 자신의 성격과 동기를 투사하여 스토리의 중심으로 삼는 인물을 '주인공(Hero)'이라고 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "HTP 검사에서 '집(House)'을 그릴 때 '지붕(Roof)'이 상징하는 피검자의 주요 심리적 영역은? [출처: 교재 7장 7.3절 HTP 지붕, 15강 음성, 보충]",
+    "o": [
+      "공상, 공상적 생활, 정신적 삶 및 상상력 영역",
+      "대인관계적 공격성",
+      "수리적 암기 능력",
+      "신체 장기의 생리학적 기능"
+    ],
+    "a": 0,
+    "h": "집의 머리에 해당하는 지붕은 피검자의 정신적 삶, 공상, 생각 영역을 나타냅니다.",
+    "e": "HTP에서 집의 지붕은 피검자의 내적 공상, 상상력, 정신적 삶의 영역을 상징합니다. (지붕이 너무 크면 공상 몰입)"
+  },
+  {
+    "type": "개념확인",
+    "q": "HTP 검사에서 '집(House)'의 '벽(Wall)'이 나타내는 심리적 상징 의미는? [출처: 교재 7장 7.3절 HTP 벽, 15강 음성, 보충]",
+    "o": [
+      "자아의 통합성, 자아 강도 및 자아 통제력",
+      "외부와의 언어적 의사소통",
+      "가족 간의 금전 관계",
+      "피검자의 학력 수준"
+    ],
+    "a": 0,
+    "h": "집의 구조를 받치는 벽은 자아의 통제력과 통합성을 상징합니다.",
+    "e": "집의 벽은 자아의 강도, 자아 통합성 및 외부 자극에 대한 통제력을 상징합니다. (벽선이 얇고 부실하면 자아 약화)"
+  },
+  {
+    "type": "개념확인",
+    "q": "HTP 검사에서 '나무(Tree)'의 '가지(Branch)'가 의미하는 주요 심리적 상징은? [출처: 교재 7장 7.3절 HTP 가지, 15강 음성, 보충]",
+    "o": [
+      "환경과의 접촉, 목표 달성을 위한 노력, 환경 수용성 및 성취 신동",
+      "무의식 속의 우울감 단독 측정",
+      "혈액형 분류",
+      "청각 민감성"
+    ],
+    "a": 0,
+    "h": "밖으로 뻗어 나가는 가지는 환경과의 성취 접촉 및 환경과의 교류 능력을 상징합니다.",
+    "e": "나무의 가지는 환경과의 적극적 접촉, 목표를 향한 에너지 뻗침 및 환경 수용성을 나타냅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "투사적 검사의 채점 및 해석에서 가장 핵심적인 역할을 담당하며 요구되는 요건은? [출처: 교재 7장 7.3절 투사적 검사 유의점, 15강 강의록, 보충]",
+    "o": [
+      "검사자의 충분한 수련과 임상적 경험, 전문적 해석 역량",
+      "컴퓨터 채점 프로그램의 100% 자동 출력",
+      "피검자 스스로의 자가 채점 능력",
+      "수능 시험 수리 영역 만점 자격"
+    ],
+    "a": 0,
+    "h": "투사적 검사는 검사자의 주관 개입 방지를 위해 숙련된 전문 임상 경험이 절대적입니다.",
+    "e": "투사적 검사는 신뢰도 확보와 오류 방지를 위해 임상 심리학적 수련과 경험을 갖춘 전문 임상가의 해석 역량이 필수적입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "15강 「정신건강 관련 투사적 검사」의 전체 교재 및 워크북 주요 학습 범위로 올바른 것은? [출처: 강 ↔ 교재 절 대응표]",
+    "o": [
+      "교재 7장 7.3절 (p.281~) 로르샤흐, 주제통각검사(TAT), 집-나무-사람 검사(HTP), 문장완성검사(SCT) 및 워크북 7장 7.3절",
+      "교재 6장 MBTI 성격유형 16가지 전체",
+      "교재 4장 웩슬러 지능검사 소검사 분석",
+      "교재 2장 변산도와 정규분포 통계 공식"
+    ],
+    "a": 0,
+    "h": "15강은 교재 7장 7.3절 정신건강 관련 투사적 검사 전체를 학습합니다.",
+    "e": "15강의 학습 범위는 교재 7장 7.3절(정신건강 관련 투사적 검사)로, 로르샤흐, TAT, HTP, SCT 등을 다룹니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 중 투사형 검사(Projective test)가 아닌 것은? [출처: 2019년 기말 38번]",
+    "o": [
+      "벤더형태검사 (BGT)",
+      "카우프만 지능검사 (K-ABC)",
+      "문장완성검사 (SCT)",
+      "주제통각검사 (TAT)"
+    ],
+    "a": 1,
+    "h": "K-ABC는 피검자의 아동 인지능력을 측정하는 규준참조 지능검사입니다.",
+    "e": "카우프만 지능검사(K-ABC)는 구조화된 객관적 지능검사이며, BGT, SCT, TAT 등은 투사형 검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 설명 중 적절하지 않은 것은? [출처: 2016년 기말 39번]",
+    "o": [
+      "관찰자 평정자료, 평정척도, 행동관찰법, 생리학적 측정 등이 비표준화 검사에 해당된다.",
+      "로르샤흐 잉크반점검사, 주제통각검사 등은 투사형 검사이다.",
+      "비표준화 검사는 표준화 검사에 비해 신뢰도와 타당도가 떨어진다.",
+      "비표준화 검사는 표준화되어 있지 않아 상담 장면에서는 절대 사용하지 않는다."
+    ],
+    "a": 3,
+    "h": "비표준화 검사나 투사형 검사도 상담 현장에서 매우 유용하게 보충 검사로 쓰입니다.",
+    "e": "비표준화 검사나 투사형 검사가 표준화검사에 비해 신뢰도·타당도가 다소 낮더라도, 내담자의 풍부한 심리 상태 파악을 위해 상담 장면에서 널리 활용되고 있습니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

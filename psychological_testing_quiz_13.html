@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 13, title: "정신건강의 이해" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "개념확인",
+    "q": "다음 중 이상심리와 이상행동의 원인을 설명하는 관점에 해당하는 이론은? '선천적으로 가지고 태어난 자아실현경향성이 차단 또는 봉쇄되는 경우 이상심리 및 행동이 발생한다. 현실 자아와 이상적 자아의 괴리가 너무 크거나 부모의 가치조건에 맞추어 살아가는 경우 문제가 발생한다.' [출처: 교재 7장 7.1절 심리학적 관점, 워크북 7장 7.1절 1번]",
+    "o": [
+      "정신역동이론",
+      "인간중심이론",
+      "행동주의이론",
+      "인지적 이론"
+    ],
+    "a": 1,
+    "h": "로저스(Rogers)가 주창한 이론으로 선천적 자아실현경향성의 억압을 이상행동 원인으로 봅니다.",
+    "e": "선천적 자아실현경향성이 차단되고 가치조건에 맞추어 살아가면서 현실 자아와 이상적 자아의 괴리가 커질 때 이상행동이 발생한다고 본 학파는 로저스의 '인간중심이론'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강의 정상성과 이상성을 판단하는 준거 중 다음 설명에 해당하는 것은? '과도한 불안과 우울로 일상생활을 영위하기 어렵고 그로 인해 본인이 해야 할 사회적·직업적 역할을 수행하지 못하고 있다면 이는 정신이 건강하지 못한 이상 상태로 보아야 한다.' [출처: 교재 7장 7.1절 판별기준, 워크북 7장 7.1절 2번]",
+    "o": [
+      "적응기능의 저하와 손상",
+      "사회문화적 규범으로부터 일탈",
+      "주관적 불편감과 고통",
+      "통계적 평균으로부터의 일탈"
+    ],
+    "a": 0,
+    "h": "사회적·직업적 역할을 수행하지 못하고 일상생활 영위가 어려워진 기능적 손상을 뜻합니다.",
+    "e": "과도한 불안이나 우울로 일상생활 및 직업적·사회적 역할을 수행하지 못하는 것은 '적응기능의 저하와 손상' 준거에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강의 정상성과 이상성을 판단하는 기준 중 다음 설명에 해당하는 것은? '개인이 경험하고 있는 심리적·신체적 고통의 정도가 얼마나 심한가에 따라 정상과 이상을 구분하는 것이다. 불안, 우울, 죄책감 등은 남이 보기에는 약한 것 같아도 본인의 주관적 체험으로는 대단히 고통스러울 수 있다.' [출처: 교재 7장 7.1절 판별기준, 워크북 7장 7.1절 3번]",
+    "o": [
+      "통계적 평균으로부터의 일탈",
+      "사회문화적 규범으로부터의 일탈",
+      "적응기능의 저하와 손상",
+      "주관적 불편감과 고통"
+    ],
+    "a": 3,
+    "h": "개인 스스로 느끼는 자각적인 고통과 심리적 불편감을 기준으로 삼는 준거입니다.",
+    "e": "외부 관찰 증상보다 본인 스스로 지각하는 심리적·신체적 고통과 불편함의 정도에 근거하여 이상을 판별하는 준거는 '주관적 불편감과 고통'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "이상심리와 행동을 설명하는 관점에 대한 설명으로 올바르지 않은 것은? [출처: 교재 7장 7.1절 이상심리 설명관점, 워크북 7장 7.1절 4번]",
+    "o": [
+      "스트레스-취약성 모델은 생물의학적 관점에 단독으로 해당한다.",
+      "현대 청소년이 과거에 비해 우울증 비율이 높다는 설명은 사회문화적 관점에 해당한다.",
+      "인지적 이론은 심리학적 관점에 해당한다.",
+      "통합적 관점은 여러 요인들이 종합적으로 이상심리 및 행동과 관련되어 있다는 관점이다."
+    ],
+    "a": 0,
+    "h": "스트레스-취약성 모델은 생물학적 요인과 심리사회적 스트레스를 함께 고려하는 관점입니다.",
+    "e": "스트레스-취약성 모델은 개인이 가진 생물학적/심리사회적 취약성과 환경적 스트레스 간의 상호작용을 고려하는 대표적인 '통합적 관점'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강 문제를 진단하고 분류하는 목적으로 가장 적절하지 않은 것은? [출처: 교재 7장 7.1절 정신건강 문제의 분류, 워크북 7장 7.1절 5번]",
+    "o": [
+      "관련 전문가들이 상호 간에 명확하게 이해하고 효과적인 의사소통을 할 수 있게 한다.",
+      "정신장애에 관한 효과적인 정보를 연구자나 임상가에게 제공한다.",
+      "정신장애의 특성에 관한 조직된 정보를 제공하지만, 장애의 원인, 치료법, 예후 등을 예측하는 데에는 아무런 도움이 되지 않는다.",
+      "과학적 연구를 바탕으로 한 이론적 체계를 구축하는 근거를 마련한다."
+    ],
+    "a": 2,
+    "h": "분류체계는 장애의 임상적 특성 기술뿐 아니라 원인, 치료법, 예후 추정을 용이하게 돕습니다.",
+    "e": "정신장애 분류체계는 장애의 특성 정리뿐만 아니라 원인 추정, 적절한 치료법 선택, 예후 예측을 용이하게 해 줍니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정신장애를 진단할 때 상담자 혹은 임상가가 유의해야 할 올바른 사항이 아닌 것은? [출처: 교재 7장 7.1절 진단 및 분류의 제한점, 워크북 7장 7.1절 6번]",
+    "o": [
+      "낙인 찍기(labeling)의 부작용에 유의해야 한다.",
+      "사람 자체보다 진단명 코드를 절대적 근거로 삼아 사람을 가두고 판단해야 한다.",
+      "진단명이 편견을 갖게 하는 원천이 될 수 있음을 늘 유의해야 한다.",
+      "진단명에 매이지 않고 있는 그대로의 인간을 들여다보는 태도가 필요하다."
+    ],
+    "a": 1,
+    "h": "진단명 낙인에 가두지 않고 내담자 인격 그대로를 파악하는 태도가 중요합니다.",
+    "e": "진단명이 내담자에 대한 편견이나 낙인의 원천이 되지 않도록 유의해야 하며, 진단명에 갇힌 시각이 아니라 사람 자체를 바라보고 이해하는 태도가 필요합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강의 정상과 비정상(이상)을 판별하는 준거 중 다음 설명에 해당하는 것은? '지적장애, 우울증 등을 진단할 때, 개인이 위치하는 점수가 평균으로부터 얼마나 이탈되었는가를 기준으로 이상을 변별하는 경우' [출처: 교재 7장 7.1절 판별기준, 워크북 7장 7.1절 7번, 2016년 기말 65번, 2019년 기말 67번]",
+    "o": [
+      "적응기능의 저하와 손상",
+      "통계적 평균으로부터의 일탈 (통계적 준거)",
+      "주관적 불편감과 고통",
+      "사회문화적 규범으로부터 일탈"
+    ],
+    "a": 1,
+    "h": "표준화 검사의 점수 분포에서 평균으로부터 현저히 이탈했는지를 기준으로 판단합니다.",
+    "e": "개인의 점수가 통계적 평균으로부터 얼마만큼 극단값(예: 2표준편차 이상)으로 이탈했는지를 바탕으로 판별하는 것은 '통계적 평균으로부터의 일탈(통계적 준거)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "미국정신의학회(APA)가 제정한 정신장애 진단 및 통계 편람인 'DSM-5'에 관한 설명으로 옳지 않은 것은? [출처: 교재 7장 7.1절 DSM-5, 워크북 7장 7.1절 8번, 2017년 기말 66번, 2019년 기말 68번]",
+    "o": [
+      "다축진단체계를 폐지하고 범주적 진단에 차원적 평가를 통합한 혼합모델을 적용하였다.",
+      "정신장애를 20개 범주로 나누고 300개 이상의 하위 장애로 명료화하였다.",
+      "장애의 원인 규명보다는 이상행동의 형태나 증상군을 기술하는 접근에 머무른다.",
+      "세계보건기구(WHO)에서 발간한 유럽 중심의 전체 신체 질환 통계 체계이다."
+    ],
+    "a": 3,
+    "h": "세계보건기구(WHO)가 발간한 신체 질환 포함 통계 체계는 ICD입니다.",
+    "e": "세계보건기구(WHO)에서 공인한 질병통계 체계는 ICD(국제질병분류)이며, DSM-5는 미국정신의학회(APA)에서 개발한 정신장애 전용 진단 편람입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "과거 DSM-IV의 다축진단체계(5개 축) 중 '성격장애 및 지적장애'를 진단하고 평가하던 축은? [출처: 교재 7장 7.1절 분류체계, 2013년 기말 30번]",
+    "o": [
+      "축 1 (Axis I)",
+      "축 2 (Axis II)",
+      "축 3 (Axis III)",
+      "축 4 (Axis IV)"
+    ],
+    "a": 1,
+    "h": "축 1은 임상적 장애, 축 2는 성격장애 및 지적장애를 평가했습니다.",
+    "e": "DSM-IV 다축체계에서 축 1은 임상적 장애, 축 2는 성격장애 및 지적장애, 축 3은 일반적 의학적 상태, 축 4는 심리사회적·환경적 문제를 평가했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "과거 DSM-IV의 다축진단체계 중 '우울증, 불안장애, 조현병 등 임상적 증상 내용에 근거한 임상적 장애'를 평가하던 축은? [출처: 교재 7장 7.1절 분류체계, 2014년 기말 30번]",
+    "o": [
+      "축 1 (Axis I)",
+      "축 2 (Axis II)",
+      "축 3 (Axis III)",
+      "축 4 (Axis IV)"
+    ],
+    "a": 0,
+    "h": "주된 임상적 정서·정신 장애 증상을 진단하던 1번째 축입니다.",
+    "e": "임상적 증상군에 근거한 정신장애(임상적 장애)를 진단하는 축은 '축 1'이었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "미국정신의학회의 DSM-5 분류체계가 가지는 진단적 특징에 관한 설명으로 가장 적절한 것은? [출처: 교재 7장 7.1절 DSM-5, 2016년 기말 66번, 2018년 기말 67번]",
+    "o": [
+      "특정 심리치료 이론에 치우치지 않고 무이론적으로 심리적 증상과 증후군 위주로 진단기준을 제시한다.",
+      "프로이트의 정신분석이론 1가지에만 전적으로 기초하여 분류한다.",
+      "5개의 다축체계를 더욱 강화하여 축 10까지 확장하였다.",
+      "장애의 생물학적 유전 원인을 100% 완벽히 밝혀 설명한다."
+    ],
+    "a": 0,
+    "h": "특정 원인 이론에 치우치지 않는 무이론적(atheoretical) 현상 기술적 분류입니다.",
+    "e": "DSM-5는 특정 원인 이론에 치우치지 않고 임상전문가 간 진단 신뢰도를 높이기 위해 겉으로 드러나는 심리적 증상과 증후군 위주로 진단기준을 기술합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "'염색체 이상 등 유전적 요인, 대뇌의 구조적 손상, 뇌내 신경전달물질(도파민 등)의 과다 또는 결핍'과 관련하여 이상행동과 정신장애를 설명하는 관점은? [출처: 교재 7장 7.1절 생물의학적 관점, 2017년 기말 65번]",
+    "o": [
+      "심리학적 관점",
+      "생물의학적 관점",
+      "통합적 관점",
+      "사회문화적 관점"
+    ],
+    "a": 1,
+    "h": "신체적·생물학적 원인(유전, 뇌손상, 신경전달물질)에 집중하는 의학적 시각입니다.",
+    "e": "유전, 대뇌 손상, 신경전달물질의 불균형 등 신체 생리적 요인에서 이상행동의 원인을 찾는 시각은 '생물의학적 관점'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "개인의 선행된 취약성(생물학적·심리사회적 요인)과 환경에서 주어지는 스트레스 간의 상호작용 결과로 정신질환의 발생을 설명하는 '스트레스-취약성 모델'과 관련된 관점은? [출처: 교재 7장 7.1절 통합적 관점, 2018년 기말 66번]",
+    "o": [
+      "생물의학적 관점",
+      "행동주의적 관점",
+      "통합적 관점",
+      "사회문화적 관점"
+    ],
+    "a": 2,
+    "h": "다양한 내부 요인과 외부 환경 요인을 종합 고려하는 관점입니다.",
+    "e": "개인의 취약성과 심리사회적 스트레스의 상호작용으로 장애 발생을 설명하는 '스트레스-취약성 모델'은 '통합적 관점'의 대표적 모델입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "현대적 관점에서 정의하는 '정신건강(Mental Health)'의 개념으로 가장 바른 것은? [출처: 교재 7장 7.1절 정신건강의 이해, 13강 강의록, 보충]",
+    "o": [
+      "단순히 정신질환이나 장애가 없는 상태만을 의미한다.",
+      "단순한 질병의 부재를 넘어 개인이 잠재력을 실현하고 스트레스를 건강하게 관리하며 웰빙을 유지하는 최적의 상태이다.",
+      "IQ 지능지수가 상위 1% 안에 들어가는 상태를 의미한다.",
+      "평생 동안 단 1초도 슬픔이나 불안을 느끼지 않는 상태이다."
+    ],
+    "a": 1,
+    "h": "질환 부재(소극적)를 넘어 잠재력 실현과 안녕감(적극적)을 포함하는 상태입니다.",
+    "e": "현대적 정신건강 개념은 단순히 정신질환이 없는 상태를 넘어, 개인의 잠재력을 실현하고 일상 스트레스를 관리하며 심리적 안녕감(well-being)을 발휘하는 상태를 말합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강의 정상과 이상을 구분하는 4가지 대표 판별 준거에 해당하지 않는 것은? [출처: 교재 7장 7.1절 판별기준, 13강 강의록, 보충]",
+    "o": [
+      "적응기능의 저하와 손상",
+      "사회문화적 규범으로부터의 일탈",
+      "주관적 불편감과 고통",
+      "피검자의 경제적 재산 보유 수준"
+    ],
+    "a": 3,
+    "h": "4대 준거: 적응기능 손상, 사회문화적 일탈, 주관적 고통, 통계적 평균 일탈",
+    "e": "정신건강 판별의 4대 준거는 적응기능의 저하와 손상, 사회문화적 규범으로부터의 일탈, 주관적 불편감과 고통, 통계적 평균으로부터의 일탈입니다. 재산 수준은 관련이 없습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "이상행동 판별 준거 중 '사회문화적 규범으로부터의 일탈'이 가지는 특성으로 옳은 것은? [출처: 교재 7장 7.1절 사회문화적 규범, 13강 음성, 보충]",
+    "o": [
+      "시대, 문화권, 규범에 따라 정상이 이상으로, 또는 이상이 정상으로 다르게 판단될 수 있다.",
+      "전 세계 모든 문화권에서 100% 동일하고 절대적인 진단 기준을 제공한다.",
+      "오직 피검자의 혈액형으로만 일탈 여부를 판가름한다.",
+      "통계적 백분위 점수만 계산하면 문화적 배경은 전혀 고려할 필요가 없다."
+    ],
+    "a": 0,
+    "h": "개인이 속한 사회의 시대적 관습, 문화, 규범의 영향을 받는 상대적 기준입니다.",
+    "e": "사회문화적 규범 준거는 개인이 속한 시대와 문화권의 관습·규범에 종속되므로 문화에 따라 판별 결과가 다를 수 있습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "이상행동 판별 준거 중 '적응기능의 저하와 손상'이 가지는 평가상의 주요 한계점은? [출처: 교재 7장 7.1절 적응기능 손상, 13강 음성, 보충]",
+    "o": [
+      "다양한 증상에 대해 적응과 부적응을 구분하는 명확한 객관적 경계 기준을 세우기가 어렵다.",
+      "컴퓨터로 채점이 불가능하다.",
+      "신체적 질병에는 전혀 사용할 수 없다.",
+      "주관적 고통을 느끼는 사람에게는 절대 적용할 수 없다."
+    ],
+    "a": 0,
+    "h": "어디서부터 부적응 행동인지 수치적 횟수나 객관적 경계를 정하기 어렵다는 한계입니다.",
+    "e": "적응기능 손상 기준은 지각이나 결석처럼 어느 정도 수준부터 부적응 상태인지 명확한 객관적 경계를 정하기 쉽지 않다는 한계가 있습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "이상행동 판별 준거 중 '주관적 불편감과 고통' 준거가 가지는 한계점 및 위험성은? [출처: 교재 7장 7.1절 주관적 불편감, 13강 음성, 보충]",
+    "o": [
+      "실제 적응기능 손상이 심각함에도 본인은 만성적인 적응으로 주관적 고통을 지각하지 못하는 경우가 존재한다.",
+      "피검자가 거짓말을 하면 무조건 통계적 평균이 변화한다.",
+      "주관적 고통을 느끼는 사람은 모두 천재 지능을 갖는다.",
+      "의학적 검사를 통해서만 주관적 고통이 관찰된다."
+    ],
+    "a": 0,
+    "h": "학대받는 상황에 만성화되어 스스로 고통을 인식하지 못해도 심각한 이상 상태일 수 있습니다.",
+    "e": "주관적 불편감과 고통 준거는 주변에서 보기에 심각한 부적응 상태임에도 정작 피검자 스스로는 고통을 지각하지 못하는 경우가 있어 단독 기준 사용 시 위험합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "고대 그리스 로마 시대에 인체의 '4체액설(혈액, 흑담즙, 황담즙, 점액)'을 통해 정신건강 문제와 이상행동의 원인을 생리적으로 설명하려 시도한 학자는? [출처: 교재 7장 7.1절 정신건강 관점 역사, 보충]",
+    "o": [
+      "히포크라테스 (Hippocrates)",
+      "프로이트 (Freud)",
+      "비네 (Binet)",
+      "파슨즈 (Parsons)"
+    ],
+    "a": 0,
+    "h": "의학의 아버지라 불리며 4체액 불균형으로 신체·정신 질환을 설명했습니다.",
+    "e": "히포크라테스는 고대 그리스 로마 시대에 4체액설을 제시하여 정신건강 문제의 생리적 원인을 찾고자 시도했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리학적 관점 중 프로이트(Freud)의 정신역동이론에서 설명하는 이상행동 및 정신장애의 원인은? [출처: 교재 7장 7.1절 정신역동이론, 13강 강의록, 보충]",
+    "o": [
+      "어린 시절의 경험으로부터 비롯된 무의식적 갈등과 불안",
+      "뇌내 도파민 신경전달물질의 과다 분비",
+      "주변 환경의 비합리적 사고방식 세뇌",
+      "유전적 염색체 이상"
+    ],
+    "a": 0,
+    "h": "어린 시절의 성격발달 경험과 무의식 속에 억압된 갈등·불안입니다.",
+    "e": "정신역동이론은 이상행동의 원인을 어린 시절 경험에서 비롯된 무의식적 갈등과 불안으로 설명합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리학적 관점 중 '행동주의이론'에서 바라보는 이상행동 및 정신장애 발생의 원인은? [출처: 교재 7장 7.1절 행동주의이론, 13강 강의록, 보충]",
+    "o": [
+      "환경적 자극과 반응 간의 부적절하고 잘못된 학습",
+      "무의식 속의 이드(Id)와 초자아(Superego)의 충돌",
+      "선천적 기질의 100% 결함",
+      "자아실현 경향성의 정상적 발현"
+    ],
+    "a": 0,
+    "h": "행동을 학습의 결과로 보고 부적응적 행동도 잘못된 학습에서 기인한다고 봅니다.",
+    "e": "행동주의이론은 인간의 모든 행동이 학습된 것으로 보고, 이상행동 역시 부적절한 자극-반응 상호작용 및 잘못된 학습에 의해 발생한다고 봅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리학적 관점 중 인지적 이론(Cognitive theory)에 대한 설명으로 옳은 것은? [출처: 교재 7장 7.1절 인지적 이론, 13강 강의록, 보충]",
+    "o": [
+      "세상을 해석하는 사고방식 체계(schema)의 비합리성과 정보처리과정의 왜곡을 원인으로 본다.",
+      "오직 약물 투여를 통해서만 사고 왜곡이 교정된다고 본다.",
+      "무의식의 꿈 분석만을 유일한 치료 수단으로 사용한다.",
+      "환경 자극은 무시하고 오직 체형 모양으로 성격을 진단한다."
+    ],
+    "a": 0,
+    "h": "개인이 환경을 어떻게 의미부여하고 해석하는가(비합리적 신념, 사고 왜곡)를 중시합니다.",
+    "e": "인지적 이론은 개인이 환경을 바라보는 시각, 비합리적 사고체계(도식: schema), 인지적 왜곡이 이상심리의 원인이라고 봅니다. (대표: Beck의 CBT, Ellis의 REBT)"
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강을 설명하는 사회문화적 관점의 대표적인 사례로 보기 어려운 것은? [출처: 교재 7장 7.1절 사회문화적 관점, 13강 강의록, 보충]",
+    "o": [
+      "감정 표현에 억압적이고 가부장적인 문화권에서 신체화 장애 증상이 빈번하게 발현됨",
+      "국가 경제위기(IMF 등) 상황에서 우울증 및 자살률이 급격히 증가함",
+      "가족 해체 및 노인 빈곤 문제로 노인 우울과 자살률이 높아짐",
+      "도파민 신경전달물질의 유전적 수용체 결함으로 조현병이 발생함"
+    ],
+    "a": 3,
+    "h": "도파민 및 신경전달물질 결함은 생물의학적 관점의 사례입니다.",
+    "e": "신경전달물질(도파민) 결함은 생물의학적 관점에 해당하며, 신체화(가부장 문화), 경제위기 자살, 노인 빈곤 우울 등은 사회문화적 관점의 사례입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "통합적 관점의 '스트레스-취약성 모델'에서 개인의 선행된 취약성(Vulnerability)을 구성하는 요소에 해당하지 않는 것은? [출처: 교재 7장 7.1절 스트레스-취약성 모델, 13강 강의록, 보충]",
+    "o": [
+      "유전적 요인 및 뇌내 신경전달물질 불균형",
+      "부모의 양육방식 및 개인의 성격특성",
+      "개인이 지닌 자동적 사고 방식",
+      "갑작스럽게 일어난 국가적 자연재해나 경제위기 사건"
+    ],
+    "a": 3,
+    "h": "자연재해나 갑작스러운 사건은 외부에서 주어지는 '심리사회적 스트레스' 요인입니다.",
+    "e": "개인의 선행된 취약성은 유전, 신경전달물질(생물학적) 및 양육방식, 성격, 자동적 사고(심리사회적)를 포함하며, 자연재해나 경제위기는 외부 '스트레스' 요인에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "권석만(2023)이 제시한 정신장애 분류의 5가지 핵심 기능에 해당하지 않는 것은? [출처: 교재 7장 7.1절 정신건강 문제의 분류, 13강 강의록, 보충]",
+    "o": [
+      "통일된 명칭을 부여하여 전문가 간의 명확한 의사소통을 가능하게 함",
+      "축적된 연구 결과와 이론적·경험적 지식을 체계적으로 정리하여 정보 제공함",
+      "각 장애의 임상적 특성, 관련 요인, 예후를 기술하여 유사성과 차이점 인식을 도움",
+      "피검자의 지능지수(IQ)를 100% 완벽하게 계산하여 대학 입학을 결정함"
+    ],
+    "a": 3,
+    "h": "정신장애 분류체계는 의사소통, 지식 정리, 유사성/차이점 기술, 원인/치료 추정, 연구 기초를 제공합니다.",
+    "e": "정신장애 분류의 5대 기능은 의사소통 용이성, 정보 제공, 유사성·차이점 인식, 원인/치료/예후 추정 용이, 과학적 연구 기초 제공입니다. IQ 계산이나 대입 결정은 해당하지 않습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "세계보건기구(WHO)에서 공인하여 전 세계적으로 사망 및 질병통계에 널리 사용되며, 정신 및 행동 장애를 F코드(F01~F99) 등으로 분류하는 진단체계는? [출처: 교재 7장 7.1절 ICD, 13강 강의록, 보충]",
+    "o": [
+      "국제질병분류 (ICD)",
+      "정신장애 진단 및 통계 편람 (DSM)",
+      "미네소타 다면적 인성검사 (MMPI)",
+      "벡 우울척도 (BDI)"
+    ],
+    "a": 0,
+    "h": "WHO가 공인한 International Classification of Diseases 의 약자입니다.",
+    "e": "세계보건기구(WHO)가 공인하고 신체 질환 및 정신장애(F코드)를 종합적으로 다루는 분류체계는 ICD(국제질병분류)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "미국정신의학회(APA)에서 발간하며 상담 및 임상 심리치료 현장에서 가장 중점적으로 활용되는 정신장애 전용 진단 편람의 명칭은? [출처: 교재 7장 7.1절 DSM, 13강 강의록, 보충]",
+    "o": [
+      "DSM (Diagnostic and Statistical Manual of Mental Disorders)",
+      "ICD (International Classification of Diseases)",
+      "WAIS (Wechsler Adult Intelligence Scale)",
+      "TAT (Thematic Apperception Test)"
+    ],
+    "a": 0,
+    "h": "미국정신의학회(APA) 발간 정신장애 진단 및 통계 편람 약자입니다.",
+    "e": "미국정신의학회(APA)에서 발간하는 정신장애 전용 진단 및 통계 편람은 DSM입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "DSM 진단 편람의 역사적 발전 과정에 대한 설명으로 올바른 것은? [출처: 교재 7장 7.1절 DSM 발전사, 13강 강의록, 보충]",
+    "o": [
+      "DSM-I/II는 정신역동적 관점에 치우쳤으나, DSM-III부터 의학적 모형 및 조작적 정의를 도입하였다.",
+      "DSM-I부터 이미 다축체계가 완벽히 적용되어 있었다.",
+      "DSM-5에 이르러 5개 다축체계가 처음으로 신설 도입되었다.",
+      "DSM-5는 ICD 분류체계와 완전히 결별하여 반대 방향으로 개정되었다."
+    ],
+    "a": 0,
+    "h": "DSM-I·II(정신역동) → DSM-III·IV(의학적 모형, 조작적 정의, 다축) → DSM-5(다축 폐지, 차원적 통합, ICD와 통일성 지향)",
+    "e": "DSM-I과 II는 정신역동적 관점에 기반했으나, DSM-III부터 조작적 정의와 의학적 모형을 적용하여 평정자 간 일치도를 높였습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "과거 DSM-IV에서 활용되었던 5개의 축(Axis)에 대한 설명으로 틀린 것은? [출처: 교재 7장 7.1절 DSM-IV 다축, 13강 강의록, 보충]",
+    "o": [
+      "1축: 임상적 장애",
+      "2축: 성격장애 및 지적장애",
+      "3축: 일반적인 의학적 상태(신체 질환)",
+      "5축: 피검자의 수능 시험 성적 및 주식 투자 수익률"
+    ],
+    "a": 3,
+    "h": "5축은 피검자의 전반적인 심리적·사회적·직업적 기능수준(GAF)을 평정했습니다.",
+    "e": "DSM-IV의 5축은 피검자의 전반적인 기능수준(Global Assessment of Functioning: GAF)을 평정하던 축입니다. 4축은 심리사회적·환경적 문제였습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "현재 널리 쓰이는 DSM-5(2013)의 구조적 특징으로 옳지 않은 것은? [출처: 교재 7장 7.1절 DSM-5, 13강 강의록, 보충]",
+    "o": [
+      "이전 판의 다축진단체계를 전면 폐지하였다.",
+      "정신장애를 20개 대범주로 나누고 300여 개 이상의 세부 장애로 분류하였다.",
+      "범주적 진단체계의 한계를 보완하기 위해 차원적 평가를 반영한 혼합 모델을 채택하였다.",
+      "모든 정신장애를 오직 2개의 범주로만 단순 축소하였다."
+    ],
+    "a": 3,
+    "h": "DSM-5는 다축 폐지, 20개 대범주, 300여 개 이상 세부 장애, 범주+차원 혼합 모델을 적용합니다.",
+    "e": "DSM-5는 다축체계를 폐지하고 20개 대범주와 300여 개 이상의 하위 진단명으로 명료화하였습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "DSM-5의 정신장애 진단 및 분류가 가지는 학술적 제한점(한계)으로 바른 것은? [출처: 교재 7장 7.1절 DSM 진단 한계, 13강 강의록, 보충]",
+    "o": [
+      "이상행동의 원인을 명확히 설명하기보다 겉으로 드러난 증상군을 기술하는 수준에 머물러 있다.",
+      "검사 신뢰도가 0점이어서 아무도 사용할 수 없다.",
+      "오직 유아들에게만 적용 가능하고 성인에게는 진단을 내릴 수 없다.",
+      "미국정신의학회가 발간을 전면 중단하였다."
+    ],
+    "a": 0,
+    "h": "원인 설명적 개념이 아닌 현상 및 증상군 기술적(descriptive) 접근 수준에 머무르는 한계가 있습니다.",
+    "e": "DSM-5는 신뢰도와 기술타당도는 높으나 장애의 구체적 원인을 설명하기보다 증상군을 기술하는 접근에 머무르며, 예언타당도 측면에서 불확실성이 존재합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정신건강 진단명을 내담자에게 적용할 때 발생할 수 있는 부작용인 '낙인 찍기(Stigmatization)'에 대한 상담자의 올바른 태도는? [출처: 교재 7장 7.1절 낙인 효과, 13강 강의록, 보충]",
+    "o": [
+      "진단명이 편견의 원천이 될 수 있음을 경계하고, 진단명에 갇히지 않고 인간 그대로를 바라보고 이해하려 노력한다.",
+      "진단명을 내담자의 이마에 크게 써서 주변 사람들에게 널리 알린다.",
+      "진단명을 받았으므로 사회에서 전면 격리시켜 외출을 금지한다.",
+      "상담자는 진단명을 절대로 스스로 공부해서는 안 된다."
+    ],
+    "a": 0,
+    "h": "진단명에 의한 낙인과 편견을 경계하고 내담자 인격 자체를 존중하며 이해해야 합니다.",
+    "e": "상담자는 진단명이 낙인이나 편견의 원천이 될 수 있음을 기억하고, 진단명이라는 틀에 갇히지 않고 있는 그대로의 인간을 이해하는 태도를 가져야 합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "DSM-5에서 제시하는 '주의력결핍 과잉행동장애(ADHD)'의 진단기준 A-1(부주의)에 관한 설명으로 옳은 것은? [출처: 교재 7장 7.1절 ADHD 진단기준, 13강 강의록, 보충]",
+    "o": [
+      "제시된 9개 증상 중 6개 이상이 적어도 6개월 동안 발달수준에 적합하지 않은 정도로 지속되어야 한다.",
+      "단 1개의 증상만 하루 동안 나타나면 즉시 진단한다.",
+      "오직 100세 이상 노인에게만 진단기준이 적용된다.",
+      "부주의 증상은 놀이공원에서만 나타나야 하며 학교에서는 없어야 한다."
+    ],
+    "a": 0,
+    "h": "부주의: 9개 증상 중 6개 이상, 최소 6개월 이상 지속, 발달수준 부적합 조건입니다.",
+    "e": "ADHD 진단기준 A-1(부주의)은 9가지 하위 증상 중 6개 이상이 적어도 6개월 이상 발달수준에 맞지 않게 지속되어 적응에 직접적 영향을 미쳐야 합니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "DSM-5의 ADHD 진단기준 B, C, E에 대한 설명으로 올바른 것은? [출처: 교재 7장 7.1절 ADHD 진단기준, 13강 강의록, 보충]",
+    "o": [
+      "몇 가지 증상이 12세 이전에 나타나야 하며, 2가지 이상의 환경(예: 학교와 집)에서 존재해야 한다.",
+      "증상이 오직 80세 이후에만 처음 발현되어야 한다.",
+      "증상이 학교 단 1곳에서만 나타나고 집에서는 전혀 없어야만 진단한다.",
+      "조현병이나 우울증으로 완전히 설명되더라도 무조건 ADHD를 중복 진단한다."
+    ],
+    "a": 0,
+    "h": "12세 이전 발현(B), 2개 이상 환경 존재(C), 다른 장애로 더 잘 설명되지 않음(E) 조건입니다.",
+    "e": "ADHD는 12세 이전에 증상이 나타나야 하고(B), 학교, 집 등 2가지 이상의 환경에서 관찰되어야 하며(C), 다른 정신질환으로 더 잘 설명되지 않아야 합니다(E)."
+  },
+  {
+    "type": "개념확인",
+    "q": "DSM-5 진단 지침에 따라 후기 청소년이나 성인(17세 이상)에게 ADHD 진단을 내릴 때 필요한 부주의 또는 과잉행동 증상의 최소 충족 개수는? [출처: 교재 7장 7.1절 ADHD 진단기준, 13강 강의록, 보충]",
+    "o": [
+      "적어도 3가지 이상",
+      "적어도 5가지 이상",
+      "적어도 9가지 전체",
+      "0가지 (증상이 없어도 됨)"
+    ],
+    "a": 1,
+    "h": "아동은 6가지 이상, 후기 청소년/성인(17세 이상)은 5가지 이상 충족 시 진단합니다.",
+    "e": "ADHD 진단 시 아동은 9개 중 6개 이상이 필요하지만, 17세 이상의 후기 청소년이나 성인은 9개 중 적어도 5가지 이상을 만족하면 됩니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "정신건강을 바라보는 '전통적 의학적 관점'과 '대안적/현대적 관점'을 비교한 설명으로 바르지 않은 것은? [출처: 교재 7장 7.1절 정신건강 시각, 13강 강의록, 보충]",
+    "o": [
+      "전통적 의학적 관점: 정신건강을 단순히 정신질환이나 장애가 없는 상태로 파악한다.",
+      "대안적 관점: 정신건강을 심리적 안녕감(well-being)과 최적의 기능 발휘 상태로 본다.",
+      "전통적 의학적 관점: 대부분 정신적으로 건강하지 못한 질병/부적응 특성 측정에 초점을 맞춘다.",
+      "대안적 관점: 인간의 모든 행동을 뇌 수술로만 해결해야 한다는 관점이다."
+    ],
+    "a": 3,
+    "h": "대안적 관점은 심리적 안녕감과 인간의 긍정적 강점·잠재력 실현에 초점을 맞춥니다.",
+    "e": "대안적 관점은 질병의 부재를 넘어 긍정적 강점, 웰빙, 최적의 기능 발휘를 강조하는 관점입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "국립정신건강센터(2023)의 2021 국가정신건강현황 조사 및 사망원인 통계 결과로 제시된 수치와 연결이 올바르지 않은 것은? [출처: 교재 7장 7.1절 정신건강 현황, 13강 강의록, 보충]",
+    "o": [
+      "우울감 경험률 — 10.2%",
+      "고위험 음주율 — 14.1%",
+      "정신질환 평생유병률 — 27.8%",
+      "인구 10만 명당 자살사망률 — 0.0명"
+    ],
+    "a": 3,
+    "h": "우리나라 자살사망률은 10만 명당 25.7명(2022년 조사 25.2명)으로 매우 높은 수준입니다.",
+    "e": "2020년 통계청 조사에 따르면 우리나라 인구 10만 명당 자살사망률은 25.7명(2022년 현황 25.2명)으로 당뇨 사망률보다 높습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "역학 조사에서 '한 개인의 일생 전체에 걸쳐 한 번이라도 특정 정신장애를 앓은 적이 있는 비율'을 뜻하는 통계 용어는? [출처: 교재 7장 7.1절 유병률, 13강 음성, 보충]",
+    "o": [
+      "평생유병률 (Lifetime Prevalence)",
+      "시점유병률 (Point Prevalence)",
+      "발병률 (Incidence)",
+      "치사율 (Case Fatality Rate)"
+    ],
+    "a": 0,
+    "h": "평생 동안 살아오면서 특정 장애를 겪어본 경험 비율입니다.",
+    "e": "개인이 살아오면서 평생 중 단 한 번이라도 특정 장애에 걸린 적이 있는 비율을 '평생유병률'이라 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "정신건강을 설명하는 '생물의학적 관점'에서 이상행동 치료를 위해 주된 개입 수단으로 사용하는 접근은? [출처: 교재 7장 7.1절 생물의학적 관점, 13강 음성, 보충]",
+    "o": [
+      "신경전달물질 조절을 위한 약물치료 및 생리적 처치",
+      "꿈 분석과 무의식 자유연상",
+      "직업카드분류 기법",
+      "생애진로무지개 그리기"
+    ],
+    "a": 0,
+    "h": "생물학적/신체적 원인을 다루므로 약물 처치를 주요 개입 수단으로 취합니다.",
+    "e": "생물의학적 관점은 신체·뇌 기능 및 신경전달물질의 불균형에 초점을 맞추므로 약물치료 등 의학적 처치를 주된 중재로 사용합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리학적 관점 중 세상을 바라보는 시각과 사고과정의 왜곡에 주목하는 대표적인 치료 기법 2가지는? [출처: 교재 7장 7.1절 인지적 이론, 13강 강의록, 보충]",
+    "o": [
+      "벡(Beck)의 인지행동치료(CBT) & 엘리스(Ellis)의 합리적 정서행동치료(REBT)",
+      "프로이트의 자유연상 & 융의 잉크반점",
+      "로저스의 무조건적 존중 & 히포크라테스 체액 투여",
+      "스킨어의 지질검사 & 헐의 적성검사"
+    ],
+    "a": 0,
+    "h": "Beck의 CBT와 Ellis의 REBT가 대표적인 인지적 치료 접근입니다.",
+    "e": "인지적 관점의 대표 치료법으로는 Beck의 인지행동치료(CBT)와 Ellis의 합리적 정서행동치료(REBT)가 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "로저스(Rogers)의 인간중심이론에서 설명하는 이상행동 발현의 주요 메커니즘으로 바른 것은? [출처: 교재 7장 7.1절 인간중심이론, 13강 강의록, 보충]",
+    "o": [
+      "부모나 사회의 가치조건에 부응하느라 선천적 자아실현경향성이 차단될 때",
+      "뇌 속 도파민이 결핍될 때",
+      "지각이나 결석을 100번 이상 할 때",
+      "IQ 점수가 70점 미만일 때"
+    ],
+    "a": 0,
+    "h": "자신만의 자아실현경향성이 타인의 가치조건 수용 강요로 억압·차단될 때입니다.",
+    "e": "인간중심이론에서는 부모와 사회의 가치조건(conditions of worth)을 맞추느라 선천적 자아실현경향성이 차단될 때 이상심리가 발현된다고 설명합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "실제 상담 현장에서 정신건강의 정상성과 이상성을 판별할 때 준거 사용에 대한 바람직한 지침은? [출처: 교재 7장 7.1절 판별기준 종합, 13강 강의록, 보충]",
+    "o": [
+      "4가지 판별 준거(적응기능, 사회문화, 주관적 고통, 통계적 일탈)를 종합적으로 고려하여 판단한다.",
+      "오직 주관적 고통 하나만을 유일한 절대 기준으로 삼는다.",
+      "오직 통계적 IQ 점수 하나만 보고 결정한다.",
+      "내담자의 성별만 보고 임의 판별한다."
+    ],
+    "a": 0,
+    "h": "하나의 기준만으로는 한계가 있으므로 4가지 관점을 종합 고려해야 합니다.",
+    "e": "어느 한 가지만으로는 완벽한 절대적 기준이 될 수 없으므로 4가지 판별 준거를 종합적으로 고려하여 이상성을 판단해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "2022년에 출간 및 발효된 DSM-5의 최근 텍스트 수정 보완판의 공식 약칭 명칭은? [출처: 교재 7장 7.1절 DSM-5-TR, 13강 강의록, 보충]",
+    "o": [
+      "DSM-5-TR (Text Revision)",
+      "DSM-6",
+      "ICD-12",
+      "MMPI-3"
+    ],
+    "a": 0,
+    "h": "Text Revision의 약자인 TR을 붙인 2022년 판본입니다.",
+    "e": "DSM-5의 텍스트 수정 보완판은 DSM-5-TR(Text Revision, 2022)이라고 부릅니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "국제질병분류 체계인 ICD-10 및 ICD-11에서 정신 및 행동 장애(Mental and behavioural disorders) 범주에 부여된 분류 코드 알파벳은? [출처: 교재 7장 7.1절 ICD, 13강 강의록, 보충]",
+    "o": [
+      "F 코드 (F01 ~ F99)",
+      "A 코드",
+      "Z 코드",
+      "K 코드"
+    ],
+    "a": 0,
+    "h": "ICD의 정신 및 행동 장애는 F 코드로 분류됩니다.",
+    "e": "ICD 진단체계에서 정신 및 행동 장애 항목은 F 코드(F01~F99 등)로 분류되어 다루어집니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "정신건강 문제 분류체계의 기능 중 '임상적 특성, 관련 요인, 치료적 예후 등을 체계적으로 기술하는 효과'는? [출처: 교재 7장 7.1절 분류 기능, 13강 강의록, 보충]",
+    "o": [
+      "환자들 간의 유사성과 차이점을 명확히 이해하도록 돕는다.",
+      "모든 정신장애를 무조건 유전 탓으로 돌리게 만든다.",
+      "피검자의 이름을 자동으로 개명해 준다.",
+      "상담자의 직업 수입을 10배 증가시킨다."
+    ],
+    "a": 0,
+    "h": "장애별 임상 특징과 예후를 기술하여 환자 간 공통점과 차이점을 구분해 줍니다.",
+    "e": "장애별 임상 특성과 예후 등을 기술함으로써 유사한 증상을 가진 환자들 간의 공통점과 차이점을 명확히 인식하도록 돕습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "이상행동 판별 준거 중 지적장애(지적발달장애) 진단 시 가장 결정적이고 신뢰로운 진단 근거로 작동하는 준거는? [출처: 교재 7장 7.1절 통계적 일탈, 13강 강의록, 보충]",
+    "o": [
+      "통계적 평균으로부터의 일탈 (지능지수 IQ 70 이하 등)",
+      "사회문화적 가부장제 일탈",
+      "주관적 행복감",
+      "정신분석적 이드 억압"
+    ],
+    "a": 0,
+    "h": "지능검사 점수 분포의 평균(100)으로부터 2표준편차 이탈(IQ 70 이하)을 기준으로 합니다.",
+    "e": "지적장애 등은 표준화된 검사 점수가 통계적 평균으로부터 현저히 이탈했는가(IQ 70 이하)를 신뢰로운 판별 준거로 삼습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "통합적 관점의 '스트레스-취약성 모델'에서 설명하는 개인의 '취약성(Vulnerability)'에 관한 설명으로 바른 것은? [출처: 교재 7장 7.1절 스트레스-취약성 모델, 13강 강의록, 보충]",
+    "o": [
+      "생물학적 요인(유전, 뇌 신경전달물질)뿐만 아니라 부모 양육방식, 자동적 사고 등 심리사회적 요인도 포함된다.",
+      "오직 뇌 수술 결과로만 결정되는 단일 요인이다.",
+      "취약성이 있는 사람은 환경적 지지가 아무리 좋아도 100% 정신장애에 걸린다.",
+      "취약성은 오직 외국의 환율 변동으로만 형성된다."
+    ],
+    "a": 0,
+    "h": "취약성에는 생물학적 요인과 심리사회적 성격/사고/양육 요인이 모두 포함됩니다.",
+    "e": "스트레스-취약성 모델에서 취약성은 유전 등 생물학적 요인과 부모 양육, 성격, 자동적 사고 등 심리사회적 요인이 복합 구성됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "DSM-5의 진단 체계 방식을 가장 정확하게 서술한 용어는? [출처: 교재 7장 7.1절 DSM-5 모델, 13강 강의록, 보충]",
+    "o": [
+      "범주적 진단체계에 차원적 평가를 통합한 '혼합 모델'",
+      "순수 100% 투사적 자유연상 모델",
+      "오직 이분법적 수능 점수 모델",
+      "5개 다축 진단 전용 모델"
+    ],
+    "a": 0,
+    "h": "장애 범주 분류에 증상 중증도 차원 평가를 결합한 혼합 모델(hybrid model)입니다.",
+    "e": "DSM-5는 기존 범주적 진단체계의 한계를 보완하기 위해 중증도 등의 차원적 평가를 반영한 '혼합 모델'을 채택하고 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간의 이상행동과 정신장애의 정의, 원인, 판별기준 및 치료방법 등을 학문적·경험적으로 연구하는 심리학의 분야는? [출처: 교재 7장 7.1절 이상심리학, 13강 강의록, 보충]",
+    "o": [
+      "이상심리학 (Abnormal Psychology)",
+      "인지학습심리학",
+      "산업 및 조직심리학",
+      "계량측정심리학"
+    ],
+    "a": 0,
+    "h": "이상행동과 정신장애를 전문적으로 연구하는 학문 분야입니다.",
+    "e": "이상행동과 정신장애의 원인, 판별, 진단 및 치료를 연구하는 심리학 분야는 '이상심리학'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "13강 「정신건강의 이해」의 주요 학습 내용 및 범주로 가장 올바른 것은? [출처: 교재 7장 7.1절, 13강 강의록]",
+    "o": [
+      "정신건강의 개념, 이상행동 판별 4대 준거, 정신건강 설명 관점(생물의학, 심리, 사회문화, 통합), 정신장애 분류체계(ICD-11, DSM-5)",
+      "웩슬러 지능검사 환산점수 16개 계산",
+      "MBTI 16가지 성격유형 다면척도",
+      "로르샤흐 잉크반점 채점 기호 10개"
+    ],
+    "a": 0,
+    "h": "13강은 정신건강의 개념, 판별기준, 설명 관점, 진단 분류체계를 다룹니다.",
+    "e": "13강 학습 범위는 교재 7장 7.1절(정신건강의 이해)로, 정신건강의 개념과 판별 준거, 관점, 분류체계(ICD, DSM)를 학습합니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

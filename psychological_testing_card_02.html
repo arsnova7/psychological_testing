@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 2, title: "심리검사의 이해" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 심리검사의 정의 (아나스타시, Anastasi) [출처: 교재 1장 1.2절 심리검사의 의미, 2017년 기말]",
+    "a": "한 사람의 행동 표본을 객관적이고 표준화된 절차로 측정·진단하는 수단"
+  },
+  {
+    "q": "★★★ 심리검사의 정의 (크론바흐, Cronbach) [출처: 교재 1장 1.2절 심리검사의 의미]",
+    "a": "두 사람 이상의 행동을 비교하는 조직적 절차"
+  },
+  {
+    "q": "★★★ 검사(test), 측정(measurement), 평가(evaluation)의 포괄 범위 관계 [출처: 교재 1장 1.2절 심리검사의 의미, 2018년 기말]",
+    "a": "평가(가장 광의) > 측정 > 검사(가장 협의)"
+  },
+  {
+    "q": "★★★ 측정(measurement)의 개념 [출처: 교재 1장 1.2절 심리검사의 의미, 워크북 1장 1.2절]",
+    "a": "물체나 인간이 가진 속성을 규칙에 따라 수량화하는 과정"
+  },
+  {
+    "q": "★★★ 평가(evaluation)의 개념 [출처: 교재 1장 1.2절 심리검사의 의미, 2018년 기말]",
+    "a": "측정 결과를 바탕으로 가치 판단을 내리는 행동"
+  },
+  {
+    "q": "★★★ 표준화 심리검사의 핵심 장점 [출처: 교재 1장 1.2절 심리검사의 유형, 2014년 기말]",
+    "a": "동일한 조건하 시행 및 상대적 비교 기준인 규준(norm) 제공"
+  },
+  {
+    "q": "★★★ 규준(norm)의 정의 [출처: 교재 1장 1.2절 심리검사의 유형, 워크북 1장 1.2절]",
+    "a": "표준화 집단의 점수 분포로 개인의 상대적 위치를 비교·평가하는 기준"
+  },
+  {
+    "q": "★★★ 준거지향검사(criterion-referenced test)의 정의 [출처: 교재 1장 1.2절 심리검사의 유형, 2017년 기말]",
+    "a": "절대적 기준(준거)의 달성 여부를 판단하는 검사 (예: 운전면허시험, 의사자격시험)"
+  },
+  {
+    "q": "★★★ 규준지향검사(norm-referenced test)의 정의 [출처: 교재 1장 1.2절 심리검사의 유형, 2017년 기말]",
+    "a": "표준화 집단의 규준에 비추어 개인의 상대적 서열을 비교하는 검사 (예: 수능, 지능검사)"
+  },
+  {
+    "q": "★★★ 투사형 검사(projective test)의 개념 및 대표 도구 [출처: 교재 1장 1.2절 심리검사의 유형, 2013년 기말, 2015년 기말]",
+    "a": "애매모호한 자극을 제공하여 무의식과 성격을 투사시키는 검사 (예: 로르샤흐, TAT, HTP)"
+  },
+  {
+    "q": "★★★ 객관적 성격검사(자기보고형 검사)의 대표 도구 [출처: 교재 1장 1.2절 심리검사의 유형, 워크북 1장 1.2절]",
+    "a": "MMPI, MBTI, CPI, NEO-PI 등"
+  },
+  {
+    "q": "★★★ 심리검사 사용 4단계 절차 [출처: 교재 1장 1.2절 절차, 2강 강의록]",
+    "a": "검사선정 → 검사실시 → 검사채점 → 검사해석"
+  },
+  {
+    "q": "★★★ 심리검사 선정 시 첫 번째 지침 [출처: 교재 1장 1.2절 절차, 2017년 기말]",
+    "a": "검사의 목적을 분명히 인식하고 검사요강(manual)을 필독하여 신뢰도와 타당도를 검토함"
+  },
+  {
+    "q": "★★★ 심리검사 실시 전 피검자에 대한 윤리 지침 [출처: 교재 1장 1.2절 윤리, 2014년 기말, 2016년 기말]",
+    "a": "검사 목적, 특성, 결과 활용에 관해 사전 설명하고 동의(informed consent)를 구함"
+  },
+  {
+    "q": "★★★ 심리검사 결과 보고 시 해악 방지 윤리 원칙 [출처: 교재 1장 1.2절 윤리, 2018년 기말, 2019년 기말]",
+    "a": "결과 보고가 피검자나 타인에게 해를 끼칠 우려가 있다면 진단이나 보고를 유보하거나 하지 않음"
+  },
+  {
+    "q": "★★★ 지능검사(intelligence test)의 측정 목적 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "개인이 가진 전반적인 일반 지적 능력 및 인지적 강약점을 측정"
+  },
+  {
+    "q": "★★★ 대표적인 개인용 지능검사 2가지 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "비네(Binet) 지능검사, 웩슬러(Wechsler) 지능검사"
+  },
+  {
+    "q": "★★★ 적성(aptitude)의 정의 [출처: 교재 1장 1.2절 심리검사의 유형, 2018년 기말]",
+    "a": "특정 과제나 임무, 직업을 수행하는 데 요구되는 특정한 능력이나 잠재능력"
+  },
+  {
+    "q": "★★★ 대표적인 직업적성검사 도구 [출처: 교재 1장 1.2절 심리검사의 유형, 워크북 1장 1.2절]",
+    "a": "GATB (General Aptitude Test Battery, 일반적성검사)"
+  },
+  {
+    "q": "★★★ 흥미(interest)의 정의 및 대표 검사 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "특정 활동에 대한 관심과 긍정적 태도 / 스트롱(Strong), 쿠더(Kuder), 홀랜드(Holland) 검사"
+  },
+  {
+    "q": "★★★ 성격의 개인차와 능력의 개인차의 핵심 차이 [출처: 교재 1장 1.2절 심리검사의 의미]",
+    "a": "능력은 우열(수량적) 판단의 대상이나, 성격은 가치판단 대상이 아닌 고유성(질적)의 차이임"
+  },
+  {
+    "q": "★★★ 심리검사의 안전성 윤리 (저작권 및 보안) [출처: 교재 1장 1.2절 윤리, 한국상담심리학회]",
+    "a": "검사지의 무단 복제·재발행·수정을 금하고, 문항 자극이 대중에 노출되지 않도록 보호함"
+  },
+  {
+    "q": "★★★ 비밀보장(confidentiality)의 윤리 원칙 [출처: 교재 1장 1.2절 윤리]",
+    "a": "피검자 동의 없이 검사 결과를 제3자에게 유출하거나 불리하게 사용하지 않음"
+  },
+  {
+    "q": "★★★ 재표준화(re-standardization)의 필요성 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "시대 변화에 따른 규준의 노후화를 막고 현재 피검자 집단에 맞는 최신 규준을 갱신하기 위해"
+  },
+  {
+    "q": "★★★ 선발배치용 심리검사의 대표적 용도 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "회사 직원 선발 및 적재적소 부서 배치, 대학 입학 학생 선발"
+  },
+  {
+    "q": "★★☆ 비표준화 심리검사의 장점 및 한계 [출처: 교재 1장 1.2절 심리검사의 유형, 2016년 기말]",
+    "a": "장점: 융통성 있는 종합적 이해 제공 / 한계: 신뢰도와 타당도가 상대적으로 낮음"
+  },
+  {
+    "q": "★★☆ 양적 검사와 질적 검사의 구분 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "양적 검사: 점수와 수치로 표현 / 질적 검사: 언어적 서술과 행동 관찰 등으로 표현"
+  },
+  {
+    "q": "★★☆ 진단용 검사의 목적 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "학습부진, 정서 장애 등 현재 문제의 원인과 결손 부위를 파악하기 위함"
+  },
+  {
+    "q": "★★☆ 예측·예언용 검사의 목적 및 예시 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "미래 행동이나 학업 성취 가능성을 예상 / 수능, 대학생활적응검사, 범죄 가능성 평가"
+  },
+  {
+    "q": "★★☆ 지필검사(paper-and-pencil test)의 특징 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "종이 검사지와 필기구를 사용하며, 대규모 집단 실시와 객관적 채점이 용이함"
+  },
+  {
+    "q": "★★☆ 기구를 사용하는 심리검사의 대표 예시 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "GATB 피그보드(핀·나무토막), 웩슬러 지능검사의 토막 짜기, 로르샤흐 그림판"
+  },
+  {
+    "q": "★★☆ 생애사적 자료(L-data)의 주요 종류 [출처: 교재 1장 1.2절 심리검사의 유형, 2016년 기말]",
+    "a": "학교생활기록부, 이력서, 인사기록카드, 포트폴리오, 자서전"
+  },
+  {
+    "q": "★★☆ 평정척도(rating scale)의 정의와 주의할 오차 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "관찰자가 피검자의 특성을 등급화하여 평가 / 후광효과 및 주관적 평정 오차 발생 가능"
+  },
+  {
+    "q": "★★☆ 행동관찰법의 기록 대상 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "관찰 가능한 외적 행동의 빈도, 지속시간, 강도 등"
+  },
+  {
+    "q": "★★☆ 온라인/컴퓨터 활용 심리검사의 주의사항 [출처: 교재 1장 1.2절 심리검사의 유형, 2013년 기말]",
+    "a": "검사자는 채점 프로그램의 정확성을 점검해야 하며, 컴퓨터 출력물에 전문가의 해석과 조력이 포함되어야 함"
+  },
+  {
+    "q": "★★☆ 제3자 검사 의뢰 시 윤리 지침 [출처: 교재 1장 1.2절 윤리, 워크북 1장 1.2절]",
+    "a": "적절한 검사도구 선택을 위해 구체적 의뢰 문제와 객관적 자료를 충분히 제공함"
+  },
+  {
+    "q": "★★☆ 다문화 피검자를 위한 검사도구 선정 윤리 [출처: 교재 1장 1.2절 윤리, 한국상담학회]",
+    "a": "문화적·언어적 특성을 고려하여 심리측정적 타당도가 확보된 검사도구를 신중히 선정함"
+  },
+  {
+    "q": "★★☆ 검사 시행 중 예외적 비정상 상황 발생 시 조치 [출처: 교재 1장 1.2절 윤리, 워크북 1장 1.2절]",
+    "a": "비정상적 상황을 기록하고, 결과의 타당성을 재검토하거나 필요시 무효 처리함"
+  },
+  {
+    "q": "★★☆ 최초의 대규모 집단용 지능검사 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 강의록]",
+    "a": "제1차 세계대전 당시 개발된 군대 알파(Army Alpha) 검사"
+  },
+  {
+    "q": "★★☆ 심리검사 개발자의 4대 윤리 의무 (AERA 등) [출처: 교재 1장 1.2절 윤리]",
+    "a": "목적 명시, 타당도·신뢰도 제공, 장점 및 제한점 고지, 채점·해석 방법 정보 제공"
+  },
+  {
+    "q": "★☆☆ 강봉규(2005)의 심리검사 정의 핵심 [출처: 교재 1장 1.2절 심리검사의 의미]",
+    "a": "개인차를 측정·기술하고 그 원인을 진단하는 심리적 방법과 절차"
+  },
+  {
+    "q": "★☆☆ MMPI (미네소타 다면적 인성검사)의 타당도 척도 역할 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "피검자의 솔직한 응답 여부 및 방어 태도를 판별"
+  },
+  {
+    "q": "★☆☆ 적성 평가의 '실험적 관찰법' 예시 [출처: 교재 1장 1.2절 심리검사의 유형, 2강 음성]",
+    "a": "수행평가, 실기시험, 오디션 등 과제와 상황을 주고 관찰하는 방법"
+  },
+  {
+    "q": "★☆☆ 검사자 자격 제한의 목적 [출처: 교재 1장 1.2절 윤리]",
+    "a": "비전문가의 검사 오용·남용 방지 및 피검자의 인권 보호"
+  },
+  {
+    "q": "★☆☆ 심리검사 결과 전달 시 지침 [출처: 교재 1장 1.2절 윤리]",
+    "a": "피검자가 이해할 수 있는 쉬운 용어로 설명하고, 해석의 제한점도 함께 제공함"
+  },
+  {
+    "q": "★☆☆ 심리검사 결과의 대전제 [출처: 교재 1장 1.2절 유의사항]",
+    "a": "피검자의 인격이나 가치를 절대적으로 규정하는 수단이 아님 (단면적 정보임)"
+  },
+  {
+    "q": "★☆☆ 한국상담학회 제7장 제25조 (정신장애 진단) [출처: 교재 1장 1.2절 윤리]",
+    "a": "편견과 오진 방지 세심 주의, 불이익 및 해악 발생 예상 시 진단·보고 유보"
+  },
+  {
+    "q": "★☆☆ 고용노동부 워크넷 온라인 검사의 분류 [출처: 교재 1장 1.2절 심리검사의 유형]",
+    "a": "컴퓨터를 활용한 온라인 심리검사 (지필/적성/흥미검사의 디지털화)"
+  },
+  {
+    "q": "★☆☆ 검사 채점 단계의 기본 원칙 [출처: 교재 1장 1.2절 절차]",
+    "a": "검사 매뉴얼(요강)에 제시된 표준 채점 규정과 절차를 엄격히 준수함"
+  },
+  {
+    "q": "★☆☆ 2강 「심리검사의 이해」 교재 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 1장 1.2절 (p.16~39), 워크북 1장 1.2절 (p.9~17), 2강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

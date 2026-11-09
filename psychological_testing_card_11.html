@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 11, title: "성격검사 1" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 성격(Personality)의 3대 핵심 요소 [출처: 교재 6장 6.1절 성격의 의미, 11강 강의록]",
+    "a": "①개인의 특징적 사고·행동·감정 양식, ②시간과 상황을 관통하는 안정성과 일관성, ③내면적으로 구조화된 역동적 조직체"
+  },
+  {
+    "q": "★★★ 성격 vs 인격(Character) vs 기질(Temperament) [출처: 교재 6장 6.1절 성격의 의미, 11강 강의록]",
+    "a": "성격: 사고·행동의 독특한 양식 / 인격: 도덕성·가치관 등 윤리적 측면 / 기질: 타고난 유전적·생리적 자극 반응성"
+  },
+  {
+    "q": "★★★ 유형이론(Type theory)의 개념 및 특징 [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 1번]",
+    "a": "성격을 몇 가지 질적으로 상이하고 상호 배타적인 범주로 나누어 분류하는 이론 (예: 융의 심리유형론, 체형론)"
+  },
+  {
+    "q": "★★★ 특성이론(Trait theory)의 개념 및 특징 [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 1번 해설]",
+    "a": "성격을 구성하는 요소(특질)를 추출하여 연속적인 수치·차원(Dimension)상에서 정량적으로 평가하는 이론"
+  },
+  {
+    "q": "★★★ 올포트(Allport)의 3대 특성 분류 [출처: 교재 6장 6.1절 올포트 이론, 2018년 기말 61번, 2019년 기말 62번]",
+    "a": "주 특성(개인의 삶 전체를 지배하는 지배적 특성), 중심 특성(행동을 광범위하게 설명하는 대표 특성), 이차적 특성(특정한 상황에서만 부분적으로 나타나는 특성)"
+  },
+  {
+    "q": "★★★ 카텔(Cattell)의 16PF 성격검사 개발 기법 [출처: 교재 6장 6.1절 16PF, 2015년 기말 60번, 2016년 기말 60번]",
+    "a": "사전에 등재된 성격 형용사 목록에 통계적 요인분석법(Factor Analysis)을 적용하여 16개 근원특질을 추출해 개발함"
+  },
+  {
+    "q": "★★★ 카텔의 표면특질(Surface traits) vs 근원특질(Source traits) [출처: 교재 6장 6.1절 카텔 이론, 11강 강의록]",
+    "a": "표면특질: 겉으로 관찰 가능한 행동 표면 / 근원특질: 관찰된 행동을 결정하고 유발하는 내면의 깊은 일관된 성격 원인"
+  },
+  {
+    "q": "★★★ 프로이트(Freud)의 심리성적 발달 5단계 순서 [출처: 교재 6장 6.1절 성격발달, 2017년 기말 61번]",
+    "a": "구강기 → 항문기 → 남근기 → 잠복기 → 생식기(성기기)"
+  },
+  {
+    "q": "★★★ 에릭슨(Erikson)의 유아기 첫 발달위기 및 극복 덕목 [출처: 교재 6장 6.1절 에릭슨 이론, 2019년 기말 63번]",
+    "a": "위기: 기본적 신뢰감 대 불신감 / 극복 시 획득하는 자아자질: 희망(Hope)"
+  },
+  {
+    "q": "★★★ 아나스타시(Anastasi)의 4대 성격검사 개발방법 [출처: 교재 6장 6.1절 성격검사 개발, 워크북 6장 6.1절 5~7번]",
+    "a": "논리적-내용적 방법, 이론적 방법, 준거집단법(경험적 방법), 요인분석법"
+  },
+  {
+    "q": "★★★ 준거집단법(Empirical Criterion Keying)의 개념 및 대표 검사 [출처: 교재 6장 6.1절 성격검사 개발, 2013년 기말 24번]",
+    "a": "임상자료에 기반하여 진단 환자집단과 정상 대조군을 일관되게 선별·구별해 주는 문항을 경험적으로 구성하는 방법 (대표 검사: MMPI, CPI)"
+  },
+  {
+    "q": "★★★ 바움린드(Baumrind)의 4가지 부모 양육유형 [출처: 교재 6장 6.1절 양육유형, 워크북 6장 6.1절 8번]",
+    "a": "권위 있는 부모, 권위주의적 부모, 허용적 부모, 방임적 부모"
+  },
+  {
+    "q": "★★★ '권위 있는 부모(Authoritative)'의 특징 및 자녀 행동 [출처: 교재 6장 6.1절 양육유형, 워크북 6장 6.1절 8번]",
+    "a": "높은 애정과 관여 + 합리적인 규율 이행 → 아동이 가장 활기차고, 자기통제적이며, 성취 지향적으로 발달함"
+  },
+  {
+    "q": "★★★ TCI(기질 및 성격검사)의 4개 선천적 기질 척도 [출처: 교재 6장 6.2절 TCI, 워크북 6장 6.2절 1번]",
+    "a": "자극추구(NS), 위험회피(HA), 사회적 민감성(RD), 인내력(P)"
+  },
+  {
+    "q": "★★★ TCI(기질 및 성격검사)의 3개 후천적 성격 척도 [출처: 교재 6장 6.2절 TCI, 워크북 6장 6.2절 2번]",
+    "a": "자율성(SD), 연대감(C), 자기초월(ST)"
+  },
+  {
+    "q": "★★★ 한국판 다요인인성검사 II의 척도 구조 [출처: 교재 6장 6.2절 다요인인성검사, 워크북 6장 6.2절 3번]",
+    "a": "14개 기본 척도 (온정성, 자아강도, 지배성 등) + 5가지 2차 요인 (외향성, 불안성, 강인성, 자립성, 초자아)"
+  },
+  {
+    "q": "★★★ 코스타와 맥크레이의 5요인 모델(Big 5 / NEO 성격검사) 5대 요인 [출처: 교재 6장 6.2절 NEO 성격검사, 2018년 기말 63번]",
+    "a": "신경증(N), 외향성(E), 개방성(O), 친화성(A), 성실성(C)"
+  },
+  {
+    "q": "★★★ Big 5 중 신경증(Neuroticism) 요인의 측정 내용 [출처: 교재 6장 6.2절 NEO 성격검사, 2014년 기말 25번, 2016년 기말 62번]",
+    "a": "불안, 적대감, 우울, 자의식, 충동성, 취약성 등 부정적 정서 경험 및 정서적 불안정성"
+  },
+  {
+    "q": "★★★ Big 5 중 성실성(Conscientiousness) 요인의 측정 내용 [출처: 교재 6장 6.2절 NEO 성격검사, 워크북 6장 6.2절 5번]",
+    "a": "유능감, 조직성, 자기규제, 성취동기, 자제심 등 목표 달성을 위한 계획 및 책임감 (직무 성과와 가장 직결)"
+  },
+  {
+    "q": "★★★ CPI(캘리포니아 성격검사)의 평가 목적 및 별칭 [출처: 교재 6장 6.2절 다양한 성격검사, 2016년 기말 61번, 2017년 기말 62번]",
+    "a": "정상인의 평상시 일반적 성격 특성을 측정하며 '심리적으로 건강한 사람들을 위한 MMPI'로 불림"
+  },
+  {
+    "q": "★★☆ 히포크라테스의 4체액설 기질 분류 [출처: 교재 6장 6.1절 성격이론의 발달, 11강 강의록]",
+    "a": "혈액(다혈질), 흑담즙(우울질), 황담즙(담즙질), 점액(점액질)"
+  },
+  {
+    "q": "★★☆ 체형에 따른 고전적 유형론 (크레치머, 셀던) [출처: 교재 6장 6.1절 성격이론의 발달, 11강 강의록]",
+    "a": "신체 체형(내배엽: 비만/내향-온순, 중배엽: 근육/투쟁-대담, 외배엽: 세장/민감-예민)과 성격 특성을 연결함"
+  },
+  {
+    "q": "★★☆ 논리적-내용적 개발방법의 특징 [출처: 교재 6장 6.1절 성격검사 개발, 11강 강의록]",
+    "a": "검사 개발자가 측정하려는 성격 구인의 정의에 입각하여 직관적·논리적 타당성을 고려해 문항을 직접 작성함"
+  },
+  {
+    "q": "★★☆ 이론적 개발방법의 특징 및 대표 검사 [출처: 교재 6장 6.1절 성격검사 개발, 2014년 기말 24번, 2018년 기말 62번]",
+    "a": "특정 성격이론이 제안하는 구인을 측정하도록 검사 구조를 설계함 (대표 검사: MBTI - 융의 심리유형론, PRF - 머레이 욕구이론)"
+  },
+  {
+    "q": "★★☆ 요인분석적 개발방법의 특징 및 대표 검사 [출처: 교재 6장 6.1절 성격검사 개발, 워크북 6장 6.1절 7번]",
+    "a": "광범위한 문항 집합의 상호 상관을 요인분석하여 성격의 근본 차원을 추출함 (대표 검사: 16PF, NEO-PI)"
+  },
+  {
+    "q": "★★☆ 프로이트 발달단계 중 '잠복기(6~7세~사춘기 초)'의 특징 [출처: 교재 6장 6.1절 성격발달, 2017년 기말 61번 해설]",
+    "a": "성적 리비도 에너지가 잠대되고 지적 탐구, 동성 친구 관계, 사회적 규칙 학습에 집중하는 시기"
+  },
+  {
+    "q": "★★☆ '권위주의적 부모(Authoritarian)'의 특징 및 자녀 행동 [출처: 교재 6장 6.1절 양육유형, 11강 강의록]",
+    "a": "애정 없이 맹목적 복종과 심한 처벌 강요 → 아동이 공포와 두려움이 많고 스트레스에 취약해짐"
+  },
+  {
+    "q": "★★☆ '허용적 부모(Permissive)'의 특징 및 자녀 행동 [출처: 교재 6장 6.1절 양육유형, 11강 강의록]",
+    "a": "과도한 애정과 익애 + 통제/규율 결여 → 아동이 자기중심적이고 충동적이며 자기통제력이 부족해짐"
+  },
+  {
+    "q": "★★☆ TCI 기질 척도 중 '자극추구(Novelty Seeking)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "새롭고 신기한 자극이나 보상 단서에 끌려 행동이 즉각 활성화되는 유전적 경향성"
+  },
+  {
+    "q": "★★☆ TCI 기질 척도 중 '위험회피(Harm Avoidance)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "위험이나 혐오 자극에 대해 행동이 위축되고 사전 염려와 억제가 일어나는 유전적 경향성"
+  },
+  {
+    "q": "★★☆ TCI 기질 척도 중 '사회적 민감성(Reward Dependence)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "타인의 표정, 감정, 사회적 인정과 칭찬 신호에 민감하게 반응하는 유전적 경향성"
+  },
+  {
+    "q": "★★☆ TCI 기질 척도 중 '인내력(Persistence)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "당장 지속적인 보상이 주어지지 않더라도 한 번 시작한 행동을 꾸준히 계속하는 유전적 경향성"
+  },
+  {
+    "q": "★★☆ TCI 성격 척도 중 '자율성(Self-Directedness)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "자신의 목표와 가치를 주도적으로 선택하고 상황을 이끌어 가며 책임감을 갖는 능력"
+  },
+  {
+    "q": "★★☆ TCI 성격 척도 중 '연대감(Cooperativeness)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "자신을 사회적 관계의 일부로 인식하고 타인을 포용하며 조화롭게 협력하는 성향"
+  },
+  {
+    "q": "★★☆ TCI 성격 척도 중 '자기초월(Self-Transcendence)' [출처: 교재 6장 6.2절 TCI, 11강 강의록]",
+    "a": "우주 만물 및 영적 영역과 일체감을 느끼며 궁극적 가치를 수용하는 성향"
+  },
+  {
+    "q": "★★☆ Big 5 중 외향성(Extraversion) 요인의 하위 척도 [출처: 교재 6장 6.2절 NEO 성격검사, 워크북 6장 6.2절 7번]",
+    "a": "온정성, 사교성, 단당성(지배성), 활동성, 자극추구, 긍정정서"
+  },
+  {
+    "q": "★★☆ Big 5 중 개방성(Openness) 요인의 하위 척도 [출처: 교재 6장 6.2절 NEO 성격검사, 2018년 기말 63번]",
+    "a": "상상력, 심미성, 정서수용성, 행동실험성, 지적 호기심, 가치개방성"
+  },
+  {
+    "q": "★★☆ Big 5 중 친화성(Agreeableness) 요인의 측정 내용 [출처: 교재 6장 6.2절 NEO 성격검사, 2019년 기말 65번]",
+    "a": "신뢰성, 솔직함, 이타성, 순응성, 겸손함, 온유함 등 우호적 대인관계 성향"
+  },
+  {
+    "q": "★★☆ 에니어그램(Enneagram)의 구조 [출처: 교재 6장 6.2절 다양한 성격검사, 2015년 기말 61번]",
+    "a": "성격을 9가지 유형으로 나누고 장(본능), 가슴(감정), 머리(사고) 3대 힘의 중심으로 파악함"
+  },
+  {
+    "q": "★★☆ 다요인인성검사 II의 응답 척도 및 프로파일 표현 [출처: 교재 6장 6.2절 다요인인성검사, 워크북 6장 6.2절 8번]",
+    "a": "5점 리커트 척도('전혀 아니다'~'아주 그렇다') 응답, T점수(평균 50, SD 10) 프로파일 제공"
+  },
+  {
+    "q": "★☆☆ 전형적 수행검사(Typical Performance Test)의 정의 [출처: 교재 6장 6.1절 성격검사 개관, 11강 음성]",
+    "a": "최고 능력을 겨루는 지능검사(최대수행검사)와 달리 피검자의 평소 전형적인 일상 행동 성향을 측정하는 검사"
+  },
+  {
+    "q": "★☆☆ 객관적 성격검사의 장점 [출처: 교재 6장 6.1절 성격검사 개관, 11강 음성]",
+    "a": "실시와 채점이 간편하고, 평가자 주관이 배제되며, 신뢰도와 타당도가 객관적으로 검증됨"
+  },
+  {
+    "q": "★☆☆ 객관적 성격검사의 대표적 한계 [출처: 교재 6장 6.1절 성격검사 개관, 11강 음성]",
+    "a": "문항 의도가 드러나 의도적 포장(사회적 바람직성 반응)이나 응답 왜곡을 완벽히 막기 어려움"
+  },
+  {
+    "q": "★☆☆ TCI 결과 해석 시 L/H 판정 백분위 기준 [출처: 교재 6장 6.2절 TCI 해석, 11강 강의록]",
+    "a": "백분위 30 이하: 낮음(L) / 백분위 70 이상: 높음(H)"
+  },
+  {
+    "q": "★☆☆ 다요인인성검사 II의 T점수 35점 이하 / 65점 이상 판정 [출처: 교재 6장 6.2절 다요인인성검사 해석, 11강 강의록]",
+    "a": "T점수 35점 이하: 부족/낮음(*) / T점수 65점 이상: 우수/높음"
+  },
+  {
+    "q": "★☆☆ 16PF-5판의 검사 규격 [출처: 교재 6장 6.2절 16PF, 11강 강의록]",
+    "a": "총 185문항, 만 16세 이상 대상, 약 50분 소요"
+  },
+  {
+    "q": "★☆☆ 한국판 NEO 성격검사 표준화 연구자 [출처: 교재 6장 6.2절 NEO 성격검사, 11강 강의록]",
+    "a": "안창규 및 안현의 (1997년 최초 번안, 2017년 개정판 제시)"
+  },
+  {
+    "q": "★☆☆ 성격 발달에 관한 현대 심리학의 통합적 관점 [출처: 교재 6장 6.1절 성격발달 요인, 11강 강의록]",
+    "a": "타고난 생물학적 유전 기질 기반 위에 후천적 심리사회적 환경 경험과의 역동적 상호작용으로 형성됨"
+  },
+  {
+    "q": "★☆☆ TCI Family의 커버 연령대 [출처: 교재 6장 6.2절 TCI 연령대, 11강 강의록]",
+    "a": "만 3세 유아부터 60대 이상 성인까지 전 생애 평가 가능 (JTCI, ATCI 등 연령별 도구 제공)"
+  },
+  {
+    "q": "★☆☆ 11강 「성격검사 1」의 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 6장 6.1절~6.2절 (p.211~240), 워크북 6장 6.1절~6.2절 (p.74~80), 11강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

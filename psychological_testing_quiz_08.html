@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 8, title: "지능검사 2" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "내용이해",
+    "q": "아동용 웩슬러 지능검사의 사용방법 및 해석에 관한 설명으로 옳지 않은 것은? [출처: 교재 4장 4.3절 해석 시 유의점, 워크북 4장 4.3절 Q1, 2017년 기말 56번]",
+    "o": [
+      "연령별 소검사 환산점수의 활용이 성인에 비해 더욱 중요하다.",
+      "규준 분석에 의한 개인 간 해석과 프로파일 분석을 통한 개인 내적 해석이 가능하다.",
+      "실시 과정에서 아동이 답을 틀렸을 때 성인 검사에 비해 더 빨리 중지한다.",
+      "아동이 답을 틀렸을 때 성인 검사(WAIS)보다 답을 더 오래 기다려 준다."
+    ],
+    "a": 3,
+    "h": "아동은 연속으로 틀리는 상황에서 스트레스가 크므로 성인 검사보다 빨리 중지함을 떠올려 보세요.",
+    "e": "아동용 웩슬러 검사는 아동의 특성을 고려하여 틀린 답을 했을 때 성인용 검사(WAIS)에 비해 더 빨리 검사를 중지하며 문제 난이도의 비약도 큰 편입니다. 오랫동안 기다려준다는 4번은 틀린 설명입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국 웩슬러 아동지능검사 5판(K-WISC-V)의 소검사와 지표점수의 연결이 올바른 것은? [출처: 교재 4장 4.3절 소검사 및 지표, 워크북 4장 4.3절 1번, 6번, 2015년 기말 50번, 2016년 기말 53번]",
+    "o": [
+      "시공간지표 — 공통성 검사",
+      "언어이해지표 — 기호쓰기 검사",
+      "작업기억지표 — 그림기억 검사",
+      "처리속도지표 — 숫자 검사"
+    ],
+    "a": 2,
+    "h": "작업기억지표는 '숫자'와 '그림기억' 소검사로 구성됩니다.",
+    "e": "작업기억지표에는 숫자와 그림기억 소검사가 속합니다. ① 공통성은 언어이해, ② 기호쓰기는 처리속도, ④ 숫자는 작업기억지표 소검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다음 중 한국 웩슬러 아동지능검사 5판(K-WISC-V)의 유동추론지표에 포함되는 소검사는 무엇인가? [출처: 교재 4장 4.3절 유동추론지표, 워크북 4장 4.3절 2번]",
+    "o": [
+      "행렬추리",
+      "순차연결",
+      "공통그림찾기",
+      "토막짜기"
+    ],
+    "a": 0,
+    "h": "유동추론지표는 '행렬추리'와 '무게비교' 2개의 기본 소검사로 구성됩니다.",
+    "e": "유동추론지표에는 기본 소검사로 '행렬추리'와 '무게비교'가 포함됩니다. 순차연결은 작업기억, 공통그림찾기는 유동추론의 추가소검사, 토막짜기는 시공간지표에 속합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "한국 웩슬러 아동지능검사 5판(K-WISC-V)의 실시에 관한 설명으로 적절하지 않은 것은? [출처: 교재 4장 4.3절 검사의 실시, 워크북 4장 4.3절 3번, 9번, 2018년 기말 54번]",
+    "o": [
+      "원칙적으로 검사실에는 아동과 검사자만 있는 것이 바람직하다.",
+      "기록용지, 지침서, 검사도구 등은 아동의 눈에 보이지 않게 배치한다.",
+      "아동이 특정 소검사에 반응하기를 거부하면 다음 소검사를 진행하고 나중에 생략 소검사로 되돌아갈 수 있다.",
+      "정해진 10개의 기본 소검사 실시 중 검사 시간이 60분을 넘어가면 무조건 검사를 즉시 중단해야 한다."
+    ],
+    "a": 3,
+    "h": "검사 시간은 아동의 연령과 수행 방식에 따라 다를 수 있으며, 제한시간 문항 외에는 60분이 넘는다고 무조건 즉시 중단하지 않습니다.",
+    "e": "기본 10개 소검사의 평균 소요 시간은 약 65분이며, 아동 특성에 따라 다를 수 있으므로 60분이 넘는다고 무조건 검사를 중단해야 한다는 지침은 옳지 않습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국판 아동용 웩슬러 지능검사의 소검사 중 언어이해지표에 포함되는 소검사는? [출처: 교재 4장 4.3절 언어이해지표, 워크북 4장 4.3절 4번, 2014년 기말 15번]",
+    "o": [
+      "순차연결 검사",
+      "공통성 검사",
+      "행렬추리 검사",
+      "동형찾기 검사"
+    ],
+    "a": 1,
+    "h": "언어이해지표 기본 소검사: 공통성, 어휘 (추가 소검사: 상식, 이해)",
+    "e": "언어이해지표 기본 소검사에는 '공통성'과 '어휘'가 포함됩니다."
+  },
+  {
+    "type": "사례적용",
+    "q": "중학교 2학년(만 14세) 학생의 개별 인지적 능력과 학업 강약점을 평가하고자 할 때 가장 적절한 지능검사는? [출처: 교재 4장 4.3절 개관, 워크북 4장 4.3절 5번, 2016년 기말 52번]",
+    "o": [
+      "K-WISC",
+      "K-WPPSI",
+      "K-WAIS",
+      "K-CBCL"
+    ],
+    "a": 0,
+    "h": "K-WISC-V는 만 6세 0개월부터 만 16세 11개월 아동·청소년을 대상으로 합니다.",
+    "e": "만 14세 중학생에게는 웩슬러 아동지능검사(K-WISC)를 적용하는 것이 가장 적절합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국판 아동용 웩슬러 지능검사의 소검사 중 처리속도지표에 포함되는 소검사는? [출처: 교재 4장 4.3절 처리속도지표, 2013년 기말 15번, 2015년 기말 50번]",
+    "o": [
+      "토막짜기 검사",
+      "동형찾기 검사",
+      "순차연결 검사",
+      "공통성 검사"
+    ],
+    "a": 1,
+    "h": "처리속도지표 기본 소검사: 기호쓰기, 동형찾기 (추가 소검사: 선택)",
+    "e": "처리속도지표에는 '기호쓰기'와 '동형찾기' 소검사가 포함됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "한국 웩슬러 아동지능검사의 실시 지침으로 가장 적절한 것은? [출처: 교재 4장 4.3절 라포 형성, 워크북 4장 4.3절 7번, 2013년 기말 16번, 2016년 기말 54번]",
+    "o": [
+      "아동에게 검사도구 전체를 미리 보여주어 관심과 흥미를 유발한다.",
+      "검사를 실시할 때 학부모가 검사실 아동 옆에 함께 앉아 있도록 한다.",
+      "검사 초반부에 아동을 편안하게 하기 위해 아동의 관심사나 취미에 대해 비공식적인 대화를 나누며 라포를 형성할 수 있다.",
+      "모든 검사는 반드시 30분 이내에 끝마쳐야 한다."
+    ],
+    "a": 2,
+    "h": "검사 초반 라포 형성을 위해 자연스러운 비공식적 대화를 활용할 수 있습니다.",
+    "e": "검사 초반부에는 라포 형성을 위해 아동의 취미나 관심사에 대해 자연스러운 대화를 나누며 친밀감을 형성하는 것이 올바른 실시 방법입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "제한시간 내에 흰색과 빨간색으로 이루어진 토막을 사용하여 제시된 모형이나 그림과 똑같은 모양을 만드는 K-WISC-V의 소검사는? [출처: 교재 4장 4.3절 소검사, 워크북 4장 4.3절 8번]",
+    "o": [
+      "어휘",
+      "공통성",
+      "토막짜기",
+      "공통그림찾기"
+    ],
+    "a": 2,
+    "h": "시공간 처리능력과 시각-운동 협응을 측정하는 대표적 동작성 소검사입니다.",
+    "e": "제시된 그림/모형과 똑같이 토막을 조합해 만드는 소검사는 '토막짜기(Block Design)'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "한국 웩슬러 아동지능검사 5판(K-WISC-V)의 검사시간에 대한 설명 중 가장 적절한 것은? [출처: 교재 4장 4.3절 검사시간, 워크북 4장 4.3절 9번]",
+    "o": [
+      "기본 10개 소검사를 실시하는 데는 평균 약 65분이 소요된다.",
+      "전체 16개 소검사를 실시하는 데 약 15분이 소요된다.",
+      "아동의 수행 속도와 무관하게 무조건 30분으로 똑같이 고정된다.",
+      "검사가 중단되면 1달 이후에 처음부터 다시 검사를 시작해야 한다."
+    ],
+    "a": 0,
+    "h": "기본 10개 소검사는 약 65분, 전체 IQ 산출 7개 소검사는 평균 약 48분이 소요됩니다.",
+    "e": "K-WISC-V의 10개 기본 소검사를 실시하는 데는 평균 65분이 소요되며, 중단 시에는 일주일 이내에 이어서 실시하는 것이 권장됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국 웩슬러 아동지능검사 5판(K-WISC-V)의 표준 실시 순서에서 가장 첫 번째로 실시하는 소검사는? [출처: 교재 4장 4.3절 소검사 실시순서, 워크북 4장 4.3절 10번]",
+    "o": [
+      "토막짜기",
+      "공통성",
+      "행렬추리",
+      "숫자"
+    ],
+    "a": 0,
+    "h": "표준 실시순서: 1.토막짜기 → 2.공통성 → 3.행렬추리 → 4.숫자 ...",
+    "e": "K-WISC-V의 소검사 표준 실시순서에서 가장 먼저 시행하는 소검사는 '토막짜기'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "한국판 아동용 웩슬러 지능검사의 실시·채점·해석 방법으로 적절하지 않은 것은? [출처: 교재 4장 4.3절 실시와 채점, 2015년 기말 51번]",
+    "o": [
+      "아동에게 검사도구들을 미리 보여주어 동기와 관심을 유발한다.",
+      "규준 분석을 통해 또래 집단과 비교하여 개인 간 해석을 수행할 수 있다.",
+      "개인 내적 해석을 통해 아동의 인지적 강점과 약점을 분석할 수 있다.",
+      "학습장애 아동의 경우 전체 IQ보다 일반능력지표(GAI)가 지적 능력을 더 잘 반영할 수 있다."
+    ],
+    "a": 0,
+    "h": "검사 도구(지침서, 산수/기호 카드 등)를 사전에 미리 노출하면 정밀성이 저해됩니다.",
+    "e": "검사도구를 아동에게 사전에 미리 보여주면 검사의 표준성과 집중도를 해치므로 보이지 않게 배치해야 합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "구판 K-WISC-IV에 존재하였으나 개정된 K-WISC-V에서 세분화되어 개정·폐지된 지표 명칭은? [출처: 교재 4장 4.3절 개관, 2017년 기말 55번, 2019년 기말 54번 해설] [개정 확인 필요]",
+    "o": [
+      "지각추론지표 (5판에서 시공간지표와 유동추론지표로 세분화됨)",
+      "언어이해지표",
+      "작업기억지표",
+      "처리속도지표"
+    ],
+    "a": 0,
+    "h": "[개정 확인 필요] 4판의 '지각추론지표'가 5판에서 '시공간지표'와 '유동추론지표' 2개로 분화되었습니다.",
+    "e": "[개정 확인 필요] K-WISC-IV의 4대 지표 중 '지각추론지표'는 K-WISC-V에서 '시공간지표'와 '유동추론지표' 2개의 기본지표로 개정 세분화되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국판 아동용 웩슬러 지능검사 4판(K-WISC-IV)에서 작업기억지표 소검사로 분류되었던 것은? [출처: 교재 4장 4.3절 소검사, 2018년 기말 53번]",
+    "o": [
+      "토막짜기",
+      "행렬추리",
+      "순차연결",
+      "기호쓰기"
+    ],
+    "a": 2,
+    "h": "숫자, 순차연결 소검사는 청각적 작업기억과 관련이 깊습니다.",
+    "e": "순차연결 검사는 작업기억 영역(5판에서는 청각작업기억 추가지표)에 해당하는 소검사입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국 웩슬러 아동지능검사 5판(K-WISC-V)의 적용 대상 연령으로 올바른 것은? [출처: 교재 4장 4.3절 검사의 구성, 8강 강의록, 보충]",
+    "o": [
+      "만 6세 0개월 ~ 만 16세 11개월",
+      "만 3세 0개월 ~ 만 7세 7개월",
+      "만 16세 0개월 ~ 만 69세 11개월",
+      "만 2세 6개월 ~ 만 12세 5개월"
+    ],
+    "a": 0,
+    "h": "WISC는 만 6세부터 16세 11개월 아동·청소년용입니다.",
+    "e": "K-WISC-V는 만 6세 0개월부터 만 16세 11개월까지의 아동을 대상으로 개별 실시하는 지능검사입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "한국 웩슬러 아동지능검사 4판(K-WISC-IV)과 5판(K-WISC-V)의 구조적 차이점에 대한 설명으로 옳지 않은 것은? [출처: 교재 4장 4.3절 표 4-5, 8강 강의록, 보충]",
+    "o": [
+      "전체 소검사 수가 4판 15개에서 5판 16개로 변경되었다.",
+      "4판의 '주요/보충 소검사' 명칭이 5판에서 '기본/추가 소검사'로 개정되었다.",
+      "전체 IQ 산출에 사용되는 소검사 수가 4판 10개에서 5판 7개로 줄어들었다.",
+      "5판에서 전체 IQ를 산출할 때 16개 모든 소검사를 필수로 합산해야 한다."
+    ],
+    "a": 3,
+    "h": "5판에서는 16개 중 7개 기본 소검사만으로 전체 IQ를 산출합니다.",
+    "e": "K-WISC-V에서는 16개 전체 소검사가 아닌 지정된 7개 기본 소검사만으로 전체 IQ(FSIQ)를 산출합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-IV에서 존재하였으나 개정된 K-WISC-V에서 완전히 삭제된 소검사 2가지는? [출처: 교재 4장 4.3절 개관, 8강 음성, 보충]",
+    "o": [
+      "단어추리, 빠진곳찾기",
+      "토막짜기, 퍼즐",
+      "행렬추리, 무게비교",
+      "숫자, 그림기억"
+    ],
+    "a": 0,
+    "h": "4판의 단어추리와 빠진곳찾기 2개 소검사는 5판에서 삭제되었습니다.",
+    "e": "K-WISC-V 개정 과정에서 4판의 소검사 중 '단어추리'와 '빠진곳찾기' 2개 소검사가 최종 삭제되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 유동적 추론 영역을 강화하기 위하여 새롭게 추가된 3개 소검사는? [출처: 교재 4장 4.3절 개관, 8강 강의록, 보충]",
+    "o": [
+      "무게비교, 퍼즐, 그림기억",
+      "공통성, 어휘, 상식",
+      "기호쓰기, 동형찾기, 선택",
+      "순차연결, 산수, 이해"
+    ],
+    "a": 0,
+    "h": "유동추론과 시공간, 작업기억 강화를 위해 무게비교, 퍼즐, 그림기억이 신설되었습니다.",
+    "e": "K-WISC-V에는 '무게비교', '퍼즐', '그림기억' 3개 소검사가 새로 추가되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 전체 IQ(FSIQ)를 산출할 때 사용되는 7개 기본 소검사의 조합으로 옳은 것은? [출처: 교재 4장 4.3절 전체척도, 8강 강의록, 보충]",
+    "o": [
+      "공통성, 어휘, 토막짜기, 행렬추리, 무게비교, 숫자, 기호쓰기",
+      "상식, 이해, 퍼즐, 그림기억, 동형찾기, 순차연결, 산수",
+      "공통그림찾기, 선택, 퍼즐, 상식, 이해, 산수, 순차연결",
+      "토막짜기, 퍼즐, 행렬추리, 무게비교, 숫자, 그림기억, 기호쓰기"
+    ],
+    "a": 0,
+    "h": "언어이해 2(공통성, 어휘), 시공간 1(토막짜기), 유동추론 2(행렬추리, 무게비교), 작업기억 1(숫자), 처리속도 1(기호쓰기) = 7개",
+    "e": "전체 IQ 산출용 7개 기본 소검사는 공통성, 어휘, 토막짜기, 행렬추리, 무게비교, 숫자, 기호쓰기입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V의 5개 기본지표척도(Primary Index Scales)로 옳게 짝지어진 것은? [출처: 교재 4장 4.3절 기본지표척도, 8강 강의록, 보충]",
+    "o": [
+      "언어이해, 시공간, 유동추론, 작업기억, 처리속도",
+      "양적추론, 청각작업기억, 비언어, 일반능력, 인지효율",
+      "언어성지능, 동작성지능, 인지처리, 습득도, 실행기능",
+      "수렴적사고, 확산적사고, 평가력, 기억력, 통찰력"
+    ],
+    "a": 0,
+    "h": "5대 기본지표: VCI(언어이해), VSI(시공간), FRI(유동추론), WMI(작업기억), PSI(처리속도)",
+    "e": "K-WISC-V의 기본지표척도는 언어이해, 시공간, 유동추론, 작업기억, 처리속도 5개로 구성됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V의 5개 추가지표척도(Ancillary Index Scales)로 옳게 짝지어진 것은? [출처: 교재 4장 4.3절 추가지표척도, 8강 강의록, 보충]",
+    "o": [
+      "양적추론, 청각작업기억, 비언어, 일반능력, 인지효율",
+      "언어이해, 시공간, 유동추론, 작업기억, 처리속도",
+      "수량적추론, 언어유창성, 공간회전, 지각속도, 기억력",
+      "분석적지능, 경험적지능, 맥락적지능, 감성지능, 창의지능"
+    ],
+    "a": 0,
+    "h": "특수 진단 및 추가 평가용 5대 추가지표: QRI, AWMI, NVI, GAI, CPI",
+    "e": "5개 추가지표척도는 양적추론지표, 청각작업기억지표, 비언어지표, 일반능력지표, 인지효율지표입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 기본지표 중 후천적으로 축적된 어휘지식, 언어적 추론, 결정지능을 측정하며 학업성취와 연관이 깊은 지표는? [출처: 교재 4장 4.3절 언어이해지표, 보충]",
+    "o": [
+      "언어이해지표 (VCI)",
+      "유동추론지표 (FRI)",
+      "처리속도지표 (PSI)",
+      "시공간지표 (VSI)"
+    ],
+    "a": 0,
+    "h": "공통성, 어휘 소검사로 구성되며 후천적 결정지능을 반영합니다.",
+    "e": "언어적 개념 형성, 어휘지식, 결정지능을 측정하는 지표는 '언어이해지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 기본지표 중 시각 정보 분석, 비언어적/시공간 추론, 시각-운동 협응 및 정신적 회전 능력을 측정하는 지표는? [출처: 교재 4장 4.3절 시공간지표, 보충]",
+    "o": [
+      "시공간지표 (VSI)",
+      "청각작업기억지표 (AWMI)",
+      "양적추론지표 (QRI)",
+      "언어이해지표 (VCI)"
+    ],
+    "a": 0,
+    "h": "토막짜기와 퍼즐 소검사로 구성되며 시각-운동 협응과 조작을 측정합니다.",
+    "e": "토막짜기와 퍼즐 소검사를 통해 시공간적 처리 및 시각-운동 협응 능력을 측정하는 것은 '시공간지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 기본지표 중 후천적 지식이 아닌 새로운 자극 상황에서 비언어적·추상적 개념을 추론하는 유동지능을 측정하는 지표는? [출처: 교재 4장 4.3절 유동추론지표, 보충]",
+    "o": [
+      "유동추론지표 (FRI)",
+      "언어이해지표 (VCI)",
+      "처리속도지표 (PSI)",
+      "인지효율지표 (CPI)"
+    ],
+    "a": 0,
+    "h": "행렬추리와 무게비교 소검사로 구성되어 선천적 유동지능을 측정합니다.",
+    "e": "행렬추리와 무게비교 소검사를 통해 문화적 영향을 최소화하고 새로운 문제해결력(유동지능)을 측정하는 것은 '유동추론지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 기본지표 중 단기기억, 주의집중, 정보의 정신적 유지 및 조작 능력을 측정하며 '숫자'와 '그림기억' 소검사로 구성된 지표는? [출처: 교재 4장 4.3절 작업기억지표, 보충]",
+    "o": [
+      "작업기억지표 (WMI)",
+      "처리속도지표 (PSI)",
+      "일반능력지표 (GAI)",
+      "양적추론지표 (QRI)"
+    ],
+    "a": 0,
+    "h": "주어진 청각·시각 정보를 일시 저장하고 조작·유지하는 능력입니다.",
+    "e": "숫자와 그림기억 소검사로 주의집중 및 일시 저장·조작 능력을 측정하는 지표는 '작업기억지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 기본지표 중 의사결정을 위해 시각 정보를 빠르고 정확하게 탐색·변별하고 정신운동속도를 측정하는 지표는? [출처: 교재 4장 4.3절 처리속도지표, 보충]",
+    "o": [
+      "처리속도지표 (PSI)",
+      "유동추론지표 (FRI)",
+      "시공간지표 (VSI)",
+      "청각작업기억지표 (AWMI)"
+    ],
+    "a": 0,
+    "h": "기호쓰기와 동형찾기 소검사로 과제 수행 및 반응 속도를 측정합니다.",
+    "e": "기호쓰기와 동형찾기 소검사를 통해 시각적 탐색 및 의사결정·처리속도를 측정하는 것은 '처리속도지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 추가지표 중 시각 자극을 제시하지 않고 오직 말로만 문항을 제시하여 시력 장애 아동 평가에 유용한 지표는? [출처: 교재 4장 4.3절 청각작업기억지표, 8강 음성, 보충]",
+    "o": [
+      "청각작업기억지표 (AWMI)",
+      "비언어지표 (NVI)",
+      "시공간지표 (VSI)",
+      "인지효율지표 (CPI)"
+    ],
+    "a": 0,
+    "h": "'숫자'와 '순차연결' 2개 소검사로 청각적 주의집중과 순차처리를 측정합니다.",
+    "e": "말(청각)로만 문항을 제시하는 숫자와 순차연결 소검사로 구성되어 시력 손상 아동 평가에 유용한 지표는 '청각작업기억지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 추가지표 중 언어이해 영역을 제외한 4개 영역의 소검사들로 구성되어, 언어 장애나 언어 표현이 어려운 아동의 전반적 지능 평가에 대안으로 사용되는 지표는? [출처: 교재 4장 4.3절 비언어지표, 8강 음성, 보충]",
+    "o": [
+      "비언어지표 (NVI)",
+      "일반능력지표 (GAI)",
+      "양적추론지표 (QRI)",
+      "청각작업기억지표 (AWMI)"
+    ],
+    "a": 0,
+    "h": "토막짜기, 퍼즐, 행렬추리, 무게비교, 그림기억, 기호쓰기 등 언어가 배제된 6개 소검사 지표입니다.",
+    "e": "언어적 영향이나 표현 한계를 최소화하고 전반적 지능을 측정하여 전체 IQ 대안으로 사용할 수 있는 지표는 '비언어지표'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 추가지표 중 작업기억과 처리속도의 결함을 보이는 학습장애(LD)나 ADHD 아동의 지적 능력을 유용하게 평가하기 위해 언어이해, 시공간, 유동추론 3개 영역 소검사로 구성한 지표는? [출처: 교재 4장 4.3절 일반능력지표, 8강 음성, 보충]",
+    "o": [
+      "일반능력지표 (GAI)",
+      "인지효율지표 (CPI)",
+      "청각작업기억지표 (AWMI)",
+      "비언어지표 (NVI)"
+    ],
+    "a": 0,
+    "h": "공통성, 어휘, 토막짜기, 행렬추리, 무게비교 5개 소검사로 구성되며 작업기억·처리속도 배제 지표입니다.",
+    "e": "신경발달장애(ADHD, 학습장애) 아동이 취약한 작업기억과 처리속도의 영향을 제외하고 지적 능력을 평가하는 지표는 '일반능력지표(GAI)'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 추가지표 중 일반능력지표(GAI)와 반대로 작업기억 영역과 처리속도 영역의 소검사들로만 구성되어 정보처리 능숙도와 효율성을 평가하는 지표는? [출처: 교재 4장 4.3절 인지효율지표, 8강 음성, 보충]",
+    "o": [
+      "인지효율지표 (CPI)",
+      "일반능력지표 (GAI)",
+      "양적추론지표 (QRI)",
+      "언어이해지표 (VCI)"
+    ],
+    "a": 0,
+    "h": "숫자, 그림기억, 기호쓰기, 동형찾기 4개 소검사로 정보처리 능숙도를 측정합니다.",
+    "e": "작업기억과 처리속도 소검사로 구성되어 학습 및 문제해결의 인지적 능숙도를 측정하는 지표는 '인지효율지표(CPI)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 소검사의 원점수를 또래 집단과 비교하기 위해 변환한 '소검사 환산점수'의 평균과 표준편차는? [출처: 교재 4장 4.3절 환산점수, 8강 강의록, 보충]",
+    "o": [
+      "평균 10, 표준편차 3",
+      "평균 100, 표준편차 15",
+      "평균 50, 표준편차 10",
+      "평균 0, 표준편차 1"
+    ],
+    "a": 0,
+    "h": "소검사 환산점수: Mean = 10, SD = 3",
+    "e": "K-WISC-V에서 개별 소검사 환산점수는 평균 10, 표준편차 3의 정규분포 분포를 이룹니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 전체 IQ(FSIQ) 점수 및 기본지표점수(합산점수)의 분포 기준인 평균과 표준편차는? [출처: 교재 4장 4.3절 합산점수, 8강 강의록, 보충]",
+    "o": [
+      "평균 100, 표준편차 15",
+      "평균 10, 표준편차 3",
+      "평균 500, 표준편차 100",
+      "평균 5, 표준편차 2"
+    ],
+    "a": 0,
+    "h": "웩슬러 편차 IQ 및 지표 합산점수: Mean = 100, SD = 15",
+    "e": "전체 IQ 점수와 각 지표점수는 평균 100, 표준편차 15의 편차지능지수 분포를 형성합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 원점수 외에 시간보너스 유무 비교, 오류 분석 등 아동의 수행 속도나 강박 성향에 관한 질적·추가 정보를 파악하기 위해 별도 산출하는 점수는? [출처: 교재 4장 4.3절 처리점수, 8강 음성, 보충]",
+    "o": [
+      "처리점수 (Process score)",
+      "스테나인 점수",
+      "Z점수",
+      "비례배분 점수"
+    ],
+    "a": 0,
+    "h": "토막짜기, 숫자, 그림기억 등 7개 소검사에서 18개의 추가 비교 수치를 제공합니다.",
+    "e": "수행 과정에 대한 질적 평가와 특성을 반영하기 위해 원점수와 별도로 비교 산출하는 점수를 '처리점수'라고 합니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "웩슬러 지능검사 실시 시 연령 계산법(연령 = 검사실시일 - 출생일)에서 모든 달은 며칠로 가정하여 계산하는가? [출처: 교재 4장 4.3절 연령 계산법, 8강 강의록, 보충]",
+    "o": [
+      "모든 달을 30일로 가정한다.",
+      "모든 달을 31일로 가정한다.",
+      "윤년 여부에 따라 28일 또는 29일로 다르게 바꾼다.",
+      "달력의 실제 일수를 일일이 대조하여 산출한다."
+    ],
+    "a": 0,
+    "h": "연령 산출 시 일단(日段) 뺄셈 계산 편의를 위해 1달을 30일로 고정 적용합니다.",
+    "e": "웩슬러 지능검사 연령 산출 시 1달은 30일로 통일하여 계산합니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "검사일이 2024년 2월 10일이고 출생일이 2015년 5월 16일인 아동의 웩슬러 검사 기준 생활연령 계산 결과는? [출처: 교재 4장 4.3절 그림 4-7 연령 계산 예시, 보충]",
+    "o": [
+      "만 8세 8개월 24일",
+      "만 9세 3개월 6일",
+      "만 8세 9개월 10일",
+      "만 9세 8개월 24일"
+    ],
+    "a": 0,
+    "h": "일: 10 + 30 - 16 = 24일 / 월: (2-1) + 12 - 5 = 8개월 / 년: 2023 - 2015 = 8년",
+    "e": "검사일(2024-02-10) - 출생일(2015-05-16): 일(10+30-16=24일), 월(1+12-5=8월), 년(2023-2015=8년)으로 만 8세 8개월 24일입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V에서 전체 IQ 산출용 7개 기본 소검사 중 1개가 불참/무효 처리되었을 때의 소검사 대체 규칙으로 바른 것은? [출처: 교재 4장 4.3절 소검사 대체, 8강 음성, 보충]",
+    "o": [
+      "전체 IQ 산출에 한해 1회에 한하여 같은 영역의 다른 소검사로 대체할 수 있다.",
+      "지표점수 산출 시에도 제한 없이 무제한으로 소검사를 대체할 수 있다.",
+      "소검사 대체는 어떠한 경우에도 절대 허용되지 않는다.",
+      "대체 시 반드시 다른 영역의 추가 소검사를 임의 선택하여 대체한다."
+    ],
+    "a": 0,
+    "h": "소검사 대체는 전체 IQ 점수 산출에 한해 딱 1회만 허용되며 지표점수에는 불가능합니다.",
+    "e": "7개 전체 IQ 소검사 중 불가능한 검사가 발생 시 1회에 한하여 동일 영역의 소검사로 대체가 허용됩니다."
+  },
+  {
+    "type": "계산·수치",
+    "q": "사정상 K-WISC-V 전체 IQ 산출용 소검사를 6개밖에 실시하지 못했을 때, 비례배분된 환산점수를 산출하기 위한 수식은? [출처: 교재 4장 4.3절 1단계 해석, 8강 강의록, 보충]",
+    "o": [
+      "(6개 소검사 환산점수의 합) × 7/6",
+      "(6개 소검사 환산점수의 합) × 6/7",
+      "(6개 소검사 환산점수의 합) + 10",
+      "(6개 소검사 환산점수의 합) ÷ 2"
+    ],
+    "a": 0,
+    "h": "7개 분량 기준 점수로 보정하기 위해 7/6을 곱해 줍니다.",
+    "e": "6개 소검사만 실시된 경우 6개 환산점수 합계에 7/6을 곱하여 비례배분 환산점수를 구합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V 전체 IQ 점수(평균 100, SD 15)의 질적 분류 구간 연결이 바르게 이루어진 것은? [출처: 교재 4장 4.3절 표 4-8 질적 분류, 보충]",
+    "o": [
+      "130 이상: 매우 우수 / 120~129: 우수 / 110~119: 평균 상 / 90~109: 평균 / 80~89: 평균 하 / 70~79: 낮음 / 69 이하: 매우 낮음",
+      "130 이상: 우수 / 100~129: 보통 / 90 이하: 지적장애",
+      "Z점수 +3.0 이상만 합격 / Z점수 -3.0 이하만 불합격",
+      "100 이상: 상위권 / 100 미만: 하위권"
+    ],
+    "a": 0,
+    "h": "90~109 구간이 '평균'이며 130 이상이 '매우 우수', 69 이하가 '매우 낮음'입니다.",
+    "e": "K-WISC-V 전체 IQ 질적 분류는 130이상 매우 우수, 120~129 우수, 110~119 평균상, 90~109 평균, 80~89 평균하, 70~79 낮음, 69이하 매우 낮음으로 분류됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V 소검사 환산점수(평균 10, SD 3)의 질적 분류 구간 중 '8~12점'에 해당하는 분류 범주는? [출처: 교재 4장 4.3절 표 4-9 소검사 질적 분류, 보충]",
+    "o": [
+      "평균 (Average)",
+      "매우 우수 (Very Superior)",
+      "약점 (Weakness)",
+      "예외적 강점"
+    ],
+    "a": 0,
+    "h": "소검사 환산점수 8~12점은 또래 집단 대비 '평균' 범주입니다.",
+    "e": "소검사 환산점수 8~12점은 질적 분류상 '평균' 범주에 해당합니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "웩슬러 지능검사 결과 해석 방법 중 '규준분석에 의한 개인 간 해석'과 '프로파일에 의한 개인 내적 해석'을 바르게 비교한 것은? [출처: 교재 4장 4.3절 개인 간 및 개인 내 해석, 보충]",
+    "o": [
+      "개인 간 해석: 동연령 규준집단과 비교하여 상대적 서열 평가 / 개인 내적 해석: 한 피검자 내부의 인지적 강점과 약점 파악",
+      "개인 간 해석: 피검자 1명의 시시각각 태도 변화 파악 / 개인 내적 해석: 전국 1,000명 집단과의 상대 비교",
+      "개인 간 해석: 뇌손상 자동 진단 / 개인 내적 해석: 수능 등급 산출",
+      "개인 간 해석: 서술형 채점 / 개인 내적 해석: 객관식 채점"
+    ],
+    "a": 0,
+    "h": "개인 간 해석은 또래와 비교하는 규준 분석, 개인 내적 해석은 아동 내부의 지표/소검사 간 프로파일 강약점 분석입니다.",
+    "e": "개인 간 해석은 동일 연령대 규준에 비추어 상대적 위치를 보는 것이고, 개인 내적 해석은 아동 인지 구조 내부의 강점과 약점을 파악하는 것입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V에서 제안하는 7단계 해석 절차의 1단계부터 3단계 순서로 올바른 것은? [출처: 교재 4장 4.3절 K-WISC-V 해석절차, 8강 강의록, 보충]",
+    "o": [
+      "1단계: 전체 IQ 해석 → 2단계: 기본지표척도 해석 → 3단계: 기본지표의 소검사 해석",
+      "1단계: 소검사 해석 → 2단계: 전체 IQ 해석 → 3단계: CHC 분석",
+      "1단계: 처리점수 해석 → 2단계: 추가지표 해석 → 3단계: 전체 IQ 해석",
+      "1단계: 라포 형성 → 2단계: 연령 계산 → 3단계: 채점판 대조"
+    ],
+    "a": 0,
+    "h": "해석 순서: 전체 IQ(전반 지능) → 기본지표(영역별) → 소검사(세부 능력)",
+    "e": "K-WISC-V의 해석은 1단계 전체 IQ 해석 → 2단계 기본지표척도 해석 → 3단계 기본지표 소검사 해석 순으로 진행됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "검사 결과 해석 보고서를 부모나 교사 등 의뢰자에게 전달할 때 바람직한 태도 및 방법이 아닌 것은? [출처: 교재 4장 4.4절 결과 전달과 활용, 8강 음성, 보충]",
+    "o": [
+      "의뢰자나 부모가 알아듣기 쉬운 용어로 설명해 준다.",
+      "단일 IQ 숫자를 전달하기보다 90~109 등 범위값 중심의 질적 분류로 설명한다.",
+      "피검자의 단일 IQ 수치(예: 'IQ 105점입니다')를 단정적으로 말하여 낙인 효과를 준다.",
+      "전달받은 자가 검사 결과를 왜곡해서 오해하지 않았는지 재확인한다."
+    ],
+    "a": 2,
+    "h": "IQ 숫자는 파워가 강력하여 낙인과 왜곡을 유발하므로 숫자로 단정하는 표현을 피합니다.",
+    "e": "결과 전달 시 'IQ가 110점이다'라는 단일 수치보다 '또래에 비해 평균 상 수준이다'와 같이 질적 범주로 설명하는 것이 바람직합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V 검사도구 상자에 포함되어 있는 구성 요소로 보기 어려운 것은? [출처: 교재 4장 4.3절 검사도구, 8강 강의록, 보충]",
+    "o": [
+      "실시와 채점 지침서, 소책자 1·2, 토막짜기 세트, 반응지 1·2, 기록용지, 채점판, 연필, 초시계",
+      "EEG 뇌파 측정 전극 헬멧",
+      "빨간색과 흰색으로 이루어진 토막 9개",
+      "기호쓰기·동형찾기·선택 수기 채점판"
+    ],
+    "a": 1,
+    "h": "K-WISC-V는 종이, 연필, 소책자, 토막세트, 반응지, 초시계 등을 사용하는 지필 및 동작성 검사도구입니다.",
+    "e": "K-WISC-V 지능검사 도구 세트에는 지침서, 소책자, 토막, 반응지, 기록용지, 채점판, 연필, 초시계 등이 포함되며 뇌파 전극 헬멧 등 생리적 장비는 포함되지 않습니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "K-WISC-V 검사를 진행하는 동안 검사자가 아동의 수행에 대해 제공해야 하는 언어적 강화(칭찬) 지침으로 가장 올바른 것은? [출처: 교재 4장 4.3절 라포 형성, 8강 음성, 보충]",
+    "o": [
+      "정답 유무에 대한 수행 강화('맞췄어요')보다 아동의 '노력'에 대한 칭찬('열심히 하는 모습이 보기 좋아요')을 제공한다.",
+      "아동이 틀릴 때마다 '틀렸습니다'라고 강하게 지적해 준다.",
+      "아동이 정답을 맞혔을 때만 '맞췄어요'라고 반응 결과에 칭찬을 집중한다.",
+      "검사 내내 아동과 어떠한 언어적 대화나 반응도 일절 하지 않는다."
+    ],
+    "a": 0,
+    "h": "결과 성패보다는 아동의 참여와 노력 과정에 대해 강화를 제공해야 검사의 동기 수준이 유지됩니다.",
+    "e": "검사 진행 중에는 아동의 정답/오답 결과에 대한 강화보다는 과제에 임하는 아동의 '노력'에 대해 칭찬하고 격려하는 것이 지침입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "K-WISC-V 검사를 시행할 때 10개 기본 소검사를 실시할 때와 7개 전체 IQ 소검사를 실시할 때의 평균 소요시간으로 올바른 것은? [출처: 교재 4장 4.3절 검사시간, 8강 강의록, 보충]",
+    "o": [
+      "기본 10개 소검사: 약 65분 / 전체 IQ 7개 소검사: 약 48분",
+      "기본 10개 소검사: 약 10분 / 전체 IQ 7개 소검사: 약 5분",
+      "기본 10개 소검사: 약 180분 / 전체 IQ 7개 소검사: 약 120분",
+      "기본 10개 소검사: 약 24시간 / 전체 IQ 7개 소검사: 약 12시간"
+    ],
+    "a": 0,
+    "h": "10개 기본 소검사는 평균 65분, 전체 IQ 산출 7개 소검사는 평균 48분 소요됩니다.",
+    "e": "K-WISC-V의 기본 소검사 10개 실시 시 평균 65분, 전체 IQ 산출용 7개 소검사 실시 시 평균 48분이 소요됩니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "성인용 웩슬러 지능검사(WAIS)에 비해 아동용 웩슬러 지능검사(WISC)에서 문제 난이도의 비약이 크고 틀렸을 때 더 빨리 검사를 중지하는 이유는? [출처: 교재 4장 4.3절 해석 시 유의점, 8강 음성, 보충]",
+    "o": [
+      "아동기가 연령에 따라 지적 능력이 급속히 변화·발달하는 시기이고 무리한 중복 실패 스트레스를 방지하기 위해",
+      "아동용 검사지는 종이 수량을 절약해야 하기 때문에",
+      "아동은 성인보다 지능검사를 100배 더 쉽게 느끼기 때문에",
+      "아동용 지능검사에는 표준편차가 적용되지 않기 때문에"
+    ],
+    "a": 0,
+    "h": "아동기 인지발달의 급격한 연령별 변화 특성과 과도한 실패 경험 방지 필요성 때문입니다.",
+    "e": "아동기는 연령에 따라 지적 능력이 급격히 변화하고 발달하므로 연령별 난이도 차가 크고 실패 지속에 따른 스트레스를 줄이기 위해 더 빨리 중지합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "8강 「지능검사 2」의 핵심 학습 주제 및 대상 검사로 가장 바른 것은? [출처: 교재 4장 4.3절 목차, 8강 강의록, 보충]",
+    "o": [
+      "한국 웩슬러 아동지능검사(K-WISC-V)의 구성, 측정 내용, 실시와 채점, 해석 및 활용",
+      "홀랜드 직업흥미검사의 6가지 육각형 구조 해석",
+      "MMPI-2 다면적 인성검사의 타당도 척도와 임상 척도 분석",
+      "로르샤흐 잉크반점 검사의 반응 영역 및 결정요인 기호화"
+    ],
+    "a": 0,
+    "h": "8강은 한국 웩슬러 아동지능검사(K-WISC-V)의 체계와 실용 지침을 정밀하게 배우는 강입니다.",
+    "e": "8강은 지능검사 2번째 시간으로서 한국 웩슬러 아동지능검사(K-WISC-V)의 척도 구조, 실시/채점, 연령 계산, 7단계 해석 및 전달 지침을 학습합니다."
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

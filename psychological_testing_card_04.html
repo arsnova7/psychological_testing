@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 4, title: "검사결과 이해를 위한 측정학적 개념 2" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 산술평균(Mean)의 정의 [출처: 교재 2장 2.3절 집중경향치]",
+    "a": "모든 관찰값의 합을 전체 사례수로 나눈 값으로 대표값 중 가장 안정적임"
+  },
+  {
+    "q": "★★★ 중앙값(Median)의 정의 [출처: 교재 2장 2.3절 집중경향치]",
+    "a": "자료를 크기순으로 배열했을 때 상위 50%와 하위 50%를 나누는 한가운데 지점의 값"
+  },
+  {
+    "q": "★★★ 최빈값(Mode)의 정의 [출처: 교재 2장 2.3절 집중경향치]",
+    "a": "관찰된 자료 분포에서 가장 빈번하게(가장 많이) 출현한 값"
+  },
+  {
+    "q": "★★★ 정적 편포(positively skewed)에서의 대표값 크기 순서 [출처: 교재 2장 2.3절 집중경향치, 2014년 기말, 2016년 기말]",
+    "a": "산술평균 > 중앙값 > 최빈값 (오른쪽 꼬리가 길어 평균이 가장 큼)"
+  },
+  {
+    "q": "★★★ 부적 편포(negatively skewed)에서의 대표값 크기 순서 [출처: 교재 2장 2.3절 집중경향치]",
+    "a": "최빈값 > 중앙값 > 산술평균 (왼쪽 꼬리가 길어 평균이 가장 작음)"
+  },
+  {
+    "q": "★★★ 정규분포에서의 대표값 크기 관계 [출처: 교재 2장 2.3절 정규분포, 2013년 기말]",
+    "a": "산술평균 = 중앙값 = 최빈값 (세 값이 정확히 동일함)"
+  },
+  {
+    "q": "★★★ 변산도(variability)의 필요성 [출처: 교재 2장 2.3절 변산도]",
+    "a": "평균이 같더라도 집단 내 점수들이 흩어져 있는 동질성/이질성 정도를 파악하기 위해"
+  },
+  {
+    "q": "★★★ 범위(range)의 정의 및 한계 [출처: 교재 2장 2.3절 변산도, 2019년 기말]",
+    "a": "최고값 - 최하값 / 계산은 쉬우나 극단적인 점수의 변동에 매우 민감함"
+  },
+  {
+    "q": "★★★ 표준편차(standard deviation)의 정의 [출처: 교재 2장 2.3절 변산도, 워크북 2장 2.3절]",
+    "a": "편차점수 제곱의 평균(분산)에 양의 제곱근을 취한 값으로 가장 대표적인 변산도 지수"
+  },
+  {
+    "q": "★★★ 분산(variance)의 정의 [출처: 교재 2장 2.3절 변산도]",
+    "a": "각 관찰값에서 평균을 뺀 편차점수를 제곱하여 모두 더한 뒤 사례수로 나눈 평균 제곱 편차"
+  },
+  {
+    "q": "★★★ 정규분포에서 평균 ± 1SD 범위의 비율 [출처: 교재 2장 2.3절 정규분포, 2015년 기말, 2017년 기말]",
+    "a": "전체 사례의 약 68% (정확히 68.26%)"
+  },
+  {
+    "q": "★★★ 정규분포에서 평균 ± 2SD 범위의 비율 [출처: 교재 2장 2.3절 정규분포]",
+    "a": "전체 사례의 약 95% ~ 96% (정확히 95.44%)"
+  },
+  {
+    "q": "★★★ 정규분포에서 평균 ± 3SD 범위의 비율 [출처: 교재 2장 2.3절 정규분포]",
+    "a": "전체 사례의 약 99% (정확히 99.74%)"
+  },
+  {
+    "q": "★★★ 백분위(percentile)의 정의 및 척도 유형 [출처: 교재 2장 2.4절 백분위, 2017년 기말]",
+    "a": "특정 점수 이하에 있는 사례의 백분율(%) / 동간성이 없는 서열척도"
+  },
+  {
+    "q": "★★★ Z점수의 정의 및 산출 공식 [출처: 교재 2장 2.4절 Z점수, 2014년 기말, 2018년 기말]",
+    "a": "Z = (원점수 - 평균) / 표준편차 (원점수의 편차를 표준편차 단위로 나타낸 기본 표준점수)"
+  },
+  {
+    "q": "★★★ Z점수의 평균과 표준편차 [출처: 교재 2장 2.4절 Z점수, 2014년 기말]",
+    "a": "평균 = 0, 표준편차 = 1"
+  },
+  {
+    "q": "★★★ T점수의 정의 및 산출 공식 [출처: 교재 2장 2.4절 T점수, 2016년 기말]",
+    "a": "T = 10Z + 50 (Z점수의 음수와 소수점을 없애기 위해 선형변환한 점수)"
+  },
+  {
+    "q": "★★★ T점수의 평균과 표준편차 [출처: 교재 2장 2.4절 T점수, 2016년 기말]",
+    "a": "평균 = 50, 표준편차 = 10"
+  },
+  {
+    "q": "★★★ 스테나인(stanine) 점수의 특성 [출처: 교재 2장 2.4절 변환점수, 2014년 기말]",
+    "a": "정규분포를 1~9등급으로 나눈 등급형 점수 (평균 5, 표준편차 2)"
+  },
+  {
+    "q": "★★★ 상관계수(r)의 값 범주 [출처: 교재 2장 2.5절 상관계수, 2019년 기말]",
+    "a": "-1.00 ≤ r ≤ +1.00"
+  },
+  {
+    "q": "★★★ 양(+)의 상관과 음(-)의 상관의 의미 [출처: 교재 2장 2.5절 상관계수, 워크북 2장 2.5절]",
+    "a": "양의 상관: 두 변수가 같은 방향으로 변화 / 음의 상관: 두 변수가 반대 방향으로 변화"
+  },
+  {
+    "q": "★★★ 상관계수 r = 0 의 통계적 의미 [출처: 교재 2장 2.5절 상관계수]",
+    "a": "두 변수 간에 선형적(직선적) 상관관계가 존재하지 않음"
+  },
+  {
+    "q": "★★★ 결정계수(r²)의 정의 [출처: 교재 2장 2.5절 해석, 4강 음성]",
+    "a": "상관계수의 제곱값으로, 독립변수 X에 의해 설명되는 종속변수 Y의 분산 비율"
+  },
+  {
+    "q": "★★★ 산점도(scatterplot)의 정의 [출처: 교재 2장 2.5절 상관계수]",
+    "a": "두 변수의 관찰값들을 X축과 Y축 평면상에 점으로 찍어 관련성을 시각화한 도표"
+  },
+  {
+    "q": "★★★ 피어슨 적률상관계수의 전제 조건 [출처: 교재 2장 2.5절 상관계수]",
+    "a": "두 변수가 동간/비율변수이고 선형성, 등분산성, 정규성을 만족해야 함"
+  },
+  {
+    "q": "★★☆ 스피어먼 등위상관계수의 적용 조건 [출처: 교재 2장 2.5절 상관계수]",
+    "a": "서열변수이거나 사례수가 30 이하로 적어 동간성을 가정하기 어려울 때 적용"
+  },
+  {
+    "q": "★★☆ 표준점수(Z, T점수)의 핵심 장점 [출처: 교재 2장 2.4절 표준점수]",
+    "a": "평균과 표준편차가 서로 다른 과목/검사의 점수를 동일 척도로 변환하여 비교 가능케 함"
+  },
+  {
+    "q": "★★☆ 편차점수의 개념 및 합계 [출처: 교재 2장 2.4절 Z점수]",
+    "a": "개별 점수(X)에서 평균(Mean)을 뺀 수치 / 편차점수의 전체 합은 항상 0임"
+  },
+  {
+    "q": "★★☆ 웩슬러 편차지능지수(IQ)의 평균과 표준편차 [출처: 교재 2장 2.4절 변환점수]",
+    "a": "평균 = 100, 표준편차 = 15 (IQ = 100 + 15Z)"
+  },
+  {
+    "q": "★★☆ 미국 SAT 변환점수의 평균과 표준편차 [출처: 교재 2장 2.4절 변환점수]",
+    "a": "평균 = 500, 표준편차 = 100 (SAT = 500 + 100Z)"
+  },
+  {
+    "q": "★★☆ 모든 원점수에 동일 상수를 더할 때의 변화 [출처: 교재 2장 2.3절 변산도, 2019년 기말]",
+    "a": "평균은 그 상수만큼 증가하지만, 표준편차(변산도)는 변함없이 동일함"
+  },
+  {
+    "q": "★★☆ 정규분포곡선 하단의 전체 면적 값 [출처: 교재 2장 2.3절 정규분포]",
+    "a": "1.0 (또는 100%)"
+  },
+  {
+    "q": "★★☆ 백분위 50 점수와 동일한 지수 [출처: 교재 2장 2.4절 백분위, 2013년 기말, 2016년 기말]",
+    "a": "중앙값(Median) 및 정규분포에서의 산술평균"
+  },
+  {
+    "q": "★★☆ 정적 편포가 발생하는 대표적 시험 상황 [출처: 교재 2장 2.3절, 4강 강의록]",
+    "a": "시험이 매우 어렵게 출제되어 대다수 학생이 낮은 점수대에 쏠릴 때"
+  },
+  {
+    "q": "★★☆ 부적 편포가 발생하는 대표적 시험 상황 [출처: 교재 2장 2.3절, 4강 강의록]",
+    "a": "시험이 매우 쉽게 출제되어 대다수 학생이 높은 점수대에 쏠릴 때"
+  },
+  {
+    "q": "★★☆ 서열변수에 가장 적절한 집중경향치 [출처: 교재 2장 2.3절 집중경향치, 2016년 기말]",
+    "a": "중앙값(Median) 및 최빈값(Mode)"
+  },
+  {
+    "q": "★★☆ 극단적인 편포를 이룰 때 가장 적절한 집중경향치 [출처: 교재 2장 2.3절 집중경향치]",
+    "a": "중앙값(Median) - 극단값의 영향을 받지 않기 때문"
+  },
+  {
+    "q": "★★☆ 표집오차가 가장 적은 가장 안정적인 변산도 지수 [출처: 교재 2장 2.3절 변산도, 워크북 2장 2.3절]",
+    "a": "표준편차( 및 분산)"
+  },
+  {
+    "q": "★★☆ 표집오차가 가장 적은 가장 안정적인 집중경향치 [출처: 교재 2장 2.3절 집중경향치, 2016년 기말]",
+    "a": "산술평균(Mean)"
+  },
+  {
+    "q": "★★☆ 모든 관찰값에 동일하게 적용된 고정적 오차가 상관계수에 미치는 영향 [출처: 교재 2장 2.5절 요인]",
+    "a": "점수 간 상대적 서열과 흩어짐을 바꾸지 않으므로 상관계수 r에 영향을 주지 않음"
+  },
+  {
+    "q": "★☆☆ 무선적(측정) 오차가 상관계수 r에 미치는 영향 [출처: 교재 2장 2.5절 요인]",
+    "a": "진정한 상관관계를 약화시켜 상관계수 r을 축소(감소)시킴"
+  },
+  {
+    "q": "★☆☆ 표집 집단의 점수 범위가 이질적이고 넓을 때 상관계수 r [출처: 교재 2장 2.5절 요인]",
+    "a": "두 변수 간 상관관계가 실제보다 명확히 잘 표출됨"
+  },
+  {
+    "q": "★☆☆ 양극단 집단만 표집할 때 상관계수 r의 변화 [출처: 교재 2장 2.5절 요인]",
+    "a": "상관계수 r이 실제보다 과대추정될 수 있음"
+  },
+  {
+    "q": "★☆☆ 상관계수 절대값 |r| ≥ 0.6 의 해석 기준 [출처: 교재 2장 2.5절 해석]",
+    "a": "두 변수 간에 '강한 상관관계'가 존재하는 것으로 간주"
+  },
+  {
+    "q": "★☆☆ 상관관계와 인과관계의 관계 [출처: 교재 2장 2.5절 해석]",
+    "a": "상관계수는 단순히 두 변수의 직선적 관련성을 나타낼 뿐, 직접적인 인과관계를 의미하지 않음"
+  },
+  {
+    "q": "★☆☆ 스테나인 5등급이 차지하는 비율 [출처: 교재 2장 2.4절 변환점수]",
+    "a": "전체 사례의 20% (중앙 부근으로 가장 넓음)"
+  },
+  {
+    "q": "★☆☆ Z = +1.0 일 때 T점수 계산 [출처: 교재 2장 2.4절 T점수]",
+    "a": "T = 10(1) + 50 = 60점"
+  },
+  {
+    "q": "★☆☆ Z = +2.0 일 때 웩슬러 IQ 계산 [출처: 교재 2장 2.4절 변환점수]",
+    "a": "IQ = 100 + 15(2) = 130점"
+  },
+  {
+    "q": "★☆☆ 분산이 16일 때 표준편차 값 [출처: 교재 2장 2.3절 변산도]",
+    "a": "S = √16 = 4"
+  },
+  {
+    "q": "★☆☆ 4강 「검사결과 이해를 위한 측정학적 개념 2」 교재 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 2장 2.3절~2.5절 (p.50~68), 워크북 2장 2.3절~2.5절 (p.23~33), 4강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>

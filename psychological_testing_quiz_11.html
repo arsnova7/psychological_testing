@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 퀴즈</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    :root {
+        --primary: #b45309;
+        --bg-gray: #f4f6f8;
+        --success: #28a745;
+        --danger: #dc3545;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 700px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #14213d; font-weight: 800; margin-bottom: 10px; word-break: keep-all; }
+    .header p { color: #55657d; font-weight: bold; font-size: 1.1rem; margin: 0; }
+    .header .score-text { margin-top: 6px; color: #166534; font-size: 1rem; }
+
+    .quiz-box { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .q-type { display: inline-block; background: #e0e7f1; color: #14213d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; }
+    #question-text { font-weight: bold; font-size: 1.2rem; margin-bottom: 25px; word-break: keep-all; line-height: 1.4; color: #14213d; }
+
+    .option-btn { width: 100%; text-align: left; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; transition: 0.2s; line-height: 1.4; color: #2f3640; font-weight: 500; font-family: inherit; }
+    .option-btn:hover { background: #fff7ed; border-color: var(--primary); }
+    .option-btn:focus-visible, .btn-next:focus-visible, .result-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+    .option-btn.correct { background: #e6fffa; border-color: var(--success); color: var(--success); font-weight: bold; }
+    .option-btn.wrong { background: #fff5f5; border-color: var(--danger); color: var(--danger); opacity: 0.6; }
+
+    .btn-next { width: 100%; padding: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top: 25px; display: none; font-size: 1.1rem; transition: 0.2s; font-family: inherit; }
+    .btn-next:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .hint-box, .exp-box { padding: 18px; border-radius: 10px; margin-top: 15px; display: none; line-height: 1.6; word-break: keep-all; font-size: 0.95rem; }
+    .hint-box { background: #fffbeb; border: 1px solid #fbd38d; color: #b45309; }
+    .exp-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46; }
+
+    .result-card { background: white; border-radius: 20px; padding: 40px; text-align: center; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .result-btn { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #e0e7f1; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05rem; font-weight: bold; transition: 0.2s; font-family: inherit; }
+    .result-btn:hover { background: #f3f6fa; }
+    .result-score { margin: 6px 0 4px; font-size: 3.4rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .result-detail { margin: 0 0 10px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    #result-msg { margin: 0 0 18px; line-height: 1.6; word-break: keep-all; color: #14213d; font-weight: 600; }
+    .missed { text-align: left; margin: 0 0 18px; padding: 10px 16px; border: 1px solid #e0e7f1; border-radius: 10px; }
+    .missed summary { cursor: pointer; font-weight: 700; color: #14213d; padding: 4px 0; }
+    .missed ol { margin: 10px 0 4px; padding-left: 26px; font-size: 0.95rem; line-height: 1.55; word-break: keep-all; color: #2f3640; }
+    .missed li { margin-bottom: 8px; }
+
+    /* 문제 화면 아래의 목록으로 돌아가기 버튼 */
+    .list-btn { width: 100%; padding: 14px; margin-top: 16px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: white; color: #14213d; font-family: inherit; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .list-btn:hover { background: #f3f6fa; }
+    .list-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid var(--danger); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; color: #14213d; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: var(--danger); }
+    .problem-list .warn .tag { color: var(--primary); }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #14213d; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="header">
+            <h1 id="lecture-title"></h1>
+            <p id="progress-text"></p>
+            <p id="score-text" class="score-text"></p>
+        </div>
+        <div class="quiz-box">
+            <div id="question-type" class="q-type">개념확인</div>
+            <div id="question-text"></div>
+            <div id="options-container"></div>
+
+            <div id="hint-box" class="hint-box">💡 <b>힌트:</b> <span id="hint-text"></span></div>
+            <div id="exp-box" class="exp-box">✅ <b>정답 및 해설:</b> <span id="exp-text"></span></div>
+
+            <button id="next-btn" class="btn-next" type="button" onclick="nextQuestion()">다음 문제로</button>
+        </div>
+
+        <button class="list-btn" type="button" onclick="goList()">🏠 목록으로 돌아가기</button>
+    </div>
+
+    <div id="result-screen" class="result-card">
+        <h2 id="result-title">🎊 학습을 마쳤습니다!</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <p id="result-msg"></p>
+        <details id="missed-details" class="missed">
+            <summary id="missed-summary"></summary>
+            <ol id="missed-list"></ol>
+        </details>
+        <button id="retry-missed-btn" class="result-btn" type="button" style="background:var(--primary); color:white; border:none;" onclick="retryMissed()"></button>
+        <button class="result-btn" type="button" onclick="retryAll()">🔄 처음부터 다시 풀기</button>
+        <button class="result-btn" type="button" onclick="location.href='index.html'">🏠 목록으로 돌아가기</button>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 11, title: "성격검사 1" };
+</script>
+
+<!-- ③ 퀴즈 데이터: 노트북LM이 만든 const quizData = [...]; 를 통째로 덮어쓰세요.
+     아래 1문항은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     문제마다 type, q, o, a, h, e 가 모두 있어야 하고, a는 첫 번째 보기가 0입니다. -->
+<script>
+    const quizData = [
+        {
+            "type": "비교·분석",
+    "q": "성격이론 중 '유형이론(Type theory)'에 대한 설명으로 바르지 않은 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 1번]",
+    "o": [
+      "융(Jung)은 외향형과 내향형 등으로 심리유형을 분류하였다.",
+      "혈액형이나 체형처럼 개인의 성격을 질적으로 구별되는 몇 가지 범주로 분류한다.",
+      "성격의 차이를 범주 간의 이질성과 상호 배타적 분류로 설명한다.",
+      "아이젠크(Eysenck)는 요인분석을 통해 성격을 연속적인 차원상에서 설명하는 유형이론만을 고집하였다."
+    ],
+    "a": 3,
+    "h": "아이젠크는 외향성-내향성, 안정성-불안정성 등 3가지 차원을 제시한 특성이론가에 가깝습니다.",
+    "e": "아이젠크(Eysenck)는 성격을 3가지 기본 차원(외향성-내향성, 안정성-불안정성, 정신병적 경향성)상에서 연속적인 수치로 설명하는 특성이론(차원적 접근)에 기여했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "프로이트(Freud) 및 에릭슨(Erikson)의 성격발달이론에 대한 설명으로 옳지 않은 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 2번, 2017년 기말 61번]",
+    "o": [
+      "프로이트는 리비도(libido)의 집중 부위에 따라 심리성적 발달단계를 5단계로 구분하였다.",
+      "프로이트의 심리성적 발달단계는 구강기, 항문기, 남근기, 잠복기, 생식기 순이다.",
+      "에릭슨은 전 생애를 8개의 심리사회적 발달단계로 구분하고 위기 극복에 따른 자아자질을 제시하였다.",
+      "프로이트의 발달단계 중 '잠복기'는 성적 본능 에너지가 가장 격렬하게 폭발하는 사춘기 단계이다."
+    ],
+    "a": 3,
+    "h": "잠복기는 초등학생 시기로 성적 욕구가 잠대되고 지적·사회적 활동에 집중하는 시기입니다.",
+    "e": "프로이트의 발달단계 중 '잠복기(6~7세~사춘기 초)'는 성적 리비도가 잠대되고 사회적·지적 활동에 관심이 집중되는 정체기입니다. 성적 에너지가 폭발하는 시기는 사춘기 이후의 '생식기(성기기)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "올포트(Allport)의 특성이론에 관한 설명으로 가장 적절하지 않은 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 3번, 2018년 기말 61번, 2019년 기말 62번]",
+    "o": [
+      "성격을 개인에게 미치는 영향력에 따라 주 특성, 중심 특성, 이차적 특성으로 구분하였다.",
+      "문화적·사회적으로 공유되는 공통특성과 개별적인 개인특성을 구분하였다.",
+      "인간의 성격을 혈액형과 같이 4가지 범주로만 나눈 대표적인 유형이론가이다.",
+      "특성을 한 개인의 행동과 생각을 결정하는 정신·신체적 체계의 역동적 조직으로 보았다."
+    ],
+    "a": 2,
+    "h": "올포트는 성격을 몇 개 범주로 나눈 유형론자가 아니라 특질(Trait) 구조를 밝힌 특성이론가입니다.",
+    "e": "올포트는 성격을 범주로 분류하는 유형론자가 아니라, 성격을 구성하는 특성(Trait)의 역동적 조직과 개인특성/공통특성, 주/중심/이차적 특성을 제안한 대표적 특성이론가입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "요인분석법(Factor Analysis)을 적용하여 사전에 등재된 성격 형용사 목록으로부터 16개 요인을 추출하고 16PF 검사를 개발한 학자는? [출처: 교재 6장 6.1절 16PF, 워크북 6장 6.1절 4번, 2015년 기말 60번, 2016년 기말 60번, 2019년 기말 64번]",
+    "o": [
+      "카텔 (Cattell)",
+      "융 (Jung)",
+      "로저스 (Rogers)",
+      "아나스타시 (Anastasi)"
+    ],
+    "a": 0,
+    "h": "16성격요인검사(16PF)를 개발한 특성이론 학자입니다.",
+    "e": "카텔(Cattell)은 요인분석 통계방법을 사용하여 인간의 성격특성 형용사로부터 16개 성격요인을 추출하고 16PF 검사를 제안했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아나스타시(Anastasi)가 분류한 성격검사 개발방법 중 '특정 성격이론이 제시하는 심리적 구인을 측정하기 위해 문항을 개발하는 방법'과 대표 검사 연결은? [출처: 교재 6장 6.1절 성격검사 개발, 워크북 6장 6.1절 5번, 7번, 2014년 기말 24번, 2018년 기말 62번]",
+    "o": [
+      "이론적 방법 — MBTI, PRF",
+      "준거집단법 — MMPI",
+      "요인분석법 — 16PF",
+      "논리적-내용적 방법 — STRONG"
+    ],
+    "a": 0,
+    "h": "특정 이론(융의 심리유형론, 머레이의 욕구이론 등)에 기반하여 검사문항을 구성하는 개발방법입니다.",
+    "e": "이론적 방법은 융의 심리유형론(MBTI)이나 머레이의 욕구이론(PRF)처럼 특정 성격이론에 근거하여 심리적 구인 문항을 개발하는 방법입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아나스타시의 성격검사 개발방법 중 '실제 임상자료에 기초하여 환자집단과 정상집단을 일관되게 구별해 주는 문항을 선별하여 개발하는 경험적 방법'은? [출처: 교재 6장 6.1절 성격검사 개발, 워크북 6장 6.1절 6번, 2013년 기말 24번]",
+    "o": [
+      "논리적-내용적 방법",
+      "이론적 방법",
+      "준거집단법",
+      "요인분석법"
+    ],
+    "a": 2,
+    "h": "실제 우울증 집단과 대조군 집단을 구별하는 임상적 데이터 기반 경험적 방법입니다.",
+    "e": "준거집단법(Empirical criterion keying)은 임상 데이터를 기반으로 환자 집단과 정상 집단을 판별해 주는 경험적 문항 추출법이며, MMPI가 대표적입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "바움린드(Baumrind)가 제시한 부모의 양육유형 중 '애정과 반응성이 높고 엄격한 규율을 합리적으로 이행하여, 아동이 활기차고 자기통제적이며 성취지향적으로 성장하도록 돕는 유형'은? [출처: 교재 6장 6.1절 양육유형, 워크북 6장 6.1절 8번]",
+    "o": [
+      "권위주의적 부모",
+      "권위 있는 부모",
+      "허용적 부모",
+      "방임적 부모"
+    ],
+    "a": 1,
+    "h": "권위주의적(무조건 통제)과 달리 높은 애정과 합리적 규율을 겸비한 권위 있는(Authoritative) 부모입니다.",
+    "e": "애정과 관여가 높으면서 합리적인 규율을 이행하는 '권위 있는 부모' 밑에서 자란 아동이 가장 활기차고 자기통제적인 적응 행동을 보입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "클로닌저(Cloninger)가 심리생물학적 성격모델에 기초하여 개발한 TCI(기질 및 성격검사)의 척도 구성으로 올바른 것은? [출처: 교재 6장 6.2절 TCI, 워크북 6장 6.2절 1번, 2번]",
+    "o": [
+      "기질 4개 척도(자극추구, 위험회피, 사회적민감성, 인내력) 및 성격 3개 척도(자율성, 연대감, 자기초월)",
+      "기질 3개 척도 및 성격 4개 척도",
+      "기질 5개 척도 및 성격 5개 척도",
+      "기질 2개 척도 및 성격 6개 척도"
+    ],
+    "a": 0,
+    "h": "타고난 유전적 기질 4가지와 후천적으로 발달하는 성격 3가지로 구성됩니다.",
+    "e": "TCI는 선천적 기질 4개 척도(자극추구, 위험회피, 사회적민감성, 인내력)와 후천적 성격 3개 척도(자율성, 연대감, 자기초월)로 구성됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "카텔(Cattell)의 16PF 성격검사에 기초하여 국내에서 염태호와 김정규가 개발·수정한 '다요인인성검사 II'의 구성 정보로 올바른 것은? [출처: 교재 6장 6.2절 다요인인성검사, 워크북 6장 6.2절 3번, 8번]",
+    "o": [
+      "14개 기본 척도 및 5가지 이차요인 정보 제공",
+      "16개 기본 척도 및 10가지 이차요인 정보 제공",
+      "5개 기본 척도 및 2가지 이차요인 정보 제공",
+      "20개 기본 척도 단독 제공"
+    ],
+    "a": 0,
+    "h": "카텔의 16개 중 2개를 제외한 14개 기본 척도와 5가지 2차 요인을 제시합니다.",
+    "e": "국내 다요인인성검사 II는 14개의 기본 척도(온정성, 자아강도, 지배성 등)와 5가지 이차요인(외향성, 불안성 등) 정보를 제공합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "코스타와 맥크레이(Costa & McCrae)의 5요인 모델에 기반한 NEO 성격검사의 5개 주요 요인(Big 5)에 속하지 않는 것은? [출처: 교재 6장 6.2절 NEO 성격검사, 워크북 6장 6.2절 4번, 2018년 기말 63번]",
+    "o": [
+      "신경증 (Neuroticism)",
+      "외향성 (Extraversion)",
+      "개방성 (Openness to Experience)",
+      "지능지수 (Intelligence Quotient)"
+    ],
+    "a": 3,
+    "h": "Big 5: 신경증(N), 외향성(E), 개방성(O), 친화성(A), 성실성(C)",
+    "e": "NEO 성격검사의 Big 5 요인은 신경증, 외향성, 개방성, 친화성, 성실성입니다. 지능지수는 포함되지 않습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "NEO 성격검사의 5대 요인 중 '유능감, 성취동기, 조직성, 책임감, 자제심' 등의 하위척도로 구성되며 직무 성과와 밀접한 관련이 있는 요인은? [출처: 교재 6장 6.2절 NEO 성격검사, 워크북 6장 6.2절 5번, 6번]",
+    "o": [
+      "성실성 (Conscientiousness)",
+      "신경증 (Neuroticism)",
+      "외향성 (Extraversion)",
+      "친화성 (Agreeableness)"
+    ],
+    "a": 0,
+    "h": "목표 달성을 위해 계획을 세우고 책임감 있게 조절·조직하는 성향입니다.",
+    "e": "유능감, 성취동기, 조직성, 책임감, 자제심 등은 '성실성(C)' 요인의 하위 척도들입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "NEO 성격검사에서 '사회성, 지배성, 자극추구, 활동성' 등이 속하는 성격 요인과, '사고유연성, 심미적 감수성, 상상력'이 속하는 요인을 순서대로 나열한 것은? [출처: 교재 6장 6.2절 NEO 성격검사, 워크북 6장 6.2절 7번]",
+    "o": [
+      "외향성 (E) — 개방성 (O)",
+      "신경증 (N) — 친화성 (A)",
+      "성실성 (C) — 외향성 (E)",
+      "친화성 (A) — 신경증 (N)"
+    ],
+    "a": 0,
+    "h": "사교적·대담함(외향성)과 지적 호기심·창의성(개방성)의 조합입니다.",
+    "e": "사회성·지배성·자극추구는 외향성(E)의 하위 척도이며, 사고유연성·상상력·감수성은 개방성(O)의 하위 척도입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "한국판 다요인인성검사 II의 채점 및 결과 제공 방식으로 옳지 않은 것은? [출처: 교재 6장 6.2절 다요인인성검사, 워크북 6장 6.2절 8번]",
+    "o": [
+      "응답방식은 '전혀 아니다'부터 '아주 그렇다'까지의 5점 리커트 척도를 사용한다.",
+      "검사결과는 평균 50, 표준편차 10인 T점수 프로파일로 제시된다.",
+      "T점수가 35점 이하이면 부족/낮음, 65점 이상이면 높음으로 해석한다.",
+      "응답방식은 '예/아니오' 2자택일형으로만 구성되어 있다."
+    ],
+    "a": 3,
+    "h": "다요인인성검사는 2자택일형이 아닌 5점 리커트 척도입니다.",
+    "e": "다요인인성검사 II는 '전혀 아니다'부터 '아주 그렇다'까지 5점 리커트(Likert) 척도를 사용합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "NEO 성격검사에서 '불안, 적대감, 우울, 자의식, 충동성, 취약성' 등 정서적 반응성향과 일상에서 경험하는 부정적 정서를 평가하는 요인은? [출처: 교재 6장 6.2절 NEO 성격검사, 2014년 기말 25번, 2016년 기말 62번]",
+    "o": [
+      "신경증 (N)",
+      "외향성 (E)",
+      "개방성 (O)",
+      "친화성 (A)"
+    ],
+    "a": 0,
+    "h": "불안, 정서적 불안정, 부정적 정서 경험과 관련된 요인입니다.",
+    "e": "부정적 정서(불안, 적대감, 우울, 충동성 등) 및 정서적 취약성을 나타내는 요인은 '신경증(Neuroticism)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "NEO 성격검사에서 '타인을 신뢰하고 따뜻한 관심을 가지며, 타인에게 솔직하고 순응하며 조화로운 대인관계를 유지하려는 성향'을 뜻하는 요인은? [출처: 교재 6장 6.2절 NEO 성격검사, 2019년 기말 65번]",
+    "o": [
+      "친화성 (Agreeableness)",
+      "성실성 (Conscientiousness)",
+      "신경증 (Neuroticism)",
+      "개방성 (Openness)"
+    ],
+    "a": 0,
+    "h": "대인관계에서의 이타성, 순응성, 신뢰성 관련 요인입니다.",
+    "e": "타인에 대한 신뢰, 솔직함, 이타성, 순응성을 바탕으로 우호적 관계를 유지하는 요인은 '친화성(Agreeableness)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "인간의 성격유형을 9가지로 분류하고, 힘의 중심에 따라 장중심(본능), 감정중심(가슴), 머리중심(사고)으로 구분하는 성격도구는? [출처: 교재 6장 6.2절 다양한 성격검사, 2015년 기말 61번]",
+    "o": [
+      "에니어그램 (Enneagram)",
+      "16PF",
+      "TCI",
+      "MMPI-2"
+    ],
+    "a": 0,
+    "h": "9개 성격유형과 3대 힘의 중심(장, 가슴, 머리)으로 성격을 설명하는 도구입니다.",
+    "e": "성격을 9가지 유형으로 분류하고 장, 가슴, 머리의 3개 힘의 중심으로 파악하는 검사는 에니어그램(Enneagram)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "사회성, 책임성, 관용성 등 정상인의 일반적인 성격특성을 측정하며, '심리적으로 건강한 사람들을 위한 MMPI'라고도 불리는 객관적 성격검사는? [출처: 교재 6장 6.2절 다양한 성격검사, 2016년 기말 61번, 2017년 기말 62번]",
+    "o": [
+      "캘리포니아 성격검사 (CPI)",
+      "로르샤흐 검사",
+      "MBTI",
+      "BDI"
+    ],
+    "a": 0,
+    "h": "California Psychological Inventory의 약자입니다.",
+    "e": "CPI(California Psychological Inventory)는 정상인의 평상시 성격특성을 측정하며 '심리적으로 건강한 사람들을 위한 MMPI'로 불립니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "에릭슨(Erikson)의 심리사회적 성격발달단계 중 첫 번째 단계인 유아기의 위기 '기본적 신뢰감 대 불신감'을 성공적으로 극복했을 때 획득되는 자아자질(덕목)은? [출처: 교재 6장 6.1절 성격이론의 발달, 2019년 기말 63번]",
+    "o": [
+      "희망 (Hope)",
+      "의지 (Will)",
+      "목적 (Purpose)",
+      "능숙성 (Competence)"
+    ],
+    "a": 0,
+    "h": "첫 번째 발달단계(유아기)의 위기 극복 자아자질입니다.",
+    "e": "에릭슨의 첫 단계 '신뢰감 대 불신감' 위기를 성공적으로 극복하면 자아자질로 '희망(Hope)'을 획득합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "학술적으로 '성격(Personality)'을 개념 정의할 때 포함되는 3대 주요 요소에 해당하지 않는 것은? [출처: 교재 6장 6.1절 성격의 의미, 보충]",
+    "o": [
+      "개인의 특징적인 사고, 행동, 감정 양식",
+      "시간과 상황 변화에도 유지되는 일정한 안정성과 일관성",
+      "내면적으로 구조화되어 작동하는 역동적 내면적 조직체",
+      "타고난 지적 수리력과 언어적 암기 능력의 절대적 점수"
+    ],
+    "a": 3,
+    "h": "사고·행동·감정 양식, 일관된 안정성, 내면적 조직체가 성격의 3대 요소입니다.",
+    "e": "성격은 개인의 특징적 사고·행동·감정 양식, 안정성과 일관성, 내면적 조직체를 뜻합니다. 수리력·암기력 점수는 인지적 능력(지능)에 해당합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "성격과 유사한 개념 중 '개인이 속한 사회의 가치관, 도덕, 관습 등에 초점을 맞춘 윤리적 개념'을 뜻하는 용어는? [출처: 교재 6장 6.1절 성격의 의미, 11강 강의록, 보충]",
+    "o": [
+      "인격 (Character)",
+      "기질 (Temperament)",
+      "개성 (Individuality)",
+      "신경증 (Neuroticism)"
+    ],
+    "a": 0,
+    "h": "사회적 가치와 도덕, 관습이 개입된 성격적 측면입니다.",
+    "e": "사회적 가치관, 도덕성, 관습 등에 초점을 맞춘 윤리적 평가 개념은 '인격(Character)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "성격과 유사한 개념 중 '유전적·생물학적 생리적 기반에 주목하며 생애 초기부터 관찰되는 자극 반응 경향성'은? [출처: 교재 6장 6.1절 성격의 의미, 11강 강의록, 보충]",
+    "o": [
+      "기질 (Temperament)",
+      "인격 (Character)",
+      "개성 (Individuality)",
+      "자아강도 (Ego strength)"
+    ],
+    "a": 0,
+    "h": "타고난 생물사회적 배경과 자극 반응성을 뜻하는 개념입니다.",
+    "e": "타고난 생물학적·유전적 기반에 주목하는 성격의 생리적 측면을 '기질(Temperament)'이라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "성격의 특성에 대한 심리학적 설명으로 옳지 않은 것은? [출처: 교재 6장 6.1절 성격의 의미, 보충]",
+    "o": [
+      "성격은 감각적으로 직접 관찰할 수는 없지만 행동을 설명하기 위한 심리학적 구성개념이다.",
+      "성격은 시간에 따라 일관성을 보이므로 기본적으로 안정성(Stability)을 갖는다.",
+      "성격은 내적으로 구조화된 내면적 조직체(Organization)로서 자극과 행동 사이를 매개한다.",
+      "성격은 한번 형성되면 환경이 변해도 죽을 때까지 단 1%도 변하지 않는 영구 고정체이다."
+    ],
+    "a": 3,
+    "h": "성격은 기본적으로 안정적이지만 환경과 삶의 경험에 따라 변화 가능성이 존재합니다.",
+    "e": "성격은 일관성과 안정성을 전제로 하지만, 환경적 경험과 삶의 변화에 따라 변할 수 있는 속성입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "고대 그리스의 의학자 히포크라테스(Hippocrates)가 인간의 성격과 기질 유형을 설명하기 위해 제시한 '4체액'에 해당하지 않는 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 보충]",
+    "o": [
+      "혈액, 흑담즙, 황담즙, 점액",
+      "담즙, 뇌척수액, 위액, 눈물",
+      "호르몬, 신경전달물질, 림프액, 타액",
+      "혈청, 림프, 인슐린, 아드레날린"
+    ],
+    "a": 0,
+    "h": "4체액: 혈액(다혈질), 흑담즙(우울질), 황담즙(담즙질), 점액(점액질)",
+    "e": "히포크라테스는 인체를 구성하는 혈액, 흑담즙, 황담즙, 점액의 4체액 우세함에 따라 성격을 구분했습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "크레치머(Kretschmer)나 셀던(Sheldon)과 같이 신체 체형(내배엽, 중배엽, 외배엽)과 성격 특성을 연결하여 범주적으로 설명한 성격 이론 접근은? [출처: 교재 6장 6.1절 성격이론의 발달, 보충]",
+    "o": [
+      "유형이론 (Type theory)",
+      "특성이론 (Trait theory)",
+      "인본주의 이론",
+      "인지주의 이론"
+    ],
+    "a": 0,
+    "h": "체 체형이나 체액에 따라 성격을 범주적으로 분류하는 고전적 방식입니다.",
+    "e": "신체 체형이나 체액에 근거하여 성격을 특정 범주로 분류하는 것은 고전적 '유형이론'의 예시입니다."
+  },
+  {
+    "type": "비교·분석",
+    "q": "성격의 '유형이론'과 '특성이론(특질론)'을 비교한 설명으로 바르지 않은 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 11강 음성, 보충]",
+    "o": [
+      "유형이론은 성격을 몇 개의 상호 배타적인 범주로 나누어 분류한다.",
+      "특성이론은 성격을 연속적인 차원(Dimension)상의 정량적 위치로 설명한다.",
+      "카텔의 16PF와 코스타/맥크레이의 Big 5 모델은 특성이론에 해당한다.",
+      "유형이론은 개인 간의 미세한 수량적 차이를 연속선상에서 정밀하게 평가하기에 특성이론보다 유리하다."
+    ],
+    "a": 3,
+    "h": "미세한 정량적 차이와 연속선상의 평가를 가능하게 하는 것은 특성이론(차원적 접근)의 장점입니다.",
+    "e": "개인 간의 미세한 수량적 차이를 연속선상에서 비교·평가하기에 유리한 것은 특성이론(차원적 관점)입니다. 유형이론은 범주적 분류에 집중합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "카텔(Cattell)이 설명한 특질 중 '겉으로 관찰되는 일관된 행동 표면'과 '이러한 행동을 유발하는 더 깊고 안정적인 내면 원인'을 순서대로 나열한 것은? [출처: 교재 6장 6.1절 성격이론의 발달, 워크북 6장 6.1절 4번 해설, 보충]",
+    "o": [
+      "표면특질 (Surface traits) — 근원특질 (Source traits)",
+      "근원특질 — 표면특질",
+      "공통특질 — 개인특질",
+      "주 특질 — 이차적 특질"
+    ],
+    "a": 0,
+    "h": "겉으로 드러나는 겉모습(표면)과 내면의 깊은 결정 요인(근원)입니다.",
+    "e": "겉으로 드러나는 행동은 표면특질(Surface traits)이며, 행동을 유발하는 깊은 내면 특성은 근원특질(Source traits)입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아나스타시의 성격검사 개발방법 중 '검사 개발자가 측정하고자 하는 성격 특성의 정의에 근거하여 직관적·논리적으로 관련 문항을 출제하는 방법'은? [출처: 교재 6장 6.1절 성격검사 개발, 11강 강의록, 보충]",
+    "o": [
+      "논리적-내용적 방법",
+      "이론적 방법",
+      "준거집단법",
+      "요인분석법"
+    ],
+    "a": 0,
+    "h": "성격 개념의 논리적 정의에 따라 직관적으로 문항을 작성하는 방식입니다.",
+    "e": "성격 구인의 논리적 정의와 내용적 타당성에 따라 문항을 출제하는 방식을 '논리적-내용적 방법'이라 합니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "바움린드(Baumrind)의 부모 양육유형 중 '애정과 관여는 매우 낮으면서 맹목적인 규율 강요와 심한 처벌만을 이행하는 유형'과 그 자녀의 행동 특성은? [출처: 교재 6장 6.1절 양육유형, 워크북 6장 6.1절 8번 해설, 보충]",
+    "o": [
+      "권위주의적 부모 — 아동이 공포와 두려움을 많이 느끼고 스트레스에 취약함",
+      "권위 있는 부모 — 아동이 활기차고 자기통제적임",
+      "허용적 부모 — 아동이 자기중심적이고 공격적임",
+      "방임적 부모 — 아동이 독립적이고 성취 지향적임"
+    ],
+    "a": 0,
+    "h": "권위주의적(Authoritarian) 부모는 일방적 통제와 심한 처벌을 강요합니다.",
+    "e": "애정 없이 심한 처벌과 맹목적 규율을 강요하는 '권위주의적 부모' 밑에서 자란 아동은 두려움이 많고 스트레스에 취약해집니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "바움린드의 부모 양육유형 중 '애정은 지나치게 과도하나 규율이나 통제가 거의 없어, 아동이 충동적이고 자기통제력이 부족하게 되기 쉬운 유형'은? [출처: 교재 6장 6.1절 양육유형, 워크북 6장 6.1절 8번 해설, 보충]",
+    "o": [
+      "허용적(익애적) 부모",
+      "권위주의적 부모",
+      "권위 있는 부모",
+      "방임적 부모"
+    ],
+    "a": 0,
+    "h": "애정은 넘치나 통제와 훈육이 부족한 부모 유형입니다.",
+    "e": "애정은 높지만 규율과 통제가 부족한 '허용적(Permissive) 부모'의 자녀는 충동적이고 공격적이며 자기통제력이 부족해지기 쉽습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI(기질 및 성격검사)의 4가지 기질 척도 중 '새롭거나 신기한 자극, 보상 단서에 끌리면서 행동이 활성화되는 유전적 경향성'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "자극추구 (Novelty Seeking)",
+      "위험회피 (Harm Avoidance)",
+      "사회적 민감성 (Reward Dependence)",
+      "인내력 (Persistence)"
+    ],
+    "a": 0,
+    "h": "새로운 자극과 호기심에 즉각 반응하여 행동하는 기질입니다.",
+    "e": "새롭고 신기한 자극에 흥분하고 행동이 활성화되는 유전적 기질은 '자극추구(NS)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 4가지 기질 척도 중 '위험하거나 혐오스러운 자극에 대해 행동이 억제되고 위축되는 유전적 경향성'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "위험회피 (Harm Avoidance)",
+      "자극추구 (Novelty Seeking)",
+      "사회적 민감성 (Reward Dependence)",
+      "인내력 (Persistence)"
+    ],
+    "a": 0,
+    "h": "위험 가능성에 조심성이 커지고 행동이 억제되는 기질입니다.",
+    "e": "위험과 부작용을 사전에 염려하여 행동이 위축되고 억제되는 기질은 '위험회피(HA)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 4가지 기질 척도 중 '타인의 표정, 감정, 사회적 인정이나 칭찬 신호에 강하게 반응하는 유전적 경향성'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "사회적 민감성 (Reward Dependence)",
+      "위험회피 (Harm Avoidance)",
+      "자극추구 (Novelty Seeking)",
+      "인내력 (Persistence)"
+    ],
+    "a": 0,
+    "h": "사회적 관계의 칭찬과 정서 표정에 민감하게 응답하는 기질입니다.",
+    "e": "타인의 감정, 칭찬, 사회적 인정 신호에 민감하게 반응하는 기질은 '사회적 민감성(RD)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 4가지 기질 척도 중 '지속적인 보상이 없어도 한번 시작한 행동을 꾸준히 지속하려는 유전적 경향성'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "인내력 (Persistence)",
+      "자극추구 (Novelty Seeking)",
+      "위험회피 (Harm Avoidance)",
+      "사회적 민감성 (Reward Dependence)"
+    ],
+    "a": 0,
+    "h": "보상이 당장 없어도 과제를 끈기 있게 계속하는 기질입니다.",
+    "e": "지속적인 강화가 없어도 한 번 보상된 행동을 꾸준히 지속하는 기질은 '인내력(P)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 3가지 성격 척도 중 '자신이 선택한 목표와 가치를 이룰 수 있도록 상황을 만들어 가며 책임감을 갖는 능력'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "자율성 (Self-Directedness)",
+      "연대감 (Cooperativeness)",
+      "자기초월 (Self-Transcendence)",
+      "사회적 민감성"
+    ],
+    "a": 0,
+    "h": "목표를 주도적으로 선택하고 이끄는 자율적 성격 차원입니다.",
+    "e": "자신의 목표와 가치를 스스로 이끌고 주도적인 선택과 책임감을 보이는 성격 차원은 '자율성(SD)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 3가지 성격 척도 중 '자기 자신을 사회와 타인과의 관계 속 통합적 부분으로 지각하고 타인을 포용·협력하는 성향'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "연대감 (Cooperativeness)",
+      "자율성 (Self-Directedness)",
+      "자기초월 (Self-Transcendence)",
+      "자극추구"
+    ],
+    "a": 0,
+    "h": "타인과의 공존, 조화, 포용을 중시하는 성격 차원입니다.",
+    "e": "타인을 사회적 동반자로 받아들이고 조화롭게 이끌어 가는 성격 차원은 '연대감(C)'입니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "TCI의 3가지 성격 척도 중 '우주 만물과 자연을 수용하고 영적·궁극적 가치와 일체감을 느끼는 성향'은? [출처: 교재 6장 6.2절 TCI, 11강 강의록, 보충]",
+    "o": [
+      "자기초월 (Self-Transcendence)",
+      "자율성 (Self-Directedness)",
+      "연대감 (Cooperativeness)",
+      "인내력"
+    ],
+    "a": 0,
+    "h": "우주와 일체감을 느끼고 영적 수용성을 갖는 성격 차원입니다.",
+    "e": "우주 만물 및 영적 영역과 일체감을 느끼는 성격 차원은 '자기초월(ST)'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "TCI 검사 결과보고서 해석 시 백분위(Percentile) 점수가 몇 이하일 때 해당 척도의 특성이 '낮음(L)'으로 간주되는가? [출처: 교재 6장 6.2절 TCI 해석, 11강 강의록, 보충]",
+    "o": [
+      "백분위 30 이하",
+      "백분위 50 이하",
+      "백분위 70 이하",
+      "백분위 95 이하"
+    ],
+    "a": 0,
+    "h": "TCI 결과에서 낮음(L)과 높음(H)을 가르는 백분위 기준입니다.",
+    "e": "TCI에서는 백분위 30 이하일 때 해당 척도의 특성이 '낮음(L)', 70 이상일 때 '높음(H)'으로 해석합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "카텔이 개발한 16PF-5판의 문항 수, 대상 연령, 평균 검사 소요 시간으로 올바른 것은? [출처: 교재 6장 6.2절 16PF, 11강 강의록, 보충]",
+    "o": [
+      "185문항, 만 16세 이상, 약 50분 소요",
+      "500문항, 만 5세 이상, 10분 소요",
+      "50문항, 초등학생 전용, 120분 소요",
+      "1,000문항, 성인 전용, 300분 소요"
+    ],
+    "a": 0,
+    "h": "16PF 5판의 검사 스펙입니다.",
+    "e": "16PF 5판은 총 185문항, 만 16세 이상을 대상으로 약 50분이 소요됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "국내 다요인인성검사 II의 14개 기본 척도에 해당하지 않는 항목은? [출처: 교재 6장 6.2절 다요인인성검사 척도, 11강 강의록, 보충]",
+    "o": [
+      "온정성, 자아강도, 지배성, 도덕성",
+      "대담성, 예민성, 공상성, 실리성",
+      "자책성, 진보성, 자기결정성, 자기통제성",
+      "우울증 척도, 지질학 척도, 천문학 척도"
+    ],
+    "a": 3,
+    "h": "다요인인성검사 II는 14개의 대인관계 및 성격 척도로 구성되어 있습니다.",
+    "e": "다요인인성검사의 14척도는 온정성, 자아강도, 지배성, 정열성, 도덕성, 대담성, 예민성, 공상성, 실리성, 자책성, 진보성, 자기결정성, 자기통제성, 불안성입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "다요인인성검사 II 프로파일에서 T점수가 몇 점 이하일 때 해당 성격 특성이 '부족/낮음'으로 평가되어 * 표시가 부가되는가? [출처: 교재 6장 6.2절 다요인인성검사 해석, 11강 강의록, 보충]",
+    "o": [
+      "T점수 35점 이하",
+      "T점수 50점 이하",
+      "T점수 65점 이하",
+      "T점수 80점 이하"
+    ],
+    "a": 0,
+    "h": "표준점수 T점수(평균 50, SD 10)에서 1.5표준편차 낮은 지점입니다.",
+    "e": "다요인인성검사는 T점수 35점 이하를 해당 특성의 '부족/낮음', 65점 이상을 '우수/높음'으로 구분합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "미국 코스타와 맥크레이의 NEO-PI 검사를 국내에 처음 번안(1997년)하고, 2017년 'NEO 성격검사' 수정판을 제시한 한국 연구자는? [출처: 교재 6장 6.2절 NEO 성격검사, 11강 강의록, 보충]",
+    "o": [
+      "안창규 (및 안현의)",
+      "염태호 (및 김정규)",
+      "정범모 (및 전용신)",
+      "오현숙 (및 민병배)"
+    ],
+    "a": 0,
+    "h": "국내에 NEO 성격검사 및 홀랜드 SDS 검사를 보급한 대표 연구자입니다.",
+    "e": "NEO 성격검사는 안창규 및 안현의 등에 의해 한국판으로 번안·수정판이 출시되었습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "NEO 성격검사의 5요인 중 '심미적 감수성, 상상력, 지적 호기심, 새로운 경험과 변화에 대한 수용력'을 평가하는 요인은? [출처: 교재 6장 6.2절 NEO 성격검사, 2018년 기말 63번, 보충]",
+    "o": [
+      "개방성 (Openness to Experience)",
+      "성실성 (Conscientiousness)",
+      "외향성 (Extraversion)",
+      "신경증 (Neuroticism)"
+    ],
+    "a": 0,
+    "h": "새로운 자극, 예술적 감수성, 지적 탐구 수용성 관련 요인입니다.",
+    "e": "지적 호기심, 예술 감수성, 새로운 변화와 경험에 대한 수용성을 평가하는 요인은 '개방성(O)'입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "자기보고식 객관적 성격검사가 갖는 일반적 특징 및 한계로 옳지 않은 것은? [출처: 교재 6장 6.1절 성격검사 개관, 11강 음성, 보충]",
+    "o": [
+      "검사 실시와 채점이 간편하고 객관성이 보장된다.",
+      "신뢰도와 타당도가 비교적 높게 검증되어 있다.",
+      "시간제한이 없으며 정답이나 오답이 존재하지 않는다.",
+      "피검자가 문항 의도를 파악하고 자신을 사회적으로 바람직하게 포장하는 응답 왜곡을 완벽히 방지할 수 있다."
+    ],
+    "a": 3,
+    "h": "자기보고식 검사는 문항 의도가 노출되어 의도적 방어나 포장(사회적 바람직성 반응)이 발생할 수 있는 한계가 있습니다.",
+    "e": "자기보고식 성격검사는 피검자가 의도적으로 긍정적으로 포장하거나 방어적으로 응답하는 '사회적 바람직성 반응'이나 '응답 왜곡'을 완벽히 방지하기 어렵다는 한계가 있습니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "심리검사의 분류 중 최고 능력을 발휘하도록 유도하는 지능·적성검사(최대수행검사)와 구분되는, 성격·흥미검사의 분류 명칭은? [출처: 교재 6장 6.1절 성격검사 개관, 11강 음성, 보충]",
+    "o": [
+      "전형적 수행검사 (Typical performance test)",
+      "투사적 정서검사 (Projective test)",
+      "규준참조검사 (Norm-referenced test)",
+      "속도검사 (Speed test)"
+    ],
+    "a": 0,
+    "h": "평상시의 일상적 행동 패턴과 성향을 측정하는 검사 분류입니다.",
+    "e": "성격, 흥미, 태도 검사처럼 피검자의 평소 일상적인 전형적 행동 습관을 측정하는 도구를 '전형적 수행검사'라고 부릅니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "성격 형성 및 발달에 미치는 심리사회적 요인에 대한 현대 심리학의 통합적 관점은? [출처: 교재 6장 6.1절 성격발달 요인, 11강 강의록, 보충]",
+    "o": [
+      "선천적 유전·생리적 기반(기질) 위에 후천적 환경과의 지속적인 역동적 상호작용을 통해 성격이 발달한다.",
+      "성격은 100% 생물학적 유전에 의해서만 결정되며 환경 영향은 0%이다.",
+      "성격은 유전 영향이 0%이며 오직 100% 가정 교육으로만 형성된다.",
+      "성격은 지능지수(IQ) 점수가 높아지면 자동으로 완성된다."
+    ],
+    "a": 0,
+    "h": "유전적 생리 기반(기질)과 환경적 학습 경험의 상호작용 관점입니다.",
+    "e": "현대 심리학은 성격을 타고난 생물학적·유전적 기질과 후천적인 심리사회적 환경 경험 간의 상호작용 산물로 파악합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "국내에 제공되는 TCI Family(JTCI 등 연령별 TCI)가 평가 가능한 대상 연령 범위는? [출처: 교재 6장 6.2절 TCI 연령대, 11강 강의록, 보충]",
+    "o": [
+      "만 3세 유아부터 만 60대 이상 성인까지 전 생애 평가 가능",
+      "오직 만 18세 이상 성인만 평가 가능",
+      "오직 초등학생만 평가 가능",
+      "오직 정신과 입원환자만 평가 가능"
+    ],
+    "a": 0,
+    "h": "유아기부터 노년기까지 세분화된 연령대별 검사를 제공합니다.",
+    "e": "TCI Family는 만 3세 유아부터 60대 이상 성인까지 각 연령대에 맞춘 검사지와 규준을 제공하여 전 생애적 탐색을 지원합니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "다요인인성검사 II에서 14개 기본 척도를 통계적으로 조합하여 산출하는 5가지 이차요인 지표에 해당하지 않는 것은? [출처: 교재 6장 6.2절 다요인인성검사 이차요인, 11강 강의록, 보충]",
+    "o": [
+      "외향성-내향성",
+      "강한 불안-약한 불안",
+      "자립성-종속성",
+      "수렴적 사고-확산적 사고"
+    ],
+    "a": 3,
+    "h": "수렴적/확산적 사고는 길포드의 지능 구조모형 개념입니다.",
+    "e": "수렴적 사고와 확산적 사고는 지능이론(길포드 SI 모형) 개념이며, 다요인인성검사의 이차요인은 외향성, 불안성, 강인성, 자립성, 초자아 지표입니다."
+  },
+  {
+    "type": "내용이해",
+    "q": "NEO 성격검사의 임상적 및 비임상적 활용에 대한 설명으로 올바른 것은? [출처: 교재 6장 6.2절 NEO 성격검사 활용, 11강 강의록, 보충]",
+    "o": [
+      "정신과적 임상 진단뿐만 아니라 일반인의 대인관계 양식, 창의성, 진로선택 가이드 등 비임상군에서도 두루 활용된다.",
+      "오직 정신과 병동 입원환자의 중증 장애 진단에만 제한적으로 사용된다.",
+      "오직 초등학교 1학년 아동의 한글 독해력 진단용으로만 사용된다.",
+      "오직 기업체의 재무제표 채점 도구로만 사용된다."
+    ],
+    "a": 0,
+    "h": "임상군과 비임상군 모두에서 유용하게 쓰이는 종합 객관적 성격검사입니다.",
+    "e": "NEO 성격검사는 임상적인 성격특징 파악은 물론 일반인의 대인관계, 창의성, 진로선택 보조 정보 등 임상군과 비임상군 모두에게 널리 활용됩니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "아나스타시가 구분한 4가지 성격검사 개발방법과 대표 검사의 연결이 잘못된 것은? [출처: 교재 6장 6.1절 성격검사 개발, 11강 강의록, 보충]",
+    "o": [
+      "준거집단법 — MMPI, KPI 인성검사",
+      "요인분석법 — 16PF, NEO-PI",
+      "이론적 방법 — MBTI, PRF",
+      "논리적-내용적 방법 — 로르샤흐 잉크반점 검사"
+    ],
+    "a": 3,
+    "h": "로르샤흐 잉크반점 검사는 대표적인 비구조화된 '투사적 검사'입니다.",
+    "e": "로르샤흐 검사는 비구조화된 자극을 활용하는 투사적 검사(7장)이며, 논리적-내용적 개발방법에 의해 제작된 객관적 성격검사가 아닙니다."
+  },
+  {
+    "type": "개념확인",
+    "q": "11강 「성격검사 1」의 교재 및 워크북 주요 학습 범위로 가장 바른 것은? [출처: 교재 6장 6.1~6.2절, 11강 강의록]",
+    "o": [
+      "교재 6장 6.1절(성격의 이해) ~ 6.2절(다양한 성격검사: TCI, 16PF, 다요인, NEO 등) 및 워크북 6장 해당 문항",
+      "교재 6장 6.3절 MBTI 성격유형검사 전체",
+      "교재 7장 정신건강검사 (MMPI, BDI, 투사적 검사)",
+      "교재 4장 웩슬러 지능검사"
+    ],
+    "a": 0,
+    "h": "11강은 성격의 개념/이론/발달 및 다양한 객관적 성격검사(TCI, 16PF, 다요인, NEO 등)를 학습합니다.",
+    "e": "11강의 학습 범위는 교재 6장 6.1절(성격의 이해)과 6.2절(다양한 성격검사)입니다. (6.3절 MBTI는 12강 범위입니다.)"
+        }
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var allQuestions = [];   // 검사를 통과한 전체 문제
+    var questions = [];      // 지금 풀고 있는 문제 묶음(전체 또는 틀린 문제)
+    var curIdx = 0;
+    var wrongCount = 0;      // 현재 문제에서 틀린 횟수
+    var correctFirst = 0;    // 이번 회차에서 한 번에 맞힌 문제 수
+    var missed = [];         // 이번 회차에서 한 번이라도 틀린 문제
+
+    document.title = '심리검사 및 측정 퀴즈 [' + LECTURE.no + '강]';
+    document.getElementById('lecture-title').textContent = LECTURE.no + '강: ' + LECTURE.title;
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateQuizData(data) {
+        var errors = [];
+        var warnings = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'quizData가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, warnings: warnings, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = 'Q' + (i + 1);
+            var problems = [];
+
+            if (!item || typeof item !== 'object') {
+                problems.push('문제가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) {
+                    problems.push('q(질문)가 없거나 비어 있습니다.');
+                }
+
+                var oOk = Array.isArray(item.o);
+                if (!oOk) {
+                    problems.push('o(보기)가 배열([ ])이 아닙니다.');
+                } else {
+                    if (item.o.length < 2) {
+                        problems.push('보기가 ' + item.o.length + '개뿐입니다. 2개 이상 필요합니다.');
+                    }
+                    var bad = item.o.some(function (x) { return typeof x !== 'string' || !x.trim(); });
+                    if (bad) {
+                        problems.push('보기 중에 비어 있거나 글자가 아닌 항목이 있습니다.');
+                    } else {
+                        var uniq = {};
+                        item.o.forEach(function (x) { uniq[x.trim()] = true; });
+                        if (Object.keys(uniq).length !== item.o.length) {
+                            problems.push('똑같은 보기가 2개 이상 있습니다.');
+                        }
+                    }
+                }
+
+                if (typeof item.a === 'string') {
+                    problems.push('a(정답 번호)가 따옴표로 감싸져 있습니다("' + item.a + '"). 따옴표 없는 숫자로 바꾸세요.');
+                } else if (!Number.isInteger(item.a)) {
+                    problems.push('a(정답 번호)가 없거나 숫자가 아닙니다.');
+                } else if (oOk && (item.a < 0 || item.a >= item.o.length)) {
+                    if (item.a === item.o.length) {
+                        problems.push('a가 ' + item.a + '입니다. 번호는 0부터 세므로 보기가 ' + item.o.length + '개면 0~' + (item.o.length - 1) + ' 중 하나여야 합니다. 1부터 센 것 같아요(' + item.a + ' → ' + (item.a - 1) + ').');
+                    } else {
+                        problems.push('a가 ' + item.a + '로 보기 범위(0~' + (item.o.length - 1) + ')를 벗어났습니다.');
+                    }
+                }
+
+                if (typeof item.h !== 'string' || !item.h.trim()) {
+                    problems.push('h(힌트)가 없거나 비어 있습니다.');
+                }
+                if (typeof item.e !== 'string' || !item.e.trim()) {
+                    problems.push('e(해설)가 없거나 비어 있습니다.');
+                }
+            }
+
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        
+
+        return { errors: errors, warnings: warnings, valid: valid };
+    }
+
+    /* ---------- 검사 결과 화면 ---------- */
+    function showProblemScreen(opts) {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            if (it.warn) li.className = 'warn';
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startQuiz(list) {
+        allQuestions = list;
+        document.getElementById('problem-screen').style.display = 'none';
+        beginRound(list);
+    }
+
+    // 한 회차 시작: 전체 문제 또는 틀린 문제만 받아서 처음부터 진행
+    function beginRound(list) {
+        questions = list;
+        curIdx = 0;
+        correctFirst = 0;
+        missed = [];
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof quizData === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'quizData를 찾을 수 없습니다. const quizData = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 퀴즈 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '문제와 문제 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateQuizData(quizData);
+
+        if (result.errors.length === 0 && result.warnings.length === 0) {
+            startQuiz(result.valid);
+            return;
+        }
+
+        var items = result.errors.map(function (er) { return { tag: er.tag, text: er.text }; })
+            .concat(result.warnings.map(function (w) { return { tag: w.tag, text: w.text, warn: true }; }));
+
+        var badCount = (Array.isArray(quizData) ? quizData.length : 0) - result.valid.length;
+        var hasErrors = result.errors.length > 0;
+
+        showProblemScreen({
+            title: hasErrors ? '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요' : '확인해 볼 곳이 있어요',
+            summary: !hasErrors
+                ? '오류는 아니지만 한 번 확인해 보세요.'
+                : (badCount > 0
+                    ? '전체 ' + quizData.length + '문제 중 ' + badCount + '문제에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                    : '퀴즈 데이터를 확인하고 새로고침하세요.'),
+            items: items,
+            tips: hasErrors ? [
+                '정답 번호 a는 따옴표 없는 숫자이고, 첫 번째 보기가 0입니다',
+                '문제마다 type, q, o, a, h, e 가 모두 있어야 합니다'
+            ] : null,
+            buttonText: result.valid.length > 0
+                ? (hasErrors ? '오류 없는 ' + result.valid.length + '문제만 먼저 풀기' : '그대로 시작하기')
+                : null,
+            onButton: function () { startQuiz(result.valid); }
+        });
+    }
+
+    /* ---------- 퀴즈 진행 ---------- */
+    function loadQuestion() {
+        wrongCount = 0;
+        var q = questions[curIdx];
+
+        document.getElementById('progress-text').textContent = (curIdx + 1) + ' / ' + questions.length;
+        updateScore();
+        window.scrollTo(0, 0);
+        document.getElementById('question-type').textContent = q.type || '일반문제';
+        document.getElementById('question-text').textContent = 'Q' + (allQuestions.indexOf(q) + 1) + '. ' + q.q;
+
+        var container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.o.forEach(function (opt, idx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = function () { checkAnswer(idx, btn); };
+            container.appendChild(btn);
+        });
+
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('exp-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function checkAnswer(idx, btn) {
+        var q = questions[curIdx];
+        var allBtns = document.querySelectorAll('.option-btn');
+
+        if (idx === q.a) {
+            btn.classList.add('correct');
+            allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+            if (wrongCount === 0) { correctFirst++; updateScore(); }
+            showExplanation();
+        } else {
+            wrongCount++;
+            if (wrongCount === 1) missed.push(q);
+            btn.classList.add('wrong');
+            btn.style.pointerEvents = 'none';
+
+            if (wrongCount === 1) {
+                document.getElementById('hint-text').textContent = q.h;
+                document.getElementById('hint-box').style.display = 'block';
+            } else {
+                allBtns[q.a].classList.add('correct');
+                allBtns.forEach(function (b) { b.style.pointerEvents = 'none'; });
+                showExplanation();
+            }
+        }
+    }
+
+    function showExplanation() {
+        var q = questions[curIdx];
+        document.getElementById('exp-text').textContent = q.e;
+        document.getElementById('exp-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    // 풀던 중에 누르면 한 번 물어봅니다. (묻지 않으려면 if 문 세 줄을 지우세요)
+    function goList() {
+        if (curIdx > 0 && !confirm('퀴즈를 그만하고 목록으로 갈까요?\n지금까지 푼 기록은 저장되지 않아요.')) return;
+        location.href = 'index.html';
+    }
+
+    function nextQuestion() {
+        curIdx++;
+        if (curIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    /* ---------- 점수와 다시 풀기 ---------- */
+    // 한 번에 맞힌 문제만 점수로 셉니다. (힌트를 본 뒤 맞히면 점수에 넣지 않아요)
+    function updateScore() {
+        document.getElementById('score-text').textContent = '한 번에 맞힌 문제 ' + correctFirst + '개';
+    }
+
+    function showResult() {
+        var total = questions.length;
+        var score = Math.round(correctFirst / total * 100);
+        var isRetry = total < allQuestions.length;
+
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        document.getElementById('result-title').textContent = isRetry ? '🔁 틀린 문제 복습을 마쳤습니다!' : '🎊 학습을 마쳤습니다!';
+        document.getElementById('result-score').textContent = score + '점';
+        document.getElementById('result-detail').textContent =
+            (isRetry ? '복습한 ' : '전체 ') + total + '문제 중 한 번에 맞힌 문제 ' + correctFirst + '개 (100점 만점)';
+
+        var msg;
+        if (score >= 90) msg = '진짜 수고 많이 하셨습니다, 학우님! A+ 당근 🥕';
+        else if (score >= 70) msg = '잘하고 계세요! 틀린 문제만 한 번 더 풀면 더 단단해져요.';
+        else msg = '괜찮아요. 틀린 문제를 해설과 함께 다시 풀어 보면 금방 늘어요.';
+        document.getElementById('result-msg').textContent = msg;
+
+        var details = document.getElementById('missed-details');
+        var list = document.getElementById('missed-list');
+        list.innerHTML = '';
+        missed.forEach(function (m) {
+            var li = document.createElement('li');
+            li.value = allQuestions.indexOf(m) + 1;
+            li.textContent = m.q;
+            list.appendChild(li);
+        });
+        details.open = false;
+        details.style.display = missed.length ? 'block' : 'none';
+        document.getElementById('missed-summary').textContent = '이번에 틀린 문제 ' + missed.length + '개 보기';
+
+        var retryBtn = document.getElementById('retry-missed-btn');
+        retryBtn.textContent = '❌ 틀린 문제만 다시 풀기 (' + missed.length + '문제)';
+        retryBtn.style.display = missed.length ? 'block' : 'none';
+
+        window.scrollTo(0, 0);
+    }
+
+    function retryAll() { beginRound(allQuestions); }
+    function retryMissed() { if (missed.length) beginRound(missed.slice()); }
+
+    init();
+</script>
+</body>
+</html>

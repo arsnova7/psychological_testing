@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심리검사 및 측정 플래시카드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* 눈이 편한 차분한 초록 계열 (index.html의 플래시카드 색과 맞춤) */
+    body {
+        font-family: 'Pretendard', sans-serif;
+        background: linear-gradient(135deg, #2f7d5b 0%, #1b4332 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .container { width: 100%; max-width: 850px; margin: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+    .header { text-align: center; color: white; margin-bottom: 20px; }
+    .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .header .sub { font-size: 1.05rem; font-weight: 600; opacity: 0.92; margin-bottom: 10px; word-break: keep-all; }
+    .header .count { font-size: 1.1rem; font-weight: 700; }
+    .progress { max-width: 340px; height: 6px; margin: 12px auto 0; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+    #bar { height: 100%; width: 0; background: white; border-radius: 3px; transition: width 0.3s; }
+
+    /* 카드 */
+    .stage { perspective: 1400px; margin: 12px 0; }
+    .card {
+        position: relative;
+        width: 100%;
+        height: min(460px, 60vh);
+        height: min(460px, 60dvh);
+        min-height: 320px;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+    .side {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 26px 18px;
+        border-radius: 20px;
+        overflow-y: auto;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        word-break: keep-all;
+        white-space: pre-line;
+    }
+    .front { background: white; color: #1e293b; }
+    .back { background: #f0f7f2; color: #1b4332; transform: rotateY(180deg); }
+
+    .meta { display: flex; align-items: center; justify-content: space-between; min-height: 28px; white-space: normal; }
+    .chip { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+    .chip-q { background: #f1f5f9; color: #475569; }
+    .chip-a { background: #cfe8d8; color: #1b4332; }
+    .stars { font-size: 0.95rem; font-weight: 800; color: #1f6b46; background: #e3f1e8; padding: 3px 10px; border-radius: 20px; display: none; }
+
+    /* 내용이 길어도 위쪽이 잘리지 않도록 margin:auto로 가운데 맞춤 */
+    .body { margin: auto; padding: 14px 0; text-align: center; font-size: 1.4rem; font-weight: 700; line-height: 1.55; }
+    .back .body { font-size: 1.55rem; font-weight: 800; }
+    .src { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: #64748b; white-space: normal; }
+
+    .tip { text-align: center; color: rgba(255,255,255,0.85); font-size: 0.9rem; margin: 4px 0 14px; word-break: keep-all; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+    .btn { padding: 18px 10px; border: none; border-radius: 12px; background: white; color: #1f6b46; font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { background: #f1f5f9; transform: translateY(-2px); }
+    .btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+
+    /* 데이터 검사 결과 화면 */
+    .problem-card { display: none; background: white; border-radius: 15px; padding: 28px; border-left: 6px solid #dc3545; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #1e293b; }
+    .problem-card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .problem-card .summary { margin: 0 0 16px; color: #55657d; line-height: 1.6; word-break: keep-all; }
+    .problem-list { list-style: none; margin: 0 0 8px; padding: 0; }
+    .problem-list li { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #e0e7f1; line-height: 1.5; word-break: keep-all; }
+    .problem-list .tag { flex: none; min-width: 3.2rem; font-weight: 800; color: #dc3545; }
+    .problem-card .tips { margin: 12px 0 0; padding: 14px; background: #f3f6fa; border-radius: 10px; font-size: 0.92rem; line-height: 1.6; color: #2f3640; word-break: keep-all; }
+    .problem-card .tips ul { margin: 6px 0 0; padding-left: 20px; }
+    #partial-btn { width: 100%; padding: 16px; margin-top: 16px; border: none; border-radius: 10px; background: #2e7d5b; color: white; font-weight: bold; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+    #partial-btn:focus-visible { outline: 3px solid #1e293b; outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+        body { padding: 14px; }
+        .header h1 { font-size: 1.6rem; }
+        .side { padding: 16px 18px 14px; }
+        .body { font-size: 1.2rem; }
+        .back .body { font-size: 1.3rem; }
+        .controls { grid-template-columns: 1fr 1fr; }
+        .controls .btn-list { grid-column: 1 / -1; }
+        .btn { padding: 16px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .card, #bar, .btn { transition: none; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="problem-screen" class="problem-card" role="alert">
+        <h2 id="problem-title"></h2>
+        <p id="problem-summary" class="summary"></p>
+        <ul id="problem-list" class="problem-list"></ul>
+        <div id="problem-tips" class="tips"></div>
+        <button id="partial-btn" type="button"></button>
+    </div>
+
+    <div id="card-screen">
+        <div class="header">
+            <h1 id="page-title">플래시카드</h1>
+            <p class="sub" id="page-sub"></p>
+            <p class="count"><span id="current">1</span> / <span id="total">0</span></p>
+            <div class="progress"><div id="bar"></div></div>
+        </div>
+
+        <div class="stage">
+            <div class="card" id="flashcard" role="button" tabindex="0" aria-label="카드 뒤집기">
+                <div class="side front">
+                    <div class="meta"><span class="chip chip-q">질문</span><span class="stars" id="stars"></span></div>
+                    <div class="body" id="question"></div>
+                    <div class="src" id="source"></div>
+                </div>
+                <div class="side back">
+                    <div class="meta"><span class="chip chip-a">정답</span></div>
+                    <div class="body" id="answer"></div>
+                    <div class="src"></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="tip">카드를 누르면 정답이 보여요. 화살표 키나 좌우로 밀어서 넘길 수 있어요.</p>
+
+        <div class="controls">
+            <button class="btn" type="button" onclick="prevCard()">이전</button>
+            <button class="btn" type="button" onclick="nextCard()">다음</button>
+            <button class="btn btn-list" type="button" onclick="location.href='index.html'">목록으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ① 오류 수집용: 반드시 맨 위(②, ③보다 앞)에 두세요. 수정하지 마세요. -->
+<script>
+    window.__dataErrors = [];
+    window.addEventListener('error', function (e) {
+        window.__dataErrors.push({ msg: e.message, line: e.lineno });
+    });
+</script>
+
+<!-- ② 강 설정: 새 강을 만들 때 번호(1~15)와 제목만 고치세요. -->
+<script>
+    const LECTURE = { no: 13, title: "정신건강의 이해" };
+</script>
+
+<!-- ③ 카드 데이터: 노트북LM이 만든 const cards = [...]; 를 통째로 덮어쓰세요.
+     아래 2장은 화면 확인용 예시입니다. 덮어쓸 때 이 예시도 같이 지우세요.
+     카드마다 q(질문)와 a(정답)가 모두 있어야 합니다. -->
+<script>
+    const cards = [
+        {"q": "★★★ 정신건강(Mental Health)의 현대적 정의 [출처: 교재 7장 7.1절 정신건강의 이해, 13강 강의록]",
+    "a": "단순히 정신질환이나 장애가 없는 상태를 넘어, 개인이 자신의 잠재력을 실현하고 일상 스트레스를 관리하며 심리적 안녕감을 발휘하는 최적의 상태"
+  },
+  {
+    "q": "★★★ 이상행동 및 정신건강 판별의 4대 준거 [출처: 교재 7장 7.1절 판별기준, 워크북 7장 7.1절 2~3, 7번]",
+    "a": "①적응기능의 저하와 손상, ②사회문화적 규범으로부터의 일탈, ③주관적 불편감과 고통, ④통계적 평균으로부터의 일탈"
+  },
+  {
+    "q": "★★★ 판별 준거 - 적응기능의 저하와 손상 [출처: 교재 7장 7.1절 적응기능 손상, 워크북 7장 7.1절 2번]",
+    "a": "과도한 불안·우울 등으로 일상생활을 영위하기 어렵고, 자신의 직업적·사회적 역할을 수행하지 못하는 기능적 손상 상태"
+  },
+  {
+    "q": "★★★ 판별 준거 - 주관적 불편감과 고통 [출처: 교재 7장 7.1절 주관적 불편감, 워크북 7장 7.1절 3번]",
+    "a": "외부 관찰 증상보다 본인 스스로 지각하고 경험하는 심리적·신체적 고통과 불편함의 정도를 바탕으로 이상을 판별하는 준거"
+  },
+  {
+    "q": "★★★ 판별 준거 - 통계적 평균으로부터의 일탈 [출처: 교재 7장 7.1절 통계적 일탈, 2016년 기말 65번, 2019년 기말 67번]",
+    "a": "표준화 검사(IQ 점수 등)에서 개인의 위치가 통계적 평균으로부터 현저히 이탈(예: 2표준편차 이상)했는가를 기준으로 이상을 판별함"
+  },
+  {
+    "q": "★★★ 판별 준거 - 사회문화적 규범으로부터의 일탈 [출처: 교재 7장 7.1절 사회문화적 규범, 13강 음성]",
+    "a": "개인이 속한 사회의 시대적 관습, 문화, 사회적 규범에 크게 벗어난 행동을 판별하는 준거 (문화 상대적 성격을 가짐)"
+  },
+  {
+    "q": "★★★ 이상행동 원인의 '생물의학적 관점' [출처: 교재 7장 7.1절 생물의학적 관점, 2017년 기말 65번]",
+    "a": "염색체 및 유전적 요인, 대뇌의 구조적 결함, 뇌내 신경전달물질(도파민, 세로토닌 등)의 불균형 등 신체·생리적 원인으로 이상행동을 설명함"
+  },
+  {
+    "q": "★★★ 정신역동이론의 이상행동 원인 [출처: 교재 7장 7.1절 정신역동이론, 13강 강의록]",
+    "a": "어린 시절의 성격발달 경험에서 비롯된 무의식적 갈등과 불안, 이드(Id)와 초자아(Superego) 간의 조절 실패"
+  },
+  {
+    "q": "★★★ 행동주의이론의 이상행동 원인 [출처: 교재 7장 7.1절 행동주의이론, 13강 강의록]",
+    "a": "환경 자극과 반응 간의 부적절하고 잘못된 학습(고전적/조작적 조건형성, 관찰학습)의 결과로 설명함"
+  },
+  {
+    "q": "★★★ 인간중심이론(Rogers)의 이상행동 원인 [출처: 교재 7장 7.1절 인간중심이론, 워크북 7장 7.1절 1번]",
+    "a": "부모 및 사회의 가치조건에 맞추어 살아가면서 선천적 자아실현경향성이 차단되고, 현실 자아와 이상적 자아 간의 괴리가 커질 때 발생함"
+  },
+  {
+    "q": "★★★ 인지적 이론(Beck, Ellis)의 이상행동 원인 [출처: 교재 7장 7.1절 인지적 이론, 13강 강의록]",
+    "a": "개인이 세상을 바라보고 해석하는 비합리적 사고체계(도식: schema)와 인지적 정보처리과정의 오류·왜곡에 의해 발현됨"
+  },
+  {
+    "q": "★★★ 이상행동 원인의 '통합적 관점' [출처: 교재 7장 7.1절 통합적 관점, 2018년 기말 66번, 워크북 7장 7.1절 4번]",
+    "a": "단일 원인이 아닌 생물학적, 심리학적, 사회문화적 요인들이 복합적으로 상호작용하여 이상행동이 발생한다는 시각 (대표: 스트레스-취약성 모델)"
+  },
+  {
+    "q": "★★★ 스트레스-취약성 모델 (Stress-Vulnerability Model) [출처: 교재 7장 7.1절 스트레스-취약성 모델, 2018년 기말 66번]",
+    "a": "개인이 지닌 선행된 취약성(생물학적/심리사회적 요인)과 환경에서 주어지는 스트레스 간의 역동적 상호작용 결과로 정신장애 발병을 설명함"
+  },
+  {
+    "q": "★★★ 정신장애 분류체계의 5대 핵심 기능 [출처: 교재 7장 7.1절 정신건강 문제의 분류, 워크북 7장 7.1절 5번]",
+    "a": "①의사소통 용이성, ②정보 제공, ③유사성과 차이점 인식, ④원인·치료·예후 추정 용이, ⑤과학적 연구의 기초 마련"
+  },
+  {
+    "q": "★★★ ICD (국제질병분류) 체계의 특징 [출처: 교재 7장 7.1절 ICD, 13강 강의록]",
+    "a": "세계보건기구(WHO)에서 공인한 전체 신체 질환 및 정신장애(F코드) 통합 통계 분류체계"
+  },
+  {
+    "q": "★★★ DSM (정신장애 진단 및 통계 편람) 체계의 특징 [출처: 교재 7장 7.1절 DSM, 2017년 기말 66번, 2019년 기말 68번]",
+    "a": "미국정신의학회(APA)가 발간하며 임상 현장에서 가장 널리 쓰이는 정신장애 전용 표준 진단 편람"
+  },
+  {
+    "q": "★★★ DSM-5 (2013)의 진단적 주요 변화 [출처: 교재 7장 7.1절 DSM-5, 2017년 기말 66번, 워크북 7장 7.1절 8번]",
+    "a": "기존 5개 다축체계 전면 폐지, 20개 대범주 및 300여 개 하위 장애로 분류, 범주적 진단 + 차원적 평가 혼합 모델 채택"
+  },
+  {
+    "q": "★★★ 과거 DSM-IV 다축체계 중 축 1과 축 2 [출처: 교재 7장 7.1절 다축체계, 2013년 기말 30번, 2014년 기말 30번]",
+    "a": "축 1: 임상적 장애(우울, 조현병 등) / 축 2: 성격장애 및 지적장애"
+  },
+  {
+    "q": "★★★ 정신장애 진단 시 '낙인 효과(Labeling effect)' 경계 [출처: 교재 7장 7.1절 진단과 낙인, 워크북 7장 7.1절 6번]",
+    "a": "진단명 코드로 피검자를 한정된 틀에 가두거나 낙인을 찍지 말고, 있는 그대로의 인간 인격을 이해하려는 태도가 필수적임"
+  },
+  {
+    "q": "★★★ ADHD 진단기준 A-1 (부주의 증상 조건) [출처: 교재 7장 7.1절 ADHD 진단기준, 13강 강의록]",
+    "a": "부주의 하위 9개 증상 중 6개 이상(17세 이상 성인은 5개 이상)이 적어도 6개월 이상 발달수준에 맞지 않게 지속되어야 함"
+  },
+  {
+    "q": "★★☆ 주관적 불편감과 고통 준거의 단독 사용 한계 [출처: 교재 7장 7.1절 주관적 불편감, 13강 음성]",
+    "a": "만성적 부적응 상태에 적응되어 정작 피검자 본인은 고통을 인식하지 못하는 경우가 존재함"
+  },
+  {
+    "q": "★★☆ 적응기능의 저하와 손상 준거의 단독 사용 한계 [출처: 교재 7장 7.1절 적응기능 손상, 13강 음성]",
+    "a": "결석이나 수행 저하 등 어디서부터 부적응 상태인지 명확한 객관적 경계 수치를 설정하기 어려움"
+  },
+  {
+    "q": "★★☆ 사회문화적 규범 준거의 특성 및 한계 [출처: 교재 7장 7.1절 사회문화적 규범, 13강 음성]",
+    "a": "시대, 문화권, 관습에 따라 상이하여 절대적 기준이 될 수 없는 상대적 판단 준거임"
+  },
+  {
+    "q": "★★☆ 히포크라테스의 4체액설과 생물의학적 관점 [출처: 교재 7장 7.1절 정신건강 관점 역사, 13강 강의록]",
+    "a": "고대 그리스 시대 혈액, 흑담즙, 황담즙, 점액의 불균형으로 정신건강 문제를 설명하려 한 초기 생리학적 접근"
+  },
+  {
+    "q": "★★☆ Beck의 인지행동치료(CBT) & Ellis의 REBT [출처: 교재 7장 7.1절 인지적 이론, 13강 강의록]",
+    "a": "인지적 관점에 기반하여 비합리적 신념과 자동적 사고의 왜곡을 재구성하고 수정하는 대표적 심리치료법"
+  },
+  {
+    "q": "★★☆ 이상행동 원인의 '사회문화적 관점' 사례 [출처: 교재 7장 7.1절 사회문화적 관점, 13강 강의록]",
+    "a": "가부장 문화권의 신체화 장애, 경제위기 후 우울·자살률 급증, 노인 빈곤으로 인한 우울 등 사회 구조적 원인 강조"
+  },
+  {
+    "q": "★★☆ 스트레스-취약성 모델의 '취약성' 구성요소 [출처: 교재 7장 7.1절 스트레스-취약성 모델, 13강 강의록]",
+    "a": "생물학적 요인(유전, 뇌 신경전달물질) + 심리사회적 요인(부모 양육방식, 성격특성, 자동적 사고)"
+  },
+  {
+    "q": "★★☆ DSM 진단 발전사 (DSM-I/II vs DSM-III 이후) [출처: 교재 7장 7.1절 DSM 발전사, 13강 강의록]",
+    "a": "DSM-I·II: 정신역동적 관점 중심 / DSM-III 이후: 특정 원인 이론을 배제한 무이론적(atheoretical) 조작적 정의 및 현상 기술 접근"
+  },
+  {
+    "q": "★★☆ 과거 DSM-IV 다축체계 (Axis I ~ V) 전 체계 [출처: 교재 7장 7.1절 다축체계, 13강 강의록]",
+    "a": "축1: 임상적 장애, 축2: 성격/지적장애, 축3: 의학적 상태, 축4: 심리사회적/환경적 문제, 축5: 전반적 기능수준(GAF)"
+  },
+  {
+    "q": "★★☆ DSM-5의 '혼합 모델(Hybrid model)' [출처: 교재 7장 7.1절 DSM-5, 13강 강의록]",
+    "a": "전통적 범주적 진단(있다/없다) 방식에 중증도와 증상 스펙트럼을 평가하는 차원적 평가를 결합한 진단 모델"
+  },
+  {
+    "q": "★★☆ DSM-5의 학술적/임상적 제한점 [출처: 교재 7장 7.1절 DSM 한계, 13강 강의록]",
+    "a": "장애의 원인 규명보다는 겉으로 드러난 현상적 증상군 기술에 머물며, 예언타당도 측면의 한계가 존재함"
+  },
+  {
+    "q": "★★☆ ADHD 진단기준 B, C, E 조건 [출처: 교재 7장 7.1절 ADHD 진단기준, 13강 강의록]",
+    "a": "B: 몇 가지 증상이 12세 이전에 나타남 / C: 2가지 이상 환경(학교, 집 등)에 존재 / E: 다른 정신질환으로 더 잘 설명되지 않음"
+  },
+  {
+    "q": "★★☆ 평생유병률(Lifetime Prevalence)의 정의 [출처: 교재 7장 7.1절 유병률, 13강 음성]",
+    "a": "한 개인이 일생 전체에 걸쳐 단 한 번이라도 특정 정신장애를 경험한 적이 있는 비율"
+  },
+  {
+    "q": "★★☆ 생물의학적 관점의 주된 치료 개입 수단 [출처: 교재 7장 7.1절 생물의학적 관점, 13강 음성]",
+    "a": "신경전달물질의 불균형을 조절하기 위한 약물치료 및 생리적 의학 처치"
+  },
+  {
+    "q": "★★☆ 로저스(Rogers)의 가치조건(Conditions of worth) [출처: 교재 7장 7.1절 인간중심이론, 13강 강의록]",
+    "a": "타인과 사회의 인정을 받기 위해 부응해야 하는 타자 중심적 가치 기준으로, 억압 시 이상행동 유발"
+  },
+  {
+    "q": "★★☆ 이상행동 판별 시 4대 준거의 통합적 적용 필요성 [출처: 교재 7장 7.1절 판별기준 종합, 13강 강의록]",
+    "a": "단일 준거만으로는 오류 위험이 크므로 4가지 준거를 상호보완적으로 종합 고려하여 판단해야 함"
+  },
+  {
+    "q": "★★☆ DSM-5-TR (Text Revision, 2022) [출처: 교재 7장 7.1절 DSM-5-TR, 13강 강의록]",
+    "a": "2022년에 출간된 DSM-5의 최신 텍스트 수정 보완판으로 진단 지침과 유병률 역학 데이터를 최신화함"
+  },
+  {
+    "q": "★★☆ ICD 체계의 정신 및 행동 장애 코드 [출처: 교재 7장 7.1절 ICD, 13강 강의록]",
+    "a": "ICD-10 및 ICD-11에서 정신 및 행동 장애 영역은 'F 코드(F01~F99)'로 명명·분류됨"
+  },
+  {
+    "q": "★★☆ 지적장애 판별 시 결정적 준거 [출처: 교재 7장 7.1절 통계적 일탈, 13강 강의록]",
+    "a": "표준화 지능검사 결과가 통계적 평균(100)에서 2표준편차 이탈한 '통계적 평균 일탈(IQ 70 이하)' 준거"
+  },
+  {
+    "q": "★★☆ 이상심리학(Abnormal Psychology)의 학문적 정의 [출처: 교재 7장 7.1절 이상심리학, 13강 강의록]",
+    "a": "인간의 이상행동과 정신장애의 정의, 원인, 판별기준, 진단 및 치료방법을 학문적·경험적으로 연구하는 심리학 분야"
+  },
+  {
+    "q": "★☆☆ 적극적 정신건강 관점 (Positive Mental Health) [출처: 교재 7장 7.1절 정신건강의 이해, 13강 강의록]",
+    "a": "결함과 질병의 교정만을 목표로 하지 않고, 개인의 긍정적 강점과 안녕감(Well-being)의 증진을 도모함"
+  },
+  {
+    "q": "★☆☆ 한국의 인구 10만 명당 자살사망률 수준 [출처: 교재 7장 7.1절 정신건강 현황, 13강 강의록]",
+    "a": "인구 10만 명당 약 25.2~25.7명(2020~2022년 통계)으로 매우 높은 수준이며 사회적 개입이 절실함"
+  },
+  {
+    "q": "★☆☆ 시점유병률(Point Prevalence) vs 평생유병률 [출처: 교재 7장 7.1절 유병률, 13강 음성]",
+    "a": "시점유병률: 특정 조사 시점 현재 장애를 가지고 있는 비율 / 평생유병률: 일생 중 한 번이라도 경험한 비율"
+  },
+  {
+    "q": "★☆☆ 무이론적(Atheoretical) 진단 접근 [출처: 교재 7장 7.1절 DSM 진단 접근, 13강 강의록]",
+    "a": "특정 원인 심리이론에 가우지 않고 관찰 가능한 증상과 증후군 자체를 객관적으로 기술하는 방식"
+  },
+  {
+    "q": "★☆☆ DSM-5의 정신장애 대범주 개수 [출처: 교재 7장 7.1절 DSM-5, 13강 강의록]",
+    "a": "총 20개 대범주 (신경발달장애, 조현병 스펙트럼, 우울장애, 불안장애 등)"
+  },
+  {
+    "q": "★☆☆ 정신건강복지법 및 국가정신건강 실태조사 [출처: 교재 7장 7.1절 정신건강 현황, 13강 강의록]",
+    "a": "한국 성인의 정신질환 평생유병률은 약 27.8%로 4명 중 1명 이상이 평생 한 번 이상 정신장애를 경험함"
+  },
+  {
+    "q": "★☆☆ 정상과 비정상의 연속성 관점 (Continuum perspective) [출처: 교재 7장 7.1절 판별기준, 13강 음성]",
+    "a": "정상과 이상은 칼로 두부 자르듯 질적으로 단절된 것이 아니라 양적인 정도의 차이라는 관점"
+  },
+  {
+    "q": "★☆☆ 정신장애 진단분류의 과학적 연구 기초 기능 [출처: 교재 7장 7.1절 분류 기능, 13강 강의록]",
+    "a": "동일한 진단군에 속하는 집단을 대상으로 임상실험 및 원인 연구를 수행하는 과학적 기반을 제공함"
+  },
+  {
+    "q": "★☆☆ ICD와 DSM 체계의 조화 노력 [출처: 교재 7장 7.1절 진단체계, 13강 강의록]",
+    "a": "DSM-5는 세계보건기구의 ICD-11 진단 코드 및 범주 분류와 진단적 호환성을 가질 수 있도록 개정됨"
+  },
+  {
+    "q": "★☆☆ 13강 「정신건강의 이해」 학습 범위 [출처: 강 ↔ 교재 절 대응표]",
+    "a": "교재 7장 7.1절 (p.263~269), 워크북 7장 7.1절 (p.88~91), 13강 강의록 및 음성"}
+    ];</script>
+
+<!-- ④ 프로그램 본체: 수정하지 마세요. -->
+<script>
+    var deck = [];
+    var cur = 0;
+    var swapTimer = null;
+
+    document.title = LECTURE.no + '강 - ' + LECTURE.title;
+    document.getElementById('page-title').textContent = LECTURE.no + '강 플래시카드';
+    document.getElementById('page-sub').textContent = LECTURE.title;
+
+    var cardEl = document.getElementById('flashcard');
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* ---------- 데이터 검사 ---------- */
+    function validateCards(data) {
+        var errors = [];
+        var valid = [];
+
+        if (!Array.isArray(data) || data.length === 0) {
+            errors.push({ tag: '전체', text: 'cards가 비어 있거나 배열([ ])이 아닙니다.' });
+            return { errors: errors, valid: valid };
+        }
+
+        data.forEach(function (item, i) {
+            var tag = (i + 1) + '번 카드';
+            var problems = [];
+            if (!item || typeof item !== 'object') {
+                problems.push('카드가 { } 형식이 아닙니다.');
+            } else {
+                if (typeof item.q !== 'string' || !item.q.trim()) problems.push('q(질문)가 없거나 비어 있습니다.');
+                if (typeof item.a !== 'string' || !item.a.trim()) problems.push('a(정답)가 없거나 비어 있습니다.');
+            }
+            if (problems.length) {
+                problems.forEach(function (t) { errors.push({ tag: tag, text: t }); });
+            } else {
+                valid.push(item);
+            }
+        });
+
+        return { errors: errors, valid: valid };
+    }
+
+    function showProblemScreen(opts) {
+        document.getElementById('card-screen').style.display = 'none';
+        document.getElementById('problem-screen').style.display = 'block';
+        document.getElementById('problem-title').textContent = opts.title;
+        document.getElementById('problem-summary').textContent = opts.summary;
+
+        var list = document.getElementById('problem-list');
+        list.innerHTML = '';
+        opts.items.forEach(function (it) {
+            var li = document.createElement('li');
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = it.tag;
+            var txt = document.createElement('span');
+            txt.textContent = it.text;
+            li.appendChild(tag);
+            li.appendChild(txt);
+            list.appendChild(li);
+        });
+
+        var tips = document.getElementById('problem-tips');
+        tips.innerHTML = '';
+        if (opts.tips && opts.tips.length) {
+            tips.appendChild(document.createTextNode('자주 생기는 원인'));
+            var ul = document.createElement('ul');
+            opts.tips.forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = t;
+                ul.appendChild(li);
+            });
+            tips.appendChild(ul);
+            tips.style.display = 'block';
+        } else {
+            tips.style.display = 'none';
+        }
+
+        var btn = document.getElementById('partial-btn');
+        if (opts.buttonText) {
+            btn.textContent = opts.buttonText;
+            btn.style.display = 'block';
+            btn.onclick = opts.onButton;
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function startDeck(list) {
+        deck = list;
+        cur = 0;
+        document.getElementById('problem-screen').style.display = 'none';
+        document.getElementById('card-screen').style.display = 'block';
+        render();
+    }
+
+    function init() {
+        // 데이터 문법 오류: ③ 블록이 아예 실행되지 못한 경우
+        if (typeof cards === 'undefined') {
+            var items = window.__dataErrors.map(function (er) {
+                return { tag: er.line ? ('약 ' + er.line + '줄') : '오류', text: er.msg };
+            });
+            if (!items.length) items.push({ tag: '오류', text: 'cards를 찾을 수 없습니다. const cards = [ ... ]; 형태가 맞는지 확인하세요.' });
+            showProblemScreen({
+                title: '⚠️ 카드 데이터를 읽지 못했어요',
+                summary: '데이터 부분에 문법 오류가 있어서 프로그램이 멈췄습니다. 아래 줄 근처를 확인하세요.',
+                items: items,
+                tips: [
+                    '문장 안에 큰따옴표(")가 들어 있음 → 작은따옴표(\')로 바꾸기',
+                    '카드와 카드 사이 쉼표(,) 빠짐, 또는 맨 끝의 ]; 가 지워짐',
+                    '문장 한가운데에서 줄이 바뀜 (한 문장은 한 줄로)',
+                    '붙여넣은 글에 // 가 포함되어 뒷부분이 주석 처리됨'
+                ]
+            });
+            return;
+        }
+
+        var result = validateCards(cards);
+
+        if (result.errors.length === 0) {
+            startDeck(result.valid);
+            return;
+        }
+
+        var total = Array.isArray(cards) ? cards.length : 0;
+        var badCount = total - result.valid.length;
+        showProblemScreen({
+            title: '⚠️ 고칠 곳이 ' + result.errors.length + '군데 있어요',
+            summary: badCount > 0
+                ? '전체 ' + total + '장 중 ' + badCount + '장에 문제가 있습니다. 데이터를 고치고 새로고침하세요.'
+                : '카드 데이터를 확인하고 새로고침하세요.',
+            items: result.errors,
+            tips: ['카드마다 q(질문)와 a(정답)가 모두 있어야 하고, 둘 다 글자(따옴표로 감싼 문장)여야 합니다'],
+            buttonText: result.valid.length > 0 ? '오류 없는 ' + result.valid.length + '장만 먼저 보기' : null,
+            onButton: function () { startDeck(result.valid); }
+        });
+    }
+
+    /* ---------- 카드 표시 ---------- */
+    // 질문 앞의 ★(중요도)와 끝의 [출처]를 따로 떼어 작은 표식으로 보여줍니다.
+    function parseQuestion(raw) {
+        var text = raw.trim();
+        var stars = '';
+        var src = '';
+        var m = text.match(/^([★☆]{1,5})\s*/);
+        if (m) { stars = m[1]; text = text.slice(m[0].length); }
+        var s = text.match(/\s*\[([^\]]{1,120})\]\s*$/);
+        if (s) { src = s[1]; text = text.slice(0, s.index); }
+        if (!text.trim()) { text = raw.trim(); stars = ''; src = ''; }
+        return { stars: stars, src: src, text: text };
+    }
+
+    function render() {
+        var c = deck[cur];
+        var p = parseQuestion(c.q);
+
+        document.getElementById('question').textContent = p.text;
+        document.getElementById('answer').textContent = c.a.trim();
+        document.getElementById('source').textContent = p.src ? '출처: ' + p.src : '';
+
+        var starsEl = document.getElementById('stars');
+        if (p.stars) {
+            var filled = (p.stars.match(/★/g) || []).length;
+            starsEl.textContent = p.stars;
+            starsEl.setAttribute('aria-label', '중요도 ' + p.stars.length + '개 중 ' + filled + '개');
+            starsEl.style.display = 'inline-block';
+        } else {
+            starsEl.style.display = 'none';
+        }
+
+        document.getElementById('current').textContent = cur + 1;
+        document.getElementById('total').textContent = deck.length;
+        document.getElementById('bar').style.width = ((cur + 1) / deck.length * 100) + '%';
+    }
+
+    function flip() { cardEl.classList.toggle('flipped'); }
+
+    function go(delta) {
+        cur = (cur + delta + deck.length) % deck.length;
+        clearTimeout(swapTimer);
+        if (cardEl.classList.contains('flipped') && !reduceMotion()) {
+            // 먼저 카드를 앞면으로 돌리고, 옆면이 되어 안 보일 때 내용을 바꿔서 다음 정답이 미리 비치지 않게 함
+            cardEl.classList.remove('flipped');
+            swapTimer = setTimeout(render, 300);
+        } else {
+            cardEl.classList.remove('flipped');
+            render();
+        }
+    }
+    function nextCard() { go(1); }
+    function prevCard() { go(-1); }
+
+    cardEl.addEventListener('click', flip);
+
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('card-screen').style.display === 'none') return;
+        if (e.key === 'ArrowRight') { nextCard(); }
+        else if (e.key === 'ArrowLeft') { prevCard(); }
+        else if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName !== 'BUTTON') { e.preventDefault(); flip(); }
+    });
+
+    // 스마트폰: 좌우로 밀어서 넘기기
+    var touchX = null, touchY = null;
+    cardEl.addEventListener('touchstart', function (e) {
+        touchX = e.touches[0].clientX;
+        touchY = e.touches[0].clientY;
+    }, { passive: true });
+    cardEl.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        var dy = e.changedTouches[0].clientY - touchY;
+        touchX = null;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            if (dx < 0) nextCard(); else prevCard();
+        }
+    }, { passive: true });
+
+    init();
+</script>
+</body>
+</html>
